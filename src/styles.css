@@ -1,0 +1,162 @@
+/* ============================================================
+   RUMBO COCKPIT — design tokens & base
+   Insurance-broker instrument. Warm paper, burnt orange,
+   charcoal, emerald-for-healthy. Structural, hairline grid.
+   ============================================================ */
+
+@import url('https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,400;12..96,500;12..96,600;12..96,700;12..96,800&family=Geist:wght@400;500;600;700&family=Geist+Mono:wght@400;500;600&display=swap');
+
+:root {
+  --font-sans: 'Geist', ui-sans-serif, system-ui, sans-serif;
+  --font-mono: 'Geist Mono', ui-monospace, 'SF Mono', Menlo, monospace;
+  --font-display: 'Bricolage Grotesque', var(--font-sans);
+
+  /* ---- LIGHT (default) ---- */
+  --paper:        oklch(0.974 0.010 78);   /* app background, warm cream */
+  --paper-2:      oklch(0.962 0.012 74);   /* recessed / rail */
+  --panel:        oklch(0.998 0.004 84);   /* raised surfaces */
+  --panel-2:      oklch(0.987 0.007 80);   /* nested surfaces */
+  --ink:          oklch(0.235 0.016 50);   /* primary text */
+  --ink-2:        oklch(0.435 0.020 52);   /* secondary text */
+  --ink-3:        oklch(0.585 0.018 56);   /* tertiary / labels */
+  --hair:         oklch(0.885 0.012 72);   /* hairline borders */
+  --hair-2:       oklch(0.915 0.010 74);   /* faint dividers */
+
+  --orange:       oklch(0.585 0.180 37);   /* brand primary */
+  --orange-ink:   oklch(0.470 0.150 38);   /* orange text on light */
+  --orange-soft:  oklch(0.945 0.035 60);   /* orange wash */
+  --orange-soft2: oklch(0.905 0.060 58);
+
+  --emerald:      oklch(0.560 0.130 163);  /* healthy / on-course */
+  --emerald-ink:  oklch(0.470 0.110 164);
+  --emerald-soft: oklch(0.945 0.035 165);
+
+  --red:          oklch(0.560 0.205 27);   /* overdue money / critical */
+  --red-ink:      oklch(0.500 0.190 28);
+  --red-soft:     oklch(0.945 0.035 25);
+
+  --amber:        oklch(0.720 0.150 70);   /* caution */
+  --amber-ink:    oklch(0.520 0.130 62);
+  --amber-soft:   oklch(0.950 0.045 82);
+
+  --shadow-sm: 0 1px 0 oklch(0.235 0.016 50 / 0.04);
+  --shadow-pop: 0 12px 40px -12px oklch(0.235 0.016 50 / 0.28), 0 2px 8px -4px oklch(0.235 0.016 50 / 0.16);
+
+  --rail-w: 248px;
+  --bar-h: 60px;
+  --tabbar-h: 62px;
+  --radius: 12px;
+  --radius-sm: 8px;
+  --radius-lg: 18px;
+
+  color-scheme: light;
+}
+
+[data-theme="dark"] {
+  --paper:        oklch(0.178 0.006 62);
+  --paper-2:      oklch(0.158 0.006 62);
+  --panel:        oklch(0.222 0.008 62);
+  --panel-2:      oklch(0.255 0.009 60);
+  --ink:          oklch(0.965 0.004 82);
+  --ink-2:        oklch(0.760 0.012 64);
+  --ink-3:        oklch(0.640 0.014 60);
+  --hair:         oklch(1 0 0 / 0.11);
+  --hair-2:       oklch(1 0 0 / 0.06);
+
+  --orange:       oklch(0.685 0.175 42);
+  --orange-ink:   oklch(0.770 0.150 50);
+  --orange-soft:  oklch(0.685 0.175 42 / 0.16);
+  --orange-soft2: oklch(0.685 0.175 42 / 0.26);
+
+  --emerald:      oklch(0.700 0.150 164);
+  --emerald-ink:  oklch(0.780 0.140 165);
+  --emerald-soft: oklch(0.700 0.150 164 / 0.16);
+
+  --red:          oklch(0.680 0.190 26);
+  --red-ink:      oklch(0.760 0.170 28);
+  --red-soft:     oklch(0.680 0.190 26 / 0.18);
+
+  --amber:        oklch(0.800 0.150 78);
+  --amber-ink:    oklch(0.850 0.130 84);
+  --amber-soft:   oklch(0.800 0.150 78 / 0.16);
+
+  --shadow-sm: 0 1px 0 oklch(0 0 0 / 0.2);
+  --shadow-pop: 0 16px 48px -12px oklch(0 0 0 / 0.6), 0 2px 8px -4px oklch(0 0 0 / 0.4);
+
+  color-scheme: dark;
+}
+
+* { box-sizing: border-box; margin: 0; padding: 0; }
+
+html, body {
+  height: 100%;
+  background: var(--paper);
+  color: var(--ink);
+  font-family: var(--font-sans);
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}
+
+body { overflow: hidden; }
+
+#root { height: 100vh; }
+
+::selection { background: var(--orange-soft2); color: var(--ink); }
+
+/* ---- density ---- */
+[data-density="compact"] { --row-pad: 9px; --gap: 14px; }
+[data-density="regular"] { --row-pad: 13px; --gap: 18px; }
+:root { --row-pad: 13px; --gap: 18px; }
+
+/* ---- typography helpers ---- */
+.font-display { font-family: var(--font-display); font-weight: 700; letter-spacing: -0.02em; }
+.font-mono { font-family: var(--font-mono); font-feature-settings: "tnum" 1, "ss01" 1; }
+.tnum { font-variant-numeric: tabular-nums; }
+
+.eyebrow {
+  font-size: 10.5px;
+  font-weight: 600;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--ink-3);
+  font-family: var(--font-sans);
+}
+
+/* ---- scrollbars ---- */
+.scroll { scrollbar-width: thin; scrollbar-color: var(--hair) transparent; }
+.scroll::-webkit-scrollbar { width: 10px; height: 10px; }
+.scroll::-webkit-scrollbar-thumb { background: var(--hair); border-radius: 99px; border: 3px solid var(--paper); }
+.scroll::-webkit-scrollbar-track { background: transparent; }
+
+/* ---- focus ---- */
+:focus-visible { outline: 2px solid var(--orange); outline-offset: 2px; }
+
+button { font: inherit; color: inherit; cursor: pointer; background: none; border: none; }
+input { font: inherit; color: inherit; }
+
+/* ---- generic reveal ---- */
+@keyframes rumbo-rise {
+  from { opacity: 0; transform: translateY(8px); }
+  to { opacity: 1; transform: none; }
+}
+@keyframes rumbo-fade { from { opacity: 0; } to { opacity: 1; } }
+@keyframes rumbo-slide { from { transform: translateX(28px); opacity: 0.4; } to { transform: none; opacity: 1; } }
+@keyframes rumbo-sheet { from { transform: translateY(100%); } to { transform: translateY(0); } }
+@keyframes rumbo-pop { from { transform: scale(0.96); opacity: 0; } to { transform: none; opacity: 1; } }
+/* No page-level entrance animation: html-to-image / PDF capture can freeze on the
+   hidden first frame. Content must always be visible. */
+.rise { opacity: 1; }
+
+/* ---------- responsive grid/table helpers ----------
+   Driven by [data-mobile] on <html>, kept in sync with the same
+   useIsMobile() JS state that drives the tab bar / rail switch —
+   so real narrow viewports AND the window.__forceMobile QA override
+   both work identically. */
+html[data-mobile="true"] .rgrid { grid-template-columns: 1fr !important; }
+.rtable-wrap { }
+html[data-mobile="true"] .rtable-wrap { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+html[data-mobile="true"] .rtable { min-width: 640px; }
+html[data-mobile="true"] main { overflow: visible; }
+
+/* compass tick ornament */
+.tick-row { display: flex; align-items: center; gap: 6px; }

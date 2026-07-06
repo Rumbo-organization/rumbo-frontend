@@ -11,13 +11,13 @@ RUN corepack enable
 WORKDIR /app
 
 FROM base AS deps
-COPY package.json pnpm-lock.yaml* ./
-# Cambiar a `pnpm install --frozen-lockfile` cuando el lockfile esté commiteado
-RUN pnpm install
+# pnpm-workspace.yaml trae allowBuilds (esbuild) — sin él, pnpm 11 aborta el install
+COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
+RUN pnpm install --frozen-lockfile
 
 FROM deps AS dev
 COPY . .
-EXPOSE 5173
+EXPOSE 3000
 CMD ["pnpm", "dev", "--host", "0.0.0.0"]
 
 FROM deps AS build
