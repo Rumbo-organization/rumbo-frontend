@@ -93,8 +93,9 @@ function App() {
     bar = <InstrumentBar crumbs={[{ label: 'Cartera' }, { label: 'Pólizas' }]} openPalette={openP} isMobile={isMobile} onMenu={() => setMoreOpen(true)} right={<HeadingRight go={go} isMobile={isMobile} />} />;
     content = <ScreenPolizas go={go} />;
   } else if (route.name === 'detail') {
-    const p = window.RUMBO_DATA.POLICIES.find(x => x.id === route.params.id) || window.RUMBO_DATA.POLICIES[0];
-    bar = <InstrumentBar crumbs={[{ label: 'Pólizas', onClick: () => go('polizas') }, { label: p.num }]} openPalette={openP} isMobile={isMobile} onMenu={() => setMoreOpen(true)} right={<HeadingRight go={go} isMobile={isMobile} />} />;
+    // Crumb sin depender de la array de pólizas del bootstrap (Fase 3): el nº de
+    // póliza lo muestra el header de ScreenDetail, que la trae por su id.
+    bar = <InstrumentBar crumbs={[{ label: 'Pólizas', onClick: () => go('polizas') }, { label: 'Detalle' }]} openPalette={openP} isMobile={isMobile} onMenu={() => setMoreOpen(true)} right={<HeadingRight go={go} isMobile={isMobile} />} />;
     content = <ScreenDetail go={go} params={route.params} />;
   } else if (route.name === 'contactos') {
     bar = <InstrumentBar crumbs={[{ label: 'Cartera' }, { label: 'Contactos' }]} openPalette={openP} isMobile={isMobile} onMenu={() => setMoreOpen(true)} right={<HeadingRight go={go} isMobile={isMobile} />} />;

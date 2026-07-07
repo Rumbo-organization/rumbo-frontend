@@ -4,7 +4,7 @@
 function ScreenSiniestros({ go }) {
   const isMobile = useIsMobile();
   useRumboVersion(); // re-render tras crear/gestionar un siniestro
-  const { SINIESTROS, POLICIES } = window.RUMBO_DATA;
+  const { SINIESTROS } = window.RUMBO_DATA;
   const { daysFrom } = window.rumboFmt;
 
   const all = SINIESTROS;
@@ -15,7 +15,6 @@ function ScreenSiniestros({ go }) {
     { id: 'Cerrado', label: 'Cerrados', tone: 'emerald', hint: 'Resueltos · últimos 90 días' },
   ];
 
-  const polFor = (id) => POLICIES.find(p => p.id === id);
   const staleCount = all.filter(s => s.stale >= 10).length;
 
   return (
@@ -53,7 +52,6 @@ function ScreenSiniestros({ go }) {
                   {cards.length === 0 && <div style={{ padding: '20px 8px', textAlign: 'center', fontSize: 12.5, color: 'var(--ink-3)' }}>Sin siniestros.</div>}
                   {cards.map(s => {
                     const stale = s.stale >= 10;
-                    const pol = polFor(s.policyId);
                     return (
                       <div key={s.id} onClick={() => window.rumboUI?.openClaim(s.id)} style={{
                         background: 'var(--panel)', border: `1px solid ${stale ? 'var(--red)' : 'var(--hair)'}`, borderRadius: 10, padding: 13, cursor: 'pointer', boxShadow: 'var(--shadow-sm)', transition: 'transform .14s',
@@ -68,7 +66,7 @@ function ScreenSiniestros({ go }) {
                             </div>
                             <div className="font-mono" style={{ fontSize: 10.5, color: 'var(--ink-3)', marginTop: 2 }}>{s.num}</div>
                           </div>
-                          <RamoGlyph ramo={pol?.ramo || 'Automotor'} size={30} />
+                          <RamoGlyph ramo={s.ramo || 'Automotor'} size={30} />
                         </div>
                         <div style={{ display: 'flex', alignItems: 'center', gap: 8, paddingTop: 9, borderTop: '1px solid var(--hair-2)' }}>
                           <Avatar initials={s.client.split(',')[0].slice(0, 2).toUpperCase()} size={24} tone="neutral" />
