@@ -73,7 +73,14 @@ function App() {
     };
   }, []);
 
-  const setDark = (v) => setTweak('theme', v ? 'dark' : 'light');
+  const setDark = (v) => {
+    // Anima el cruce de colores solo durante la conmutación (clase temporal).
+    const el = document.documentElement;
+    el.classList.add('theme-anim');
+    clearTimeout(window.__themeAnimT);
+    window.__themeAnimT = setTimeout(() => el.classList.remove('theme-anim'), 480);
+    setTweak('theme', v ? 'dark' : 'light');
+  };
 
   // build chrome per route
   let content, bar;

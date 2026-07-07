@@ -157,6 +157,14 @@ input { font: inherit; color: inherit; }
 }
 @media (prefers-reduced-motion: reduce) { .skel { animation: none; } }
 
+/* ---- transición suave al cambiar de tema (light/dark) ----
+   Solo activa mientras se conmuta (clase temporal en <html>), para no ralentizar
+   hovers ni el resto de las interacciones. */
+html.theme-anim, html.theme-anim * {
+  transition: background-color .42s ease, color .42s ease, border-color .42s ease, fill .42s ease, stroke .42s ease !important;
+}
+@media (prefers-reduced-motion: reduce) { html.theme-anim, html.theme-anim * { transition: none !important; } }
+
 /* ---------- responsive grid/table helpers ----------
    Driven by [data-mobile] on <html>, kept in sync with the same
    useIsMobile() JS state that drives the tab bar / rail switch —
