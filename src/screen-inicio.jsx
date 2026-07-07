@@ -128,10 +128,11 @@ function MiniRow({ children, onClick, last }) {
 }
 
 function ScreenInicio({ go }) {
-  const { VENCIMIENTOS, SINIESTROS, CUOTAS, CROSSSELL, POLICIES, BOOK } = window.RUMBO_DATA;
+  const { VENCIMIENTOS, SINIESTROS, CUOTAS, CROSSSELL, BOOK } = window.RUMBO_DATA;
   const { ars, arsShort } = window.rumboFmt;
   const isMobile = useIsMobile();
-  const annual = POLICIES.reduce((a, p) => a + p.prima * (p.freq === 'Mensual' ? 12 : p.freq === 'Trimestral' ? 4 : 1), 0);
+  // Prima anual y conteo desde agregados server-side (BOOK), no de la array capada.
+  const annual = BOOK.primaAnual ?? 0;
   const nextV = VENCIMIENTOS.length ? VENCIMIENTOS.reduce((m, v) => (v.days < m.days ? v : m), VENCIMIENTOS[0]) : null;
   const cuotasTotal = CUOTAS.reduce((a, c) => a + c.amount, 0);
   // KPIs reales derivados de los datos del BFF (antes literales del mock).
@@ -191,7 +192,7 @@ function ScreenInicio({ go }) {
                   </div>
                 </div>
               </div>
-              <InstrumentCell label="Prima anual gestionada" value={arsShort(annual)} sub={<><Icon name="trending" size={13} style={{ color: 'var(--emerald)' }} /> {POLICIES.length} pólizas activas</>} />
+              <InstrumentCell label="Prima anual gestionada" value={arsShort(annual)} sub={<><Icon name="trending" size={13} style={{ color: 'var(--emerald)' }} /> {(BOOK.polizas ?? 0).toLocaleString('es-AR')} pólizas activas</>} />
               <InstrumentCell label="Vencen en 30 días" value={String(vence30)} tone="var(--orange-ink)" sub={nextV ? <>Próximo en {nextV.days} días</> : 'Sin vencimientos'} />
               <InstrumentCell label="Siniestros abiertos" value={String(openClaims.length)} sub={staleClaims > 0 ? <><span style={{ color: 'var(--red-ink)', fontWeight: 600 }}>{staleClaims}</span> sin movimiento</> : 'Todos al día'} />
               <InstrumentCell label="Cuotas vencidas" value={arsShort(cuotasTotal)} tone="var(--red-ink)" sub={<>{CUOTAS.length} cuotas por cobrar</>} />
