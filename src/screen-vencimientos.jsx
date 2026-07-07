@@ -1,33 +1,57 @@
 /* ============================================================
    RUMBO — Vencimientos (todos los waypoints de la cartera)
+   Fase 4 escalabilidad: la lista se pagina server-side vía
+   window.rumboApi.vencimientosPage (ventana/forma de pago en SQL). Ya no lee la
+   array capada del bootstrap. Ver roadmap/PLAN-ESCALABILIDAD.md.
    ============================================================ */
+const VENC_LIMIT = 50;
+const VENC_PAY_OPTIONS = ['Todas las formas', 'Cupón', 'Débito bancario', 'Tarjeta de crédito', 'Sin especificar'];
+const VENC_PAY_ENUM = { 'Cupón': 'cupon', 'Débito bancario': 'debito_bancario', 'Tarjeta de crédito': 'tarjeta_credito', 'Sin especificar': '__none__' };
+
 function ScreenVencimientos({ go }) {
   const isMobile = useIsMobile();
-  const { POLICIES } = window.RUMBO_DATA;
+  const version = useRumboVersion();
   const { ars, arsShort, daysFrom } = window.rumboFmt;
   const [seg, setSeg] = useState('todos');
   const [pay, setPay] = useState('Todas las formas');
-  const PAY_OPTIONS = ['Todas las formas', 'Cupón', 'Débito bancario', 'Tarjeta de crédito', 'Sin especificar'];
+  const [offset, setOffset] = useState(0);
+
+  const [data, setData] = useState([]);
+  const [total, setTotal] = useState(0);
+  const [totalPrima, setTotalPrima] = useState(0);
+  const [counts, setCounts] = useState({ d30: 0, d90: 0, all: 0 });
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+  const [reload, setReload] = useState(0);
 
   const MES = ['ene', 'feb', 'mar', 'abr', 'may', 'jun', 'jul', 'ago', 'sep', 'oct', 'nov', 'dic'];
   const MESL = ['Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio', 'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'];
 
-  let items = POLICIES.map(p => ({ ...p, days: daysFrom(p.renew), d: new Date(p.renew) }))
-    .sort((a, b) => a.days - b.days);
+  useEffect(() => {
+    let alive = true;
+    setLoading(true); setError(null);
+    const win = seg === 'todos' ? '' : seg;
+    const payParam = pay === 'Todas las formas' ? '' : (VENC_PAY_ENUM[pay] || '');
+    window.rumboApi.vencimientosPage({ window: win, pay: payParam, limit: VENC_LIMIT, offset })
+      .then(r => {
+        if (!alive) return;
+        setData(r.data || []); setTotal(r.total || 0); setTotalPrima(r.totalPrima || 0);
+        setCounts(r.counts || { d30: 0, d90: 0, all: 0 }); setLoading(false);
+      })
+      .catch(e => { if (alive) { setError(e); setLoading(false); } });
+    return () => { alive = false; };
+  }, [seg, pay, offset, version, reload]);
 
-  if (seg === '30') items = items.filter(p => p.days <= 30);
-  if (seg === '90') items = items.filter(p => p.days <= 90);
-  // Forma de pago (del BFF; null = "Sin especificar"). Útil para separar débito
-  // automático (renueva solo) de cupón (requiere gestión de cobro).
-  if (pay !== 'Todas las formas') items = items.filter(p => (p.paymentMethod || 'Sin especificar') === pay);
+  const setFilter = (fn) => { fn(); setOffset(0); };
 
   const segs = [
-    { id: '30', label: 'Próximos 30 días', n: POLICIES.filter(p => daysFrom(p.renew) <= 30).length },
-    { id: '90', label: '90 días', n: POLICIES.filter(p => daysFrom(p.renew) <= 90).length },
-    { id: 'todos', label: 'Todo el año', n: POLICIES.length },
+    { id: '30', label: 'Próximos 30 días', n: counts.d30 },
+    { id: '90', label: '90 días', n: counts.d90 },
+    { id: 'todos', label: 'Todo el año', n: counts.all },
   ];
 
-  // group by year-month
+  // Ítems de la página actual con días + agrupados por año-mes (para el timeline).
+  const items = data.map(p => ({ ...p, days: daysFrom(p.renew), d: new Date(p.renew) }));
   const groups = [];
   items.forEach(p => {
     const key = `${p.d.getFullYear()}-${p.d.getMonth()}`;
@@ -36,21 +60,32 @@ function ScreenVencimientos({ go }) {
     g.items.push(p);
   });
 
-  const totalPrima = items.reduce((a, p) => a + p.prima, 0);
+  const from = total === 0 ? 0 : offset + 1;
+  const to = Math.min(offset + VENC_LIMIT, total);
 
   return (
     <div className="scroll rise" style={{ overflowY: 'auto', height: '100%', padding: isMobile ? '18px 16px 40px' : '30px 34px 60px' }}>
       <div style={{ maxWidth: 1080, margin: '0 auto' }}>
         <PageHead eyebrow="El rumbo · timeline" tick={3} title="Vencimientos"
-          sub={<>Cada renovación es un waypoint. <strong className="font-mono tnum" style={{ color: 'var(--ink)' }}>{items.length}</strong> por delante · <strong className="font-mono tnum" style={{ color: 'var(--ink)' }}>{arsShort(totalPrima)}</strong> en prima a renovar</>}
+          sub={<>Cada renovación es un waypoint. <strong className="font-mono tnum" style={{ color: 'var(--ink)' }}>{total.toLocaleString('es-AR')}</strong> por delante · <strong className="font-mono tnum" style={{ color: 'var(--ink)' }}>{arsShort(totalPrima)}</strong> en prima a renovar</>}
           actions={<><Btn variant="ghost" icon="download">Exportar</Btn><Btn variant="primary" icon="bell">Recordatorios</Btn></>} />
 
         <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 22, flexWrap: 'wrap' }}>
-          <Segmented segs={segs} value={seg} onChange={setSeg} />
-          <div style={{ minWidth: 200 }}><SelectInput value={pay} onChange={setPay} options={PAY_OPTIONS} /></div>
+          <Segmented segs={segs} value={seg} onChange={(v) => setFilter(() => setSeg(v))} />
+          <div style={{ minWidth: 200 }}><SelectInput value={pay} onChange={(v) => setFilter(() => setPay(v))} options={VENC_PAY_OPTIONS} /></div>
         </div>
 
-        {/* timeline */}
+        {loading ? (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+            {Array.from({ length: 6 }).map((_, i) => <span key={i} className="skel" style={{ width: '100%', height: 64, borderRadius: 'var(--radius)' }} />)}
+          </div>
+        ) : error ? (
+          <div style={{ padding: 50, textAlign: 'center', color: 'var(--red-ink)', fontSize: 13.5 }}>
+            No pudimos cargar los vencimientos. <button onClick={() => setReload(x => x + 1)} style={{ color: 'var(--orange-ink)', fontWeight: 600 }}>Reintentar</button>
+          </div>
+        ) : total === 0 ? (
+          <div style={{ padding: 60, textAlign: 'center', color: 'var(--ink-3)', fontSize: 14 }}>Sin vencimientos en este filtro. Horizonte despejado.</div>
+        ) : (
         <div style={{ position: 'relative' }}>
           {/* the course spine */}
           <div style={{ position: 'absolute', left: isMobile ? 39 : 71, top: 10, bottom: 10, width: 2, background: 'linear-gradient(var(--hair), var(--hair-2))' }} />
@@ -102,7 +137,6 @@ function ScreenVencimientos({ go }) {
                     }}
                       onMouseEnter={e => { e.currentTarget.style.transform = 'translateX(3px)'; e.currentTarget.style.borderColor = dotColor; }}
                       onMouseLeave={e => { e.currentTarget.style.transform = 'none'; e.currentTarget.style.borderColor = 'var(--hair)'; }}>
-                      {/* connector dot onto spine */}
                       <span style={{ position: 'absolute', left: -25, top: '50%', marginTop: -5, width: 10, height: 10, borderRadius: 99, background: dotColor, zIndex: 2, boxShadow: '0 0 0 3px var(--paper)' }} />
                       <RamoGlyph ramo={p.ramo} size={38} />
                       <div style={{ flex: 1, minWidth: 0 }}>
@@ -121,14 +155,23 @@ function ScreenVencimientos({ go }) {
               </div>
             </div>
           ))}
-
-          {/* horizon end-cap */}
-          <div style={{ display: 'flex', alignItems: 'center', gap: isMobile ? 10 : 18, marginTop: 14 }}>
-            <div style={{ width: isMobile ? 40 : 54 }} />
-            <div style={{ width: 14, height: 14, borderRadius: 99, background: 'var(--paper)', border: '2px dashed var(--hair)', flexShrink: 0, zIndex: 2 }} />
-            <span className="eyebrow" style={{ display: 'flex', alignItems: 'center', gap: 6 }}><Icon name="flag" size={13} style={{ color: 'var(--emerald)' }} /> Horizonte despejado</span>
-          </div>
         </div>
+        )}
+
+        {/* paginación */}
+        {!loading && !error && total > 0 && (
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, marginTop: 20, flexWrap: 'wrap' }}>
+            <span style={{ fontSize: 12.5, color: 'var(--ink-3)' }}>
+              Mostrando <strong className="font-mono tnum" style={{ color: 'var(--ink-2)' }}>{from.toLocaleString('es-AR')}–{to.toLocaleString('es-AR')}</strong> de <strong className="font-mono tnum" style={{ color: 'var(--ink-2)' }}>{total.toLocaleString('es-AR')}</strong>
+            </span>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+              <Btn size="sm" variant="ghost" onClick={() => setOffset(o => Math.max(0, o - VENC_LIMIT))}
+                style={{ opacity: offset <= 0 ? 0.4 : 1, pointerEvents: offset <= 0 ? 'none' : 'auto' }}>Anterior</Btn>
+              <Btn size="sm" variant="ghost" iconRight="chevronRight" onClick={() => setOffset(o => o + VENC_LIMIT)}
+                style={{ opacity: to >= total ? 0.4 : 1, pointerEvents: to >= total ? 'none' : 'auto' }}>Siguiente</Btn>
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );
