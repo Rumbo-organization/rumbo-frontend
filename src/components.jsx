@@ -315,13 +315,12 @@ function Rail({ route, go, dark, setDark }) {
     }}>
       <div style={{ padding: '4px 8px 16px' }}><BrandMark onClick={() => go('inicio')} /></div>
 
-      {/* org switcher */}
-      <button style={{
+      {/* org badge — v0.1 es single-org (F-005). Identidad estática, no switcher:
+         sin chevron ni afronto de botón hasta que multi-org llegue en v0.2+. */}
+      <div style={{
         display: 'flex', alignItems: 'center', gap: 10, padding: '8px 10px', borderRadius: 10,
-        border: '1px solid var(--hair)', background: 'var(--panel)', width: '100%', marginBottom: 14, textAlign: 'left',
-      }}
-        onMouseEnter={e => e.currentTarget.style.borderColor = 'var(--ink-3)'}
-        onMouseLeave={e => e.currentTarget.style.borderColor = 'var(--hair)'}>
+        border: '1px solid var(--hair)', background: 'var(--panel)', width: '100%', marginBottom: 14,
+      }}>
         <span style={{ width: 26, height: 26, borderRadius: 7, background: 'var(--ink)', color: 'var(--paper)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
           <Icon name="building2" size={15} stroke={2} />
         </span>
@@ -329,8 +328,7 @@ function Rail({ route, go, dark, setDark }) {
           <div style={{ fontSize: 12.5, fontWeight: 600, color: 'var(--ink)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{rumboIdentity().orgName}</div>
           <div style={{ fontSize: 10.5, color: 'var(--ink-3)' }}>Organización</div>
         </div>
-        <Icon name="chevronDown" size={14} style={{ color: 'var(--ink-3)' }} />
-      </button>
+      </div>
 
       <nav className="scroll" style={{ display: 'flex', flexDirection: 'column', gap: 2, flex: 1, overflowY: 'auto', marginRight: -6, paddingRight: 6 }}>
         {NAV_GROUPS.map((group, gi) => (
@@ -516,9 +514,9 @@ function MobileMoreSheet({ open, onClose, route, go, dark, setDark }) {
           <BrandMark size={26} onClick={() => { go('inicio'); onClose(); }} />
         </div>
 
-        {/* org switcher */}
+        {/* org badge — single-org (F-005), identidad estática sin switcher */}
         <div style={{ padding: '14px 18px 4px' }}>
-          <button style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '9px 11px', borderRadius: 10, border: '1px solid var(--hair)', background: 'var(--panel)', width: '100%', textAlign: 'left' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '9px 11px', borderRadius: 10, border: '1px solid var(--hair)', background: 'var(--panel)', width: '100%' }}>
             <span style={{ width: 26, height: 26, borderRadius: 7, background: 'var(--ink)', color: 'var(--paper)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
               <Icon name="building2" size={15} stroke={2} />
             </span>
@@ -526,8 +524,7 @@ function MobileMoreSheet({ open, onClose, route, go, dark, setDark }) {
               <div style={{ fontSize: 12.5, fontWeight: 600, color: 'var(--ink)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{rumboIdentity().orgName}</div>
               <div style={{ fontSize: 10.5, color: 'var(--ink-3)' }}>Organización</div>
             </div>
-            <Icon name="chevronDown" size={14} style={{ color: 'var(--ink-3)' }} />
-          </button>
+          </div>
         </div>
 
         <div className="scroll" style={{ flex: 1, overflowY: 'auto', padding: '10px 18px 8px' }}>

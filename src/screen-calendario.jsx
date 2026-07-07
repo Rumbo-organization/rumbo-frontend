@@ -410,7 +410,7 @@ function MonthGrid({ grid, byDay, hoy, selected, onSelect }) {
               minHeight: 92, display: 'flex', flexDirection: 'column', gap: 4, padding: 6, cursor: 'pointer',
               borderRight: i % 7 !== 6 ? '1px solid var(--hair)' : 'none',
               borderBottom: i < grid.length - 7 ? '1px solid var(--hair)' : 'none',
-              background: isSel ? 'var(--orange-soft)' : (!cell.inMonth ? 'var(--paper-2)' : 'transparent'),
+              background: isSel ? 'var(--orange-soft)' : 'transparent',
               transition: 'background .12s',
             }}>
               <span style={{
