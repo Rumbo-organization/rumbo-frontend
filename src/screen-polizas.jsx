@@ -2,7 +2,7 @@
    RUMBO — Pólizas (the book of business)
    ============================================================ */
 function ScreenPolizas({ go }) {
-  const { POLICIES, VENCIMIENTOS, SINIESTROS = [] } = window.RUMBO_DATA;
+  const { POLICIES, VENCIMIENTOS, SINIESTROS = [], COUNTS = {} } = window.RUMBO_DATA;
   const { ars, arsShort, daysFrom } = window.rumboFmt;
   const [seg, setSeg] = useState('todas');
   const [pay, setPay] = useState('todos');
@@ -96,6 +96,14 @@ function ScreenPolizas({ go }) {
               style={{ border: 'none', outline: 'none', background: 'transparent', fontSize: 13, flex: 1, minWidth: 0 }} />
           </div>
         </div>
+
+        {/* aviso de truncado: la lista viene capada por el bootstrap (ver plan de escalabilidad) */}
+        {COUNTS.policies && COUNTS.policies.shown < COUNTS.policies.total && (
+          <div style={{ display: 'flex', alignItems: 'center', gap: 9, padding: '10px 14px', marginBottom: 12, borderRadius: 10, background: 'var(--amber-soft)', border: '1px solid var(--amber)', fontSize: 12.5, color: 'var(--amber-ink)' }}>
+            <Icon name="alert" size={15} stroke={2} style={{ flexShrink: 0 }} />
+            <span>Mostrando <strong className="tnum">{COUNTS.policies.shown.toLocaleString('es-AR')}</strong> de <strong className="tnum">{COUNTS.policies.total.toLocaleString('es-AR')}</strong> pólizas. El listado completo con paginación está en camino; por ahora usá la búsqueda y los filtros.</span>
+          </div>
+        )}
 
         {/* table */}
         <Panel pad={false} style={{ overflow: 'hidden' }}>

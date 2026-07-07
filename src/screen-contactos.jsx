@@ -4,7 +4,7 @@
 function ScreenContactos({ go, params }) {
   const isMobile = useIsMobile();
   useRumboVersion(); // re-render tras crear un contacto
-  const { CONTACTS, POLICIES, SINIESTROS } = window.RUMBO_DATA;
+  const { CONTACTS, POLICIES, SINIESTROS, COUNTS = {} } = window.RUMBO_DATA;
   const { ars, arsShort, daysFrom } = window.rumboFmt;
   const [seg, setSeg] = useState('todos');
   const [q, setQ] = useState('');
@@ -99,6 +99,13 @@ function ScreenContactos({ go, params }) {
           <Segmented segs={segs} value={seg} onChange={setSeg} />
           <SearchBox q={q} setQ={setQ} placeholder="Buscar por nombre o DNI…" />
         </div>
+
+        {COUNTS.contacts && COUNTS.contacts.shown < COUNTS.contacts.total && (
+          <div style={{ display: 'flex', alignItems: 'center', gap: 9, padding: '10px 14px', marginBottom: 16, borderRadius: 10, background: 'var(--amber-soft)', border: '1px solid var(--amber)', fontSize: 12.5, color: 'var(--amber-ink)' }}>
+            <Icon name="alert" size={15} stroke={2} style={{ flexShrink: 0 }} />
+            <span>Mostrando <strong className="tnum">{COUNTS.contacts.shown.toLocaleString('es-AR')}</strong> de <strong className="tnum">{COUNTS.contacts.total.toLocaleString('es-AR')}</strong> asegurados. El listado completo con paginación está en camino; por ahora usá la búsqueda (nombre o DNI).</span>
+          </div>
+        )}
 
         <div className="rgrid" style={{ display: 'grid', gridTemplateColumns: '1.4fr 1fr', gap: 24, alignItems: 'start' }}>
           {/* list */}
