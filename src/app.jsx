@@ -222,13 +222,6 @@ function LegalDrawer({ which, onClose }) {
         ['Rol de Rumbo', 'Rumbo facilita la gestión documental del reclamo pero no sustituye los canales oficiales de defensa del consumidor de seguros.'],
       ],
     },
-    soporte: {
-      title: 'Soporte', eyebrow: 'Estamos para ayudarte',
-      body: [
-        ['Contacto', 'Escribinos a soporte@rumbo.com.ar o por WhatsApp al +54 351 000-0000, de lunes a viernes de 9 a 18 h.'],
-        ['Centro de ayuda', 'Guías, tutoriales y preguntas frecuentes disponibles dentro de la app.'],
-      ],
-    },
   };
   const c = CONTENT[which];
   return (
@@ -257,7 +250,6 @@ function AppFooter({ go, isMobile }) {
     { label: 'Términos y Condiciones', k: 'terminos' },
     { label: 'Política de Privacidad', k: 'privacidad' },
     { label: 'Defensa del Asegurado', k: 'defensa' },
-    { label: 'Soporte', k: 'soporte' },
   ];
   return (
     <footer style={{
