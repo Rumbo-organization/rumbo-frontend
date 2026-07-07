@@ -168,17 +168,34 @@ const __TWEAKS_STYLE = `
 `;
 
 // ── useTweaks ───────────────────────────────────────────────────────────────
-// Single source of truth for tweak values. setTweak persists via the host
-// (__edit_mode_set_keys → host rewrites the EDITMODE block on disk).
+// Single source of truth for tweak values. In el editor de diseño se persistía
+// vía el host (__edit_mode_set_keys reescribía el bloque EDITMODE en disco); en
+// la app desplegada no hay host, así que persistimos en localStorage para que el
+// tema/densidad/acento sobrevivan al reload. Ver el script pre-paint en index.html.
+const TWEAKS_STORAGE_KEY = 'rumbo:tweaks';
+
+function loadTweaks(defaults) {
+  try {
+    const saved = JSON.parse(localStorage.getItem(TWEAKS_STORAGE_KEY) || '{}');
+    return { ...defaults, ...saved };
+  } catch {
+    return defaults;
+  }
+}
+
 function useTweaks(defaults) {
-  const [values, setValues] = React.useState(defaults);
+  const [values, setValues] = React.useState(() => loadTweaks(defaults));
   // Accepts either setTweak('key', value) or setTweak({ key: value, ... }) so a
   // useState-style call doesn't write a "[object Object]" key into the persisted
   // JSON block.
   const setTweak = React.useCallback((keyOrEdits, val) => {
     const edits = typeof keyOrEdits === 'object' && keyOrEdits !== null
       ? keyOrEdits : { [keyOrEdits]: val };
-    setValues((prev) => ({ ...prev, ...edits }));
+    setValues((prev) => {
+      const next = { ...prev, ...edits };
+      try { localStorage.setItem(TWEAKS_STORAGE_KEY, JSON.stringify(next)); } catch {}
+      return next;
+    });
     window.parent.postMessage({ type: '__edit_mode_set_keys', edits }, '*');
     // Same-window signal so in-page listeners (deck-stage rail thumbnails)
     // can react — the parent message only reaches the host, not peers.

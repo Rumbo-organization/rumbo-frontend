@@ -5,6 +5,20 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Rumbo · Cockpit</title>
   <link rel="icon" href="/assets/symbol-light.png" />
+  <script>
+    // Pre-paint: aplica tema/densidad/acento guardados antes de que monte React,
+    // para evitar el flash de tema claro al recargar. Espeja lo que hace useTweaks
+    // (clave 'rumbo:tweaks'). Ver src/tweaks-panel.jsx.
+    (function () {
+      try {
+        var t = JSON.parse(localStorage.getItem('rumbo:tweaks') || '{}');
+        var el = document.documentElement;
+        el.setAttribute('data-theme', t.theme === 'dark' ? 'dark' : 'light');
+        if (t.density) el.setAttribute('data-density', t.density);
+        if (t.accent) el.style.setProperty('--orange', t.accent);
+      } catch (e) {}
+    })();
+  </script>
 </head>
 <body>
   <div id="root"></div>
