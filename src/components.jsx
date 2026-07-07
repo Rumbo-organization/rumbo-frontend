@@ -389,10 +389,17 @@ function Rail({ route, go, dark, setDark }) {
           return (
             <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '8px 8px 2px', borderTop: '1px solid var(--hair-2)' }}>
               <Avatar initials={me.initials} size={32} />
-              <div style={{ lineHeight: 1.25, minWidth: 0 }}>
+              <div style={{ flex: 1, lineHeight: 1.25, minWidth: 0 }}>
                 <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--ink)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{me.name}</div>
                 <div style={{ fontSize: 11, color: 'var(--ink-3)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{me.roleLabel}{me.matricula ? ` · Matrícula ${me.matricula}` : ''}</div>
               </div>
+              <button title="Cerrar sesión" aria-label="Cerrar sesión"
+                onClick={() => window.rumboAuth?.signOut().finally(() => window.location.reload())}
+                style={{ width: 32, height: 32, borderRadius: 8, border: '1px solid var(--hair)', background: 'var(--panel)', color: 'var(--ink-3)', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, transition: 'all .14s' }}
+                onMouseEnter={e => { e.currentTarget.style.color = 'var(--red-ink)'; e.currentTarget.style.borderColor = 'var(--red)'; }}
+                onMouseLeave={e => { e.currentTarget.style.color = 'var(--ink-3)'; e.currentTarget.style.borderColor = 'var(--hair)'; }}>
+                <Icon name="logout" size={16} stroke={1.9} />
+              </button>
             </div>
           );
         })()}
@@ -560,10 +567,15 @@ function MobileMoreSheet({ open, onClose, route, go, dark, setDark }) {
             return (
               <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '6px 4px' }}>
                 <Avatar initials={me.initials} size={32} />
-                <div style={{ lineHeight: 1.25, minWidth: 0 }}>
+                <div style={{ flex: 1, lineHeight: 1.25, minWidth: 0 }}>
                   <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--ink)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{me.name}</div>
                   <div style={{ fontSize: 11, color: 'var(--ink-3)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{me.roleLabel}{me.matricula ? ` · Matrícula ${me.matricula}` : ''}</div>
                 </div>
+                <button title="Cerrar sesión" aria-label="Cerrar sesión"
+                  onClick={() => window.rumboAuth?.signOut().finally(() => window.location.reload())}
+                  style={{ width: 34, height: 34, borderRadius: 8, border: '1px solid var(--hair)', background: 'var(--panel)', color: 'var(--ink-3)', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                  <Icon name="logout" size={16} stroke={1.9} />
+                </button>
               </div>
             );
           })()}
