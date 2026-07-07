@@ -8,6 +8,9 @@ function ScreenContactos({ go, params }) {
   const { ars, arsShort, daysFrom } = window.rumboFmt;
   const [seg, setSeg] = useState('todos');
   const [q, setQ] = useState('');
+  // En mobile el resumen del contacto se muestra en un drawer (no cabe la
+  // columna de detalle al lado de la lista). En desktop va inline a la derecha.
+  const [drawerOpen, setDrawerOpen] = useState(false);
   // Contacto a preseleccionar (p.ej. "Ver ficha" desde una póliza). Solo es un
   // selector sobre CONTACTS, que el BFF ya scopeó por org/cartera (RLS): un id
   // ajeno no está en la lista → cae al primer contacto propio, nunca filtra data.
@@ -40,6 +43,51 @@ function ScreenContactos({ go, params }) {
 
   const current = enriched.find(c => c.id === sel) || list[0] || enriched[0];
 
+  // Contenido del resumen — se renderiza inline (desktop) o dentro del drawer (mobile).
+  const resumen = current && (
+    <>
+      <Panel>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 13, marginBottom: 16 }}>
+          <Avatar initials={current.initials} size={50} tone={current.tags.includes('Prospecto') ? 'neutral' : 'orange'} />
+          <div style={{ flex: 1 }}>
+            <h2 className="font-display" style={{ fontSize: 21, letterSpacing: '-0.02em', lineHeight: 1.1 }}>{current.name}</h2>
+            <div style={{ fontSize: 12.5, color: 'var(--ink-3)', marginTop: 3 }}>{current.kind} · cliente desde {current.since}</div>
+          </div>
+        </div>
+        <div style={{ display: 'flex', gap: 8, marginBottom: 10 }}>
+          <Btn size="sm" variant="primary" icon="whatsapp" style={{ flex: 1 }}>WhatsApp</Btn>
+          <Btn size="sm" variant="soft" icon="phone" style={{ flex: 1 }}>Llamar</Btn>
+        </div>
+        <Btn size="sm" variant="ghost" icon="users" style={{ width: '100%', marginBottom: 16 }} onClick={() => go('contacto', { id: current.id })}>Ver ficha completa</Btn>
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 1, background: 'var(--hair-2)', border: '1px solid var(--hair)', borderRadius: 10, overflow: 'hidden' }}>
+          <MiniStat label="Prima anual" value={arsShort(current.prima)} />
+          <MiniStat label="Pólizas" value={current.pols.length} />
+          <MiniStat label="Siniestros" value={current.claims} tone={current.claims ? 'var(--amber-ink)' : undefined} />
+          <MiniStat label="Teléfono" value={current.phone} small />
+        </div>
+      </Panel>
+
+      <Panel>
+        <SectionHead label="Pólizas del contacto" action={<Btn size="sm" variant="bare" iconRight="arrowRight" onClick={() => go('polizas')}>Cartera</Btn>} />
+        {current.pols.length === 0 ? (
+          <div style={{ padding: '6px 0', fontSize: 13, color: 'var(--ink-3)' }}>Sin pólizas. Oportunidad de primera venta.</div>
+        ) : current.pols.map((p, i) => (
+          <div key={p.id} onClick={() => go('detail', { id: p.id })} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '11px 0', borderBottom: i === current.pols.length - 1 ? 'none' : '1px solid var(--hair-2)', cursor: 'pointer' }}
+            onMouseEnter={e => e.currentTarget.style.opacity = 0.7} onMouseLeave={e => e.currentTarget.style.opacity = 1}>
+            <RamoGlyph ramo={p.ramo} size={32} />
+            <div style={{ flex: 1, minWidth: 0 }}>
+              <div style={{ fontSize: 13, fontWeight: 600 }}>{p.ramo} · {p.insurer}</div>
+              <div className="font-mono" style={{ fontSize: 11, color: 'var(--ink-3)' }}>{p.num}</div>
+            </div>
+            <Pill tone={urgencyTone(daysFrom(p.renew))} style={{ fontSize: 10 }}>{daysFrom(p.renew) <= 30 ? `${daysFrom(p.renew)}d` : 'Vigente'}</Pill>
+          </div>
+        ))}
+      </Panel>
+    </>
+  );
+
+  const selectContact = (id) => { setSel(id); if (isMobile) setDrawerOpen(true); };
+
   return (
     <div className="scroll rise" style={{ overflowY: 'auto', height: '100%', padding: isMobile ? '18px 16px 40px' : '30px 34px 60px' }}>
       <div style={{ maxWidth: 1240, margin: '0 auto' }}>
@@ -56,9 +104,9 @@ function ScreenContactos({ go, params }) {
           {/* list */}
           <Panel pad={false} style={{ overflow: 'hidden' }}>
             {list.map((c, i) => {
-              const active = c.id === sel;
+              const active = c.id === sel && !isMobile;
               return (
-                <div key={c.id} onClick={() => setSel(c.id)} style={{
+                <div key={c.id} onClick={() => selectContact(c.id)} style={{
                   display: 'flex', alignItems: 'center', gap: 13, padding: '13px 16px',
                   borderBottom: i === list.length - 1 ? 'none' : '1px solid var(--hair-2)',
                   cursor: 'pointer', background: active ? 'var(--orange-soft)' : 'transparent',
@@ -80,54 +128,28 @@ function ScreenContactos({ go, params }) {
                     <div className="font-mono tnum" style={{ fontSize: 12.5, fontWeight: 600, color: 'var(--ink)', whiteSpace: 'nowrap' }}>{c.pols.length} pól.</div>
                     {c.nextRenew != null && c.nextRenew <= 30 && <Pill tone={urgencyTone(c.nextRenew)} style={{ fontSize: 9.5, marginTop: 4, whiteSpace: 'nowrap' }}>Vence {c.nextRenew}d</Pill>}
                   </div>
+                  {isMobile && <Icon name="chevronRight" size={16} style={{ color: 'var(--ink-3)', flexShrink: 0 }} />}
                 </div>
               );
             })}
             {list.length === 0 && <div style={{ padding: 50, textAlign: 'center', color: 'var(--ink-3)', fontSize: 14 }}>Sin contactos.</div>}
           </Panel>
 
-          {/* detail card */}
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 24, position: 'sticky', top: 0 }}>
-            <Panel>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 13, marginBottom: 16 }}>
-                <Avatar initials={current.initials} size={50} tone={current.tags.includes('Prospecto') ? 'neutral' : 'orange'} />
-                <div style={{ flex: 1 }}>
-                  <h2 className="font-display" style={{ fontSize: 21, letterSpacing: '-0.02em', lineHeight: 1.1 }}>{current.name}</h2>
-                  <div style={{ fontSize: 12.5, color: 'var(--ink-3)', marginTop: 3 }}>{current.kind} · cliente desde {current.since}</div>
-                </div>
-              </div>
-              <div style={{ display: 'flex', gap: 8, marginBottom: 10 }}>
-                <Btn size="sm" variant="primary" icon="whatsapp" style={{ flex: 1 }}>WhatsApp</Btn>
-                <Btn size="sm" variant="soft" icon="phone" style={{ flex: 1 }}>Llamar</Btn>
-              </div>
-              <Btn size="sm" variant="ghost" icon="users" style={{ width: '100%', marginBottom: 16 }} onClick={() => go('contacto', { id: current.id })}>Ver ficha completa</Btn>
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 1, background: 'var(--hair-2)', border: '1px solid var(--hair)', borderRadius: 10, overflow: 'hidden' }}>
-                <MiniStat label="Prima anual" value={arsShort(current.prima)} />
-                <MiniStat label="Pólizas" value={current.pols.length} />
-                <MiniStat label="Siniestros" value={current.claims} tone={current.claims ? 'var(--amber-ink)' : undefined} />
-                <MiniStat label="Teléfono" value={current.phone} small />
-              </div>
-            </Panel>
-
-            <Panel>
-              <SectionHead label="Pólizas del contacto" action={<Btn size="sm" variant="bare" iconRight="arrowRight" onClick={() => go('polizas')}>Cartera</Btn>} />
-              {current.pols.length === 0 ? (
-                <div style={{ padding: '6px 0', fontSize: 13, color: 'var(--ink-3)' }}>Sin pólizas. Oportunidad de primera venta.</div>
-              ) : current.pols.map((p, i) => (
-                <div key={p.id} onClick={() => go('detail', { id: p.id })} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '11px 0', borderBottom: i === current.pols.length - 1 ? 'none' : '1px solid var(--hair-2)', cursor: 'pointer' }}
-                  onMouseEnter={e => e.currentTarget.style.opacity = 0.7} onMouseLeave={e => e.currentTarget.style.opacity = 1}>
-                  <RamoGlyph ramo={p.ramo} size={32} />
-                  <div style={{ flex: 1, minWidth: 0 }}>
-                    <div style={{ fontSize: 13, fontWeight: 600 }}>{p.ramo} · {p.insurer}</div>
-                    <div className="font-mono" style={{ fontSize: 11, color: 'var(--ink-3)' }}>{p.num}</div>
-                  </div>
-                  <Pill tone={urgencyTone(daysFrom(p.renew))} style={{ fontSize: 10 }}>{daysFrom(p.renew) <= 30 ? `${daysFrom(p.renew)}d` : 'Vigente'}</Pill>
-                </div>
-              ))}
-            </Panel>
-          </div>
+          {/* detail card — inline solo en desktop; en mobile va en el drawer */}
+          {!isMobile && (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 24, position: 'sticky', top: 0 }}>
+              {resumen}
+            </div>
+          )}
         </div>
       </div>
+
+      {/* Resumen del contacto en drawer (solo mobile) */}
+      {isMobile && (
+        <Drawer open={drawerOpen} onClose={() => setDrawerOpen(false)} eyebrow="Resumen del contacto" title={current ? current.name : 'Contacto'}>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 18 }}>{resumen}</div>
+        </Drawer>
+      )}
     </div>
   );
 }

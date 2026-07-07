@@ -78,10 +78,10 @@ function DayItemsList({ items, onEditEvent, onMutated, go }) {
   const { ars } = window.rumboFmt;
   const [busy, setBusy] = useState(false);
 
-  const toggle = (id) => {
+  const toggle = (id, wasDone) => {
     setBusy(true);
     window.rumboApi.toggleCalendarEvent(id)
-      .then(() => onMutated())
+      .then(() => { flash(wasDone ? 'Evento marcado pendiente' : 'Evento completado'); onMutated(); })
       .catch((e) => flash(e.message))
       .finally(() => setBusy(false));
   };
@@ -104,7 +104,7 @@ function DayItemsList({ items, onEditEvent, onMutated, go }) {
         const done = e.completedAt !== null;
         return (
           <div key={e.id} style={row}>
-            <input type="checkbox" checked={done} onChange={() => toggle(e.id)}
+            <input type="checkbox" checked={done} onChange={() => toggle(e.id, done)}
               aria-label={done ? 'Marcar pendiente' : 'Marcar hecho'}
               style={{ marginTop: 3, width: 16, height: 16, accentColor: 'var(--orange)', cursor: 'pointer', flexShrink: 0 }} />
             <div style={{ minWidth: 0, flex: 1 }}>
@@ -393,7 +393,7 @@ function CalendarSkeleton({ view, isMobile }) {
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)' }}>
         {Array.from({ length: 42 }).map((_, i) => (
           <div key={i} style={{
-            minHeight: 92, display: 'flex', flexDirection: 'column', gap: 7, padding: 8,
+            height: 104, display: 'flex', flexDirection: 'column', gap: 7, padding: 8, overflow: 'hidden',
             borderRight: i % 7 !== 6 ? '1px solid var(--hair)' : 'none',
             borderBottom: i < 35 ? '1px solid var(--hair)' : 'none',
           }}>
@@ -460,22 +460,25 @@ function MonthGrid({ grid, byDay, hoy, selected, onSelect }) {
           ];
           const isToday = cell.date === hoy;
           const isSel = cell.date === selected;
+          // Todas las celdas miden igual (height fijo + overflow hidden). Lo que no
+          // entra se resume en "+N más"; el título nativo lista todo al pasar el mouse.
+          const cellTitle = chips.length ? chips.map((ch) => ch.text).join('\n') : undefined;
           return (
-            <div key={cell.date} onClick={() => onSelect(cell)} style={{
-              minHeight: 92, display: 'flex', flexDirection: 'column', gap: 4, padding: 6, cursor: 'pointer',
+            <div key={cell.date} onClick={() => onSelect(cell)} title={cellTitle} style={{
+              height: 104, display: 'flex', flexDirection: 'column', gap: 4, padding: 6, cursor: 'pointer', overflow: 'hidden',
               borderRight: i % 7 !== 6 ? '1px solid var(--hair)' : 'none',
               borderBottom: i < grid.length - 7 ? '1px solid var(--hair)' : 'none',
               background: isSel ? 'var(--orange-soft)' : 'transparent',
               transition: 'background .12s',
             }}>
               <span style={{
-                width: 22, height: 22, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', borderRadius: 99,
+                width: 22, height: 22, flexShrink: 0, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', borderRadius: 99,
                 fontSize: 11.5, fontWeight: 600, fontFamily: 'var(--font-mono)',
                 background: isToday ? 'var(--orange)' : 'transparent', color: isToday ? 'var(--paper)' : (!cell.inMonth ? 'var(--ink-3)' : 'var(--ink-2)'),
               }}>{cell.day}</span>
               <div style={{ display: 'flex', flexDirection: 'column', gap: 2, minWidth: 0 }}>
                 {chips.slice(0, 3).map((ch) => (
-                  <span key={ch.key} style={{ display: 'flex', alignItems: 'center', gap: 5, fontSize: 10.5, lineHeight: 1.3, color: 'var(--ink-2)', textDecoration: ch.done ? 'line-through' : 'none', opacity: ch.done ? 0.6 : 1 }}>
+                  <span key={ch.key} title={ch.text} style={{ display: 'flex', alignItems: 'center', gap: 5, fontSize: 10.5, lineHeight: 1.3, color: 'var(--ink-2)', textDecoration: ch.done ? 'line-through' : 'none', opacity: ch.done ? 0.6 : 1 }}>
                     <span style={{ width: 5, height: 5, borderRadius: 99, background: ch.dot, flexShrink: 0 }} />
                     <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{ch.text}</span>
                   </span>
