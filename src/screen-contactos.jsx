@@ -1,78 +1,125 @@
 /* ============================================================
-   RUMBO — Contactos (agenda de clientes y prospectos)
+   RUMBO — Asegurados (agenda de la cartera)
+   Fase 2 escalabilidad: la lista se pagina server-side vía
+   window.rumboApi.contactsPage (búsqueda/segmento en SQL). El resumen se pide
+   por contacto con contactById. Ya no lee las arrays del bootstrap.
+   Ver roadmap/PLAN-ESCALABILIDAD.md.
    ============================================================ */
+const CONTACTOS_LIMIT = 50;
+
 function ScreenContactos({ go, params }) {
   const isMobile = useIsMobile();
-  useRumboVersion(); // re-render tras crear un contacto
-  const { CONTACTS, POLICIES, SINIESTROS, COUNTS = {} } = window.RUMBO_DATA;
+  const version = useRumboVersion(); // refetch tras crear un contacto
   const { ars, arsShort, daysFrom } = window.rumboFmt;
+
   const [seg, setSeg] = useState('todos');
   const [q, setQ] = useState('');
-  // En mobile el resumen del contacto se muestra en un drawer (no cabe la
-  // columna de detalle al lado de la lista). En desktop va inline a la derecha.
-  const [drawerOpen, setDrawerOpen] = useState(false);
-  // Contacto a preseleccionar (p.ej. "Ver ficha" desde una póliza). Solo es un
-  // selector sobre CONTACTS, que el BFF ya scopeó por org/cartera (RLS): un id
-  // ajeno no está en la lista → cae al primer contacto propio, nunca filtra data.
-  const pid = params && params.id;
-  const [sel, setSel] = useState(pid || (CONTACTS[0] && CONTACTS[0].id));
-  // Si ya estábamos en Contactos y llega otro id por ruta, sincronizamos.
-  useEffect(() => { if (pid) setSel(pid); }, [pid]);
+  const [qDebounced, setQDebounced] = useState('');
+  const [offset, setOffset] = useState(0);
 
-  // enrich
-  const enriched = CONTACTS.map(c => {
-    const pols = POLICIES.filter(p => p.contactId === c.id);
-    const prima = pols.reduce((a, p) => a + p.prima * (p.freq === 'Mensual' ? 12 : p.freq === 'Trimestral' ? 4 : 1), 0);
-    const claims = SINIESTROS.filter(s => pols.some(p => p.id === s.policyId)).length;
-    const nextRenew = pols.length ? Math.min(...pols.map(p => daysFrom(p.renew))) : null;
-    return { ...c, pols, prima, claims, nextRenew };
-  });
+  const [rows, setRows] = useState([]);
+  const [total, setTotal] = useState(0);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+  const [reload, setReload] = useState(0);
+
+  const pid = params && params.id;
+  const [sel, setSel] = useState(pid || null);
+  const [drawerOpen, setDrawerOpen] = useState(false);
+
+  const [detail, setDetail] = useState(null);
+  const [detailLoading, setDetailLoading] = useState(false);
+
+  useEffect(() => { if (pid) { setSel(pid); if (isMobile) setDrawerOpen(true); } }, [pid]);
+
+  // Debounce de la búsqueda + volver a la pág. 1.
+  useEffect(() => {
+    const t = setTimeout(() => { setQDebounced(q.trim()); setOffset(0); }, 300);
+    return () => clearTimeout(t);
+  }, [q]);
+
+  // Lista paginada. Refetch ante filtro/búsqueda/página o mutación (version).
+  useEffect(() => {
+    let alive = true;
+    setLoading(true); setError(null);
+    window.rumboApi.contactsPage({ q: qDebounced, seg: seg === 'todos' ? '' : seg, limit: CONTACTOS_LIMIT, offset })
+      .then(r => {
+        if (!alive) return;
+        setRows(r.data || []); setTotal(r.total || 0); setLoading(false);
+        setSel(s => s || (r.data && r.data[0] && r.data[0].id) || null);
+      })
+      .catch(e => { if (alive) { setError(e); setLoading(false); } });
+    return () => { alive = false; };
+  }, [qDebounced, seg, offset, version, reload]);
+
+  // Detalle del contacto seleccionado (resumen/ficha corta).
+  useEffect(() => {
+    if (!sel) { setDetail(null); return; }
+    let alive = true;
+    setDetailLoading(true);
+    window.rumboApi.contactById(sel)
+      .then(d => { if (alive) { setDetail(d); setDetailLoading(false); } })
+      .catch(() => { if (alive) { setDetail(null); setDetailLoading(false); } });
+    return () => { alive = false; };
+  }, [sel, version]);
+
+  const setFilter = (fn) => { fn(); setOffset(0); };
+  const selectContact = (id) => { setSel(id); if (isMobile) setDrawerOpen(true); };
 
   const segs = [
-    { id: 'todos', label: 'Todos', n: enriched.length },
-    { id: 'clientes', label: 'Asegurados', n: enriched.filter(c => c.tags.includes('Asegurado')).length },
-    { id: 'prospectos', label: 'Prospectos', n: enriched.filter(c => c.tags.includes('Prospecto')).length },
-    { id: 'empresas', label: 'Empresas', n: enriched.filter(c => c.kind === 'Empresa').length },
+    { id: 'todos', label: 'Todos' },
+    { id: 'clientes', label: 'Asegurados' },
+    { id: 'prospectos', label: 'Prospectos' },
+    { id: 'empresas', label: 'Empresas' },
   ];
 
-  let list = enriched;
-  if (seg === 'clientes') list = list.filter(c => c.tags.includes('Asegurado'));
-  if (seg === 'prospectos') list = list.filter(c => c.tags.includes('Prospecto'));
-  if (seg === 'empresas') list = list.filter(c => c.kind === 'Empresa');
-  if (q.trim()) { const t = q.toLowerCase(); list = list.filter(c => (c.name + ' ' + c.city + ' ' + (c.document || '')).toLowerCase().includes(t)); }
+  const from = total === 0 ? 0 : offset + 1;
+  const to = Math.min(offset + CONTACTOS_LIMIT, total);
 
-  const current = enriched.find(c => c.id === sel) || list[0] || enriched[0];
-
-  // Contenido del resumen — se renderiza inline (desktop) o dentro del drawer (mobile).
-  const resumen = current && (
+  // Resumen — desde contactById (detail). Skeleton mientras carga.
+  const resumen = detailLoading || !detail ? (
     <>
       <Panel>
         <div style={{ display: 'flex', alignItems: 'center', gap: 13, marginBottom: 16 }}>
-          <Avatar initials={current.initials} size={50} tone={current.tags.includes('Prospecto') ? 'neutral' : 'orange'} />
-          <div style={{ flex: 1 }}>
-            <h2 className="font-display" style={{ fontSize: 21, letterSpacing: '-0.02em', lineHeight: 1.1 }}>{current.name}</h2>
-            <div style={{ fontSize: 12.5, color: 'var(--ink-3)', marginTop: 3 }}>{current.kind} · cliente desde {current.since}</div>
+          <span className="skel" style={{ width: 50, height: 50, borderRadius: 13, flexShrink: 0 }} />
+          <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 8 }}>
+            <span className="skel" style={{ width: '70%', height: 18 }} />
+            <span className="skel" style={{ width: '45%', height: 12 }} />
+          </div>
+        </div>
+        <span className="skel" style={{ display: 'block', width: '100%', height: 74, borderRadius: 10 }} />
+      </Panel>
+      <Panel><span className="skel" style={{ display: 'block', width: '100%', height: 120, borderRadius: 10 }} /></Panel>
+    </>
+  ) : (
+    <>
+      <Panel>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 13, marginBottom: 16 }}>
+          <Avatar initials={detail.initials} size={50} tone={detail.tags && detail.tags.includes('Prospecto') ? 'neutral' : 'orange'} />
+          <div style={{ flex: 1, minWidth: 0 }}>
+            <h2 className="font-display" style={{ fontSize: 21, letterSpacing: '-0.02em', lineHeight: 1.1 }}>{detail.name}</h2>
+            <div style={{ fontSize: 12.5, color: 'var(--ink-3)', marginTop: 3 }}>{detail.kind} · desde {detail.since}</div>
           </div>
         </div>
         <div style={{ display: 'flex', gap: 8, marginBottom: 10 }}>
           <Btn size="sm" variant="primary" icon="whatsapp" style={{ flex: 1 }}>WhatsApp</Btn>
           <Btn size="sm" variant="soft" icon="phone" style={{ flex: 1 }}>Llamar</Btn>
         </div>
-        <Btn size="sm" variant="ghost" icon="users" style={{ width: '100%', marginBottom: 16 }} onClick={() => go('contacto', { id: current.id })}>Ver ficha completa</Btn>
+        <Btn size="sm" variant="ghost" icon="users" style={{ width: '100%', marginBottom: 16 }} onClick={() => go('contacto', { id: detail.id })}>Ver ficha completa</Btn>
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 1, background: 'var(--hair-2)', border: '1px solid var(--hair)', borderRadius: 10, overflow: 'hidden' }}>
-          <MiniStat label="Prima anual" value={arsShort(current.prima)} />
-          <MiniStat label="Pólizas" value={current.pols.length} />
-          <MiniStat label="Siniestros" value={current.claims} tone={current.claims ? 'var(--amber-ink)' : undefined} />
-          <MiniStat label="Teléfono" value={current.phone} small />
+          <MiniStat label="Prima anual" value={arsShort(detail.stats.primaAnual)} />
+          <MiniStat label="Pólizas" value={detail.stats.polizas} />
+          <MiniStat label="Siniestros" value={detail.stats.siniestros} tone={detail.stats.siniestros ? 'var(--amber-ink)' : undefined} />
+          <MiniStat label="Teléfono" value={detail.phone || '—'} small />
         </div>
       </Panel>
 
       <Panel>
         <SectionHead label="Pólizas del contacto" action={<Btn size="sm" variant="bare" iconRight="arrowRight" onClick={() => go('polizas')}>Cartera</Btn>} />
-        {current.pols.length === 0 ? (
+        {(!detail.polizas || detail.polizas.length === 0) ? (
           <div style={{ padding: '6px 0', fontSize: 13, color: 'var(--ink-3)' }}>Sin pólizas. Oportunidad de primera venta.</div>
-        ) : current.pols.map((p, i) => (
-          <div key={p.id} onClick={() => go('detail', { id: p.id })} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '11px 0', borderBottom: i === current.pols.length - 1 ? 'none' : '1px solid var(--hair-2)', cursor: 'pointer' }}
+        ) : detail.polizas.map((p, i) => (
+          <div key={p.id} onClick={() => go('detail', { id: p.id })} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '11px 0', borderBottom: i === detail.polizas.length - 1 ? 'none' : '1px solid var(--hair-2)', cursor: 'pointer' }}
             onMouseEnter={e => e.currentTarget.style.opacity = 0.7} onMouseLeave={e => e.currentTarget.style.opacity = 1}>
             <RamoGlyph ramo={p.ramo} size={32} />
             <div style={{ flex: 1, minWidth: 0 }}>
@@ -86,74 +133,97 @@ function ScreenContactos({ go, params }) {
     </>
   );
 
-  const selectContact = (id) => { setSel(id); if (isMobile) setDrawerOpen(true); };
-
   return (
     <div className="scroll rise" style={{ overflowY: 'auto', height: '100%', padding: isMobile ? '18px 16px 40px' : '30px 34px 60px' }}>
       <div style={{ maxWidth: 1240, margin: '0 auto' }}>
         <PageHead eyebrow="Cartera" tick={1} title="Asegurados"
-          sub={<><strong className="font-mono tnum" style={{ color: 'var(--ink)' }}>{enriched.filter(c=>c.tags.includes('Asegurado')).length}</strong> asegurados · <strong className="font-mono tnum" style={{ color: 'var(--ink)' }}>{enriched.filter(c=>c.tags.includes('Prospecto')).length}</strong> prospectos en seguimiento</>}
+          sub={<><strong className="font-mono tnum" style={{ color: 'var(--ink)' }}>{total.toLocaleString('es-AR')}</strong> {seg === 'todos' && !qDebounced ? 'en tu cartera' : 'en el filtro actual'}</>}
           actions={<><Btn variant="ghost" icon="download">Exportar</Btn><Btn variant="primary" icon="plus" onClick={() => window.rumboUI?.newContacto()}>Nuevo contacto</Btn></>} />
 
         <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 16, flexWrap: 'wrap' }}>
-          <Segmented segs={segs} value={seg} onChange={setSeg} />
+          <Segmented segs={segs} value={seg} onChange={(v) => setFilter(() => setSeg(v))} />
           <SearchBox q={q} setQ={setQ} placeholder="Buscar por nombre o DNI…" />
         </div>
-
-        {COUNTS.contacts && COUNTS.contacts.shown < COUNTS.contacts.total && (
-          <div style={{ display: 'flex', alignItems: 'center', gap: 9, padding: '10px 14px', marginBottom: 16, borderRadius: 10, background: 'var(--amber-soft)', border: '1px solid var(--amber)', fontSize: 12.5, color: 'var(--amber-ink)' }}>
-            <Icon name="alert" size={15} stroke={2} style={{ flexShrink: 0 }} />
-            <span>Mostrando <strong className="tnum">{COUNTS.contacts.shown.toLocaleString('es-AR')}</strong> de <strong className="tnum">{COUNTS.contacts.total.toLocaleString('es-AR')}</strong> asegurados. El listado completo con paginación está en camino; por ahora usá la búsqueda (nombre o DNI).</span>
-          </div>
-        )}
 
         <div className="rgrid" style={{ display: 'grid', gridTemplateColumns: '1.4fr 1fr', gap: 24, alignItems: 'start' }}>
           {/* list */}
           <Panel pad={false} style={{ overflow: 'hidden' }}>
-            {list.map((c, i) => {
+            {loading ? (
+              Array.from({ length: 8 }).map((_, i) => (
+                <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 13, padding: '13px 16px', borderBottom: '1px solid var(--hair-2)' }}>
+                  <span className="skel" style={{ width: 38, height: 38, borderRadius: 10, flexShrink: 0 }} />
+                  <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 7 }}>
+                    <span className="skel" style={{ width: '55%', height: 13 }} />
+                    <span className="skel" style={{ width: '35%', height: 11 }} />
+                  </div>
+                  <span className="skel" style={{ width: 44, height: 12 }} />
+                </div>
+              ))
+            ) : error ? (
+              <div style={{ padding: 50, textAlign: 'center', color: 'var(--red-ink)', fontSize: 13.5 }}>
+                No pudimos cargar los asegurados. <button onClick={() => setReload(x => x + 1)} style={{ color: 'var(--orange-ink)', fontWeight: 600 }}>Reintentar</button>
+              </div>
+            ) : rows.length === 0 ? (
+              <div style={{ padding: 50, textAlign: 'center', color: 'var(--ink-3)', fontSize: 14 }}>Sin asegurados que coincidan.</div>
+            ) : rows.map((c, i) => {
               const active = c.id === sel && !isMobile;
+              const prospecto = c.tags && c.tags.includes('Prospecto');
               return (
                 <div key={c.id} onClick={() => selectContact(c.id)} style={{
                   display: 'flex', alignItems: 'center', gap: 13, padding: '13px 16px',
-                  borderBottom: i === list.length - 1 ? 'none' : '1px solid var(--hair-2)',
+                  borderBottom: i === rows.length - 1 ? 'none' : '1px solid var(--hair-2)',
                   cursor: 'pointer', background: active ? 'var(--orange-soft)' : 'transparent',
                   borderLeft: `3px solid ${active ? 'var(--orange)' : 'transparent'}`, transition: 'background .12s',
                 }}
                   onMouseEnter={e => { if (!active) e.currentTarget.style.background = 'var(--panel-2)'; }}
                   onMouseLeave={e => { if (!active) e.currentTarget.style.background = 'transparent'; }}>
-                  <Avatar initials={c.initials} size={38} tone={c.tags.includes('Prospecto') ? 'neutral' : 'orange'} />
+                  <Avatar initials={c.initials} size={38} tone={prospecto ? 'neutral' : 'orange'} />
                   <div style={{ flex: 1, minWidth: 0 }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                       <span style={{ fontSize: 14, fontWeight: 600, color: 'var(--ink)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{c.name}</span>
-                      {c.tags.includes('Prospecto') && <Pill tone="amber" style={{ fontSize: 9.5, padding: '1px 6px', flexShrink: 0 }}>Prospecto</Pill>}
+                      {prospecto && <Pill tone="amber" style={{ fontSize: 9.5, padding: '1px 6px', flexShrink: 0 }}>Prospecto</Pill>}
                     </div>
                     <div style={{ fontSize: 11.5, color: 'var(--ink-3)', marginTop: 2, display: 'flex', alignItems: 'center', gap: 6, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
                       <Icon name="mapPin" size={12} style={{ flexShrink: 0 }} />{c.city} · {c.kind}
                     </div>
                   </div>
                   <div style={{ textAlign: 'right', flexShrink: 0 }}>
-                    <div className="font-mono tnum" style={{ fontSize: 12.5, fontWeight: 600, color: 'var(--ink)', whiteSpace: 'nowrap' }}>{c.pols.length} pól.</div>
-                    {c.nextRenew != null && c.nextRenew <= 30 && <Pill tone={urgencyTone(c.nextRenew)} style={{ fontSize: 9.5, marginTop: 4, whiteSpace: 'nowrap' }}>Vence {c.nextRenew}d</Pill>}
+                    <div className="font-mono tnum" style={{ fontSize: 12.5, fontWeight: 600, color: 'var(--ink)', whiteSpace: 'nowrap' }}>{c.polCount} pól.</div>
+                    {c.nextRenewDays != null && c.nextRenewDays <= 30 && <Pill tone={urgencyTone(c.nextRenewDays)} style={{ fontSize: 9.5, marginTop: 4, whiteSpace: 'nowrap' }}>Vence {c.nextRenewDays}d</Pill>}
                   </div>
                   {isMobile && <Icon name="chevronRight" size={16} style={{ color: 'var(--ink-3)', flexShrink: 0 }} />}
                 </div>
               );
             })}
-            {list.length === 0 && <div style={{ padding: 50, textAlign: 'center', color: 'var(--ink-3)', fontSize: 14 }}>Sin contactos.</div>}
           </Panel>
 
           {/* detail card — inline solo en desktop; en mobile va en el drawer */}
           {!isMobile && (
             <div style={{ display: 'flex', flexDirection: 'column', gap: 24, position: 'sticky', top: 0 }}>
-              {resumen}
+              {sel ? resumen : <Panel><div style={{ padding: '30px 0', textAlign: 'center', color: 'var(--ink-3)', fontSize: 13.5 }}>Elegí un asegurado para ver su resumen.</div></Panel>}
             </div>
           )}
         </div>
+
+        {/* paginación */}
+        {!loading && !error && total > 0 && (
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, marginTop: 14, flexWrap: 'wrap' }}>
+            <span style={{ fontSize: 12.5, color: 'var(--ink-3)' }}>
+              Mostrando <strong className="font-mono tnum" style={{ color: 'var(--ink-2)' }}>{from.toLocaleString('es-AR')}–{to.toLocaleString('es-AR')}</strong> de <strong className="font-mono tnum" style={{ color: 'var(--ink-2)' }}>{total.toLocaleString('es-AR')}</strong>
+            </span>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+              <Btn size="sm" variant="ghost" onClick={() => setOffset(o => Math.max(0, o - CONTACTOS_LIMIT))}
+                style={{ opacity: offset <= 0 ? 0.4 : 1, pointerEvents: offset <= 0 ? 'none' : 'auto' }}>Anterior</Btn>
+              <Btn size="sm" variant="ghost" iconRight="chevronRight" onClick={() => setOffset(o => o + CONTACTOS_LIMIT)}
+                style={{ opacity: to >= total ? 0.4 : 1, pointerEvents: to >= total ? 'none' : 'auto' }}>Siguiente</Btn>
+            </div>
+          </div>
+        )}
       </div>
 
       {/* Resumen del contacto en drawer (solo mobile) */}
       {isMobile && (
-        <Drawer open={drawerOpen} onClose={() => setDrawerOpen(false)} eyebrow="Resumen del contacto" title={current ? current.name : 'Contacto'}>
+        <Drawer open={drawerOpen} onClose={() => setDrawerOpen(false)} eyebrow="Resumen del asegurado" title={detail ? detail.name : 'Asegurado'}>
           <div style={{ display: 'flex', flexDirection: 'column', gap: 18 }}>{resumen}</div>
         </Drawer>
       )}
