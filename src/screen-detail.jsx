@@ -36,39 +36,34 @@ function CuotaRow({ c, last }) {
   );
 }
 
-/* Cambio de estado de un siniestro (gestión). PATCH al backend; al confirmar,
-   mergea el estado nuevo sobre RUMBO_DATA.SINIESTROS y fuerza re-render. */
-function ClaimStatusControl({ claim, onChanged }) {
-  const LABEL_TO_ENUM = { 'Abierto': 'abierto', 'En curso': 'en_curso', 'Cerrado': 'cerrado' };
+/* Editar observaciones de la póliza (única edición: se importan de la
+   aseguradora). PATCH /policies/:id → rumboRefresh re-hidrata el detalle. */
+function PolicyNotesDrawer({ open, onClose, policy }) {
+  const [notes, setNotes] = useState('');
   const [saving, setSaving] = useState(false);
-  const val = LABEL_TO_ENUM[claim.status] || 'abierto';
-
-  const change = (e) => {
-    const status = e.target.value;
-    if (status === val || saving) return;
-    setSaving(true);
-    window.rumboApi.updateClaimStatus(claim.id, status)
-      .then((res) => {
-        const arr = (window.RUMBO_DATA && window.RUMBO_DATA.SINIESTROS) || [];
-        const it = arr.find(x => x.id === claim.id);
-        if (it) { it.status = res.status; it.stale = res.stale; }
-        window.rumboUI && window.rumboUI.toast && window.rumboUI.toast('Estado actualizado');
-        onChanged && onChanged();
-      })
-      .catch((err) => window.rumboUI && window.rumboUI.toast && window.rumboUI.toast(err.message))
-      .finally(() => setSaving(false));
+  const [error, setError] = useState(null);
+  useEffect(() => {
+    if (open) { setNotes(policy.coverage && policy.coverage !== '—' ? policy.coverage : ''); setError(null); }
+  }, [open, policy]);
+  const submit = () => {
+    if (saving) return;
+    setSaving(true); setError(null);
+    window.rumboApi.updatePolicyNotes(policy.id, notes)
+      .then(() => { window.rumboUI?.toast?.('Observaciones guardadas'); if (window.rumboRefresh) window.rumboRefresh(); onClose(); })
+      .catch(e => setError(e.message)).finally(() => setSaving(false));
   };
-
   return (
-    <div style={{ position: 'relative', flexShrink: 0 }}>
-      <select value={val} onChange={change} disabled={saving} title="Cambiar estado"
-        style={{ ...inputStyle, width: 'auto', padding: '6px 26px 6px 10px', fontSize: 12.5, appearance: 'none', cursor: saving ? 'wait' : 'pointer', opacity: saving ? 0.6 : 1 }}>
-        <option value="abierto">Abierto</option>
-        <option value="en_curso">En curso</option>
-        <option value="cerrado">Cerrado</option>
-      </select>
-      <Icon name="chevronDown" size={14} style={{ position: 'absolute', right: 9, top: '50%', transform: 'translateY(-50%)', color: 'var(--ink-3)', pointerEvents: 'none' }} />
-    </div>
+    <Drawer open={open} onClose={onClose} eyebrow="Póliza" title="Editar observaciones" width={480}
+      footer={<>
+        <Btn variant="ghost" onClick={onClose}>Cancelar</Btn>
+        <Btn variant="primary" icon="check" onClick={submit} style={{ opacity: saving ? 0.5 : 1, pointerEvents: saving ? 'none' : 'auto' }}>Guardar</Btn>
+      </>}>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+        <div style={{ fontSize: 12.5, color: 'var(--ink-3)' }}>Las pólizas se importan de las aseguradoras. Acá solo editás tus observaciones internas.</div>
+        <textarea value={notes} onChange={e => setNotes(e.target.value)} rows={6} maxLength={4000} style={{ ...inputStyle, resize: 'vertical', minHeight: 140 }} placeholder="Notas internas de la póliza…" />
+        {error && <div style={{ fontSize: 12.5, color: 'var(--red-ink)' }}>{error}</div>}
+      </div>
+    </Drawer>
   );
 }
 
@@ -77,7 +72,8 @@ function ScreenDetail({ go, params }) {
   const { ars, scheduleFor, daysFrom } = window.rumboFmt;
   const p = POLICIES.find(x => x.id === params.id) || POLICIES[0];
   const isMobile = useIsMobile();
-  const [, force] = useState(0); // re-render tras cambiar el estado de un siniestro
+  useRumboVersion(); // re-render tras gestionar un siniestro / editar observaciones
+  const [editOpen, setEditOpen] = useState(false);
   // Sin pólizas (org vacía o id inexistente y lista vacía): no reventamos.
   if (!p) {
     return (
@@ -109,6 +105,7 @@ function ScreenDetail({ go, params }) {
   return (
     <div className="scroll rise" style={{ overflowY: 'auto', height: '100%', padding: isMobile ? '16px 16px 40px' : '26px 34px 60px' }}>
       <div style={{ maxWidth: 1180, margin: '0 auto' }}>
+        <PolicyNotesDrawer open={editOpen} onClose={() => setEditOpen(false)} policy={p} />
 
         {/* renewal banner */}
         {days <= 30 && (
@@ -135,7 +132,7 @@ function ScreenDetail({ go, params }) {
           </div>
           <div style={{ display: 'flex', gap: 9, flexWrap: 'wrap' }}>
             <Btn variant="ghost" icon="whatsapp">WhatsApp</Btn>
-            <Btn variant="ghost" icon="external">Ver póliza</Btn>
+            <Btn variant="ghost" onClick={() => setEditOpen(true)}>Editar observaciones</Btn>
           </div>
         </div>
 
@@ -188,7 +185,8 @@ function ScreenDetail({ go, params }) {
                       <div className="font-mono" style={{ fontSize: 11, color: stale ? 'var(--red-ink)' : 'var(--ink-3)', marginTop: 2 }}>{s.num} · {stale ? `sin movimiento ${s.stale} d` : 'abierto ' + s.opened}</div>
                     </div>
                     <Pill tone={s.status === 'Abierto' ? 'amber' : s.status === 'Cerrado' ? 'emerald' : 'neutral'}>{s.status}</Pill>
-                    <ClaimStatusControl claim={s} onChanged={() => force(n => n + 1)} />
+                    {s.importance && <Pill tone={s.importance === 'Alta' ? 'red' : s.importance === 'Media' ? 'amber' : 'neutral'} style={{ fontSize: 10 }}>{s.importance}</Pill>}
+                    <Btn size="sm" variant="ghost" onClick={() => window.rumboUI?.openClaim(s.id)}>Gestionar</Btn>
                   </div>
                 );
               })}

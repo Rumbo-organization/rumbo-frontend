@@ -53,8 +53,7 @@ function ScreenPolizas({ go }) {
           sub={<><strong className="font-mono tnum" style={{ color: 'var(--ink)' }}>{POLICIES.length}</strong> pólizas vigentes · <strong className="font-mono tnum" style={{ color: 'var(--ink)' }}>{arsShort(annual)}</strong> de prima anual gestionada</>}
           actions={<>
             {!isMobile && <Btn variant="ghost" icon="download">Exportar</Btn>}
-            <Btn variant="ghost" icon="calc" onClick={() => go('cotizador')} style={isMobile ? { flex: 1 } : {}}>Cotizar</Btn>
-            <Btn variant="primary" icon="plus" onClick={() => window.rumboUI?.newPoliza()} style={isMobile ? { flex: 1 } : {}}>Nueva póliza</Btn>
+            <Btn variant="primary" icon="calc" onClick={() => go('cotizador')} style={isMobile ? { flex: 1 } : {}}>Cotizar</Btn>
           </>} />
 
         {/* toolbar */}

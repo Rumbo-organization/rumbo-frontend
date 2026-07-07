@@ -12,8 +12,9 @@ function App() {
   const [t, setTweak] = useTweaks(TWEAK_DEFAULTS);
   const [route, setRoute] = useState({ name: 'inicio', params: {} });
   const [paletteOpen, setPaletteOpen] = useState(false);
-  const [polizaOpen, setPolizaOpen] = useState(false);
   const [siniestroOpen, setSiniestroOpen] = useState(false);
+  const [contactoOpen, setContactoOpen] = useState(false);
+  const [claimId, setClaimId] = useState(null);
   const [toast, setToast] = useState(null);
   const [legal, setLegal] = useState(null);
   const [moreOpen, setMoreOpen] = useState(false);
@@ -62,8 +63,10 @@ function App() {
   // expose form openers globally so any screen button can trigger them
   useEffect(() => {
     window.rumboUI = {
-      newPoliza: () => setPolizaOpen(true),
+      // Pólizas: no se crean a mano (se importan de las aseguradoras). Solo edición.
       newSiniestro: () => setSiniestroOpen(true),
+      newContacto: () => setContactoOpen(true),
+      openClaim: (id) => setClaimId(id),
       cotizar: () => go('cotizador'),
       legal: (k) => setLegal(k),
       toast: (msg) => flash(msg),
@@ -144,8 +147,9 @@ function App() {
       {isMobile && <MobileMoreSheet open={moreOpen} onClose={() => setMoreOpen(false)} route={route} go={go} dark={dark} setDark={setDark} />}
 
       <CommandPalette open={paletteOpen} onClose={() => setPaletteOpen(false)} go={go} />
-      <NuevaPolizaForm open={polizaOpen} onClose={() => setPolizaOpen(false)} onCreated={(d) => flash(`Póliza creada para ${d.cliente || 'el cliente'}`)} />
-      <NuevoSiniestroForm open={siniestroOpen} onClose={() => setSiniestroOpen(false)} onCreated={() => flash('Denuncia de siniestro cargada')} />
+      <NuevoSiniestroForm open={siniestroOpen} onClose={() => setSiniestroOpen(false)} />
+      <NuevoContactoForm open={contactoOpen} onClose={() => setContactoOpen(false)} />
+      <ClaimDrawer id={claimId} onClose={() => setClaimId(null)} />
       <Toast msg={toast} />
       <LegalDrawer which={legal} onClose={() => setLegal(null)} />
 
@@ -171,8 +175,8 @@ function HeadingRight({ go, isMobile }) {
           <Icon name="bell" size={16} stroke={1.9} />
           <span style={{ position: 'absolute', top: 7, right: 8, width: 6, height: 6, borderRadius: 99, background: 'var(--orange)', border: '1.5px solid var(--panel)' }} />
         </button>
-        <button title="Nueva póliza" onClick={() => window.rumboUI?.newPoliza()} style={{ width: 34, height: 34, borderRadius: 9, background: 'var(--orange)', color: 'var(--paper)', display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}>
-          <Icon name="plus" size={17} stroke={2.2} />
+        <button title="Cotizar" onClick={() => go('cotizador')} style={{ width: 34, height: 34, borderRadius: 9, background: 'var(--orange)', color: 'var(--paper)', display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}>
+          <Icon name="calc" size={17} stroke={2.2} />
         </button>
       </div>
     );
@@ -183,8 +187,7 @@ function HeadingRight({ go, isMobile }) {
         <Icon name="bell" size={17} stroke={1.9} />
         <span style={{ position: 'absolute', top: 8, right: 9, width: 7, height: 7, borderRadius: 99, background: 'var(--orange)', border: '1.5px solid var(--panel)' }} />
       </button>
-      <Btn variant="ghost" size="md" icon="calc" onClick={() => go('cotizador')}>Cotizar</Btn>
-      <Btn variant="primary" size="md" icon="plus" onClick={() => window.rumboUI?.newPoliza()}>Nueva</Btn>
+      <Btn variant="primary" size="md" icon="calc" onClick={() => go('cotizador')}>Cotizar</Btn>
     </div>
   );
 }

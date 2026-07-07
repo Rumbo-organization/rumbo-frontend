@@ -159,8 +159,7 @@ function ScreenInicio({ go }) {
           </div>
           <div style={{ display: 'flex', gap: 10, flexShrink: 0, flexWrap: 'wrap' }}>
             {!isMobile && <Btn variant="ghost" icon="download">Exportar</Btn>}
-            <Btn variant="ghost" icon="calc" onClick={() => go('cotizador')} style={isMobile ? { flex: 1 } : {}}>Cotizar</Btn>
-            <Btn variant="primary" icon="plus" onClick={() => window.rumboUI?.newPoliza()} style={isMobile ? { flex: 1 } : {}}>Nueva póliza</Btn>
+            <Btn variant="primary" icon="calc" onClick={() => go('cotizador')} style={isMobile ? { flex: 1 } : {}}>Cotizar</Btn>
           </div>
         </div>
 

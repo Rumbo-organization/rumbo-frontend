@@ -14,7 +14,6 @@ function CommandPalette({ open, onClose, go }) {
 
   const actions = [
     { id: 'a-cotizar', kind: 'Acción', label: 'Cotizar nueva póliza', icon: 'calc', run: () => go('cotizador') },
-    { id: 'a-poliza', kind: 'Acción', label: 'Nueva póliza', icon: 'plus', run: () => window.rumboUI?.newPoliza() },
     { id: 'a-siniestro', kind: 'Acción', label: 'Reportar siniestro', icon: 'shield', run: () => window.rumboUI?.newSiniestro() },
     { id: 'a-wsp', kind: 'Acción', label: 'Enviar WhatsApp a cliente', icon: 'whatsapp', run: () => go('contactos') },
     { id: 'a-venc', kind: 'Acción', label: 'Ver vencimientos del mes', icon: 'calendar', run: () => go('vencimientos') },

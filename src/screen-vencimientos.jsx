@@ -6,6 +6,8 @@ function ScreenVencimientos({ go }) {
   const { POLICIES } = window.RUMBO_DATA;
   const { ars, arsShort, daysFrom } = window.rumboFmt;
   const [seg, setSeg] = useState('todos');
+  const [pay, setPay] = useState('Todas las formas');
+  const PAY_OPTIONS = ['Todas las formas', 'Cupón', 'Débito bancario', 'Tarjeta de crédito', 'Sin especificar'];
 
   const MES = ['ene', 'feb', 'mar', 'abr', 'may', 'jun', 'jul', 'ago', 'sep', 'oct', 'nov', 'dic'];
   const MESL = ['Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio', 'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'];
@@ -15,6 +17,9 @@ function ScreenVencimientos({ go }) {
 
   if (seg === '30') items = items.filter(p => p.days <= 30);
   if (seg === '90') items = items.filter(p => p.days <= 90);
+  // Forma de pago (del BFF; null = "Sin especificar"). Útil para separar débito
+  // automático (renueva solo) de cupón (requiere gestión de cobro).
+  if (pay !== 'Todas las formas') items = items.filter(p => (p.paymentMethod || 'Sin especificar') === pay);
 
   const segs = [
     { id: '30', label: 'Próximos 30 días', n: POLICIES.filter(p => daysFrom(p.renew) <= 30).length },
@@ -40,7 +45,10 @@ function ScreenVencimientos({ go }) {
           sub={<>Cada renovación es un waypoint. <strong className="font-mono tnum" style={{ color: 'var(--ink)' }}>{items.length}</strong> por delante · <strong className="font-mono tnum" style={{ color: 'var(--ink)' }}>{arsShort(totalPrima)}</strong> en prima a renovar</>}
           actions={<><Btn variant="ghost" icon="download">Exportar</Btn><Btn variant="primary" icon="bell">Recordatorios</Btn></>} />
 
-        <div style={{ marginBottom: 22 }}><Segmented segs={segs} value={seg} onChange={setSeg} /></div>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 22, flexWrap: 'wrap' }}>
+          <Segmented segs={segs} value={seg} onChange={setSeg} />
+          <div style={{ minWidth: 200 }}><SelectInput value={pay} onChange={setPay} options={PAY_OPTIONS} /></div>
+        </div>
 
         {/* timeline */}
         <div style={{ position: 'relative' }}>
@@ -99,7 +107,7 @@ function ScreenVencimientos({ go }) {
                       <RamoGlyph ramo={p.ramo} size={38} />
                       <div style={{ flex: 1, minWidth: 0 }}>
                         <div style={{ fontSize: 14, fontWeight: 600, color: 'var(--ink)' }}>{p.client}</div>
-                        <div className="font-mono" style={{ fontSize: 11.5, color: 'var(--ink-3)', marginTop: 2 }}>{p.num} · {p.insurer} · {p.ramo}</div>
+                        <div className="font-mono" style={{ fontSize: 11.5, color: 'var(--ink-3)', marginTop: 2 }}>{p.num} · {p.insurer} · {p.ramo}{p.paymentMethod ? ` · ${p.paymentMethod}` : ''}</div>
                       </div>
                       <div style={{ textAlign: 'right', width: 130 }}>
                         <div className="font-mono tnum" style={{ fontSize: 12.5, color: 'var(--ink-2)' }}>{p.renew}</div>

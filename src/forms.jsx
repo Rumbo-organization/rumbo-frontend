@@ -85,7 +85,7 @@ function SelectInput({ value, onChange, options, placeholder }) {
   );
 }
 
-/* ramo chooser — visual segmented chips */
+/* ramo chooser — visual segmented chips (usado por el cotizador) */
 function RamoPicker({ value, onChange }) {
   const ramos = ['Automotor', 'Hogar', 'Comercio', 'Vida', 'ART', 'Integral'];
   const isMobile = useIsMobile();
@@ -115,132 +115,178 @@ function useFormGrid() {
 }
 const FORM_GRID = FORM_GRID_BASE;
 
-/* ============================================================
-   NUEVA PÓLIZA
-   ============================================================ */
-function NuevaPolizaForm({ open, onClose, onCreated }) {
-  const { CONTACTS, INSURERS } = window.RUMBO_DATA;
-  const [f, setF] = useState({ cliente: '', ramo: 'Automotor', insurer: '', detalle: '', prima: '', freq: 'Mensual', start: '2026-06-23', suma: '', cobertura: '' });
-  const set = (k, v) => setF(s => ({ ...s, [k]: v }));
-  const valid = f.cliente && f.ramo && f.insurer && f.prima;
-
-  useEffect(() => { if (open) setF({ cliente: '', ramo: 'Automotor', insurer: '', detalle: '', prima: '', freq: 'Mensual', start: '2026-06-23', suma: '', cobertura: '' }); }, [open]);
-
-  return (
-    <Drawer open={open} onClose={onClose} eyebrow="Cartera · alta" title="Nueva póliza"
-      footer={<>
-        <Btn variant="ghost" onClick={onClose}>Cancelar</Btn>
-        <Btn variant="primary" icon="check" onClick={() => { onCreated && onCreated(f); onClose(); }} style={{ opacity: valid ? 1 : 0.5, pointerEvents: valid ? 'auto' : 'none' }}>Emitir póliza</Btn>
-      </>}>
-      <div style={{ display: 'flex', flexDirection: 'column', gap: 22 }}>
-        <div>
-          <div className="eyebrow" style={{ marginBottom: 10 }}>Ramo</div>
-          <RamoPicker value={f.ramo} onChange={v => set('ramo', v)} />
-        </div>
-
-        <div style={useFormGrid()}>
-          <Field label="Cliente" required span={2}>
-            <SelectInput value={f.cliente} onChange={v => set('cliente', v)} options={CONTACTS.map(c => c.name)} placeholder="Seleccionar contacto…" />
-          </Field>
-          <Field label="Aseguradora" required>
-            <SelectInput value={f.insurer} onChange={v => set('insurer', v)} options={INSURERS} placeholder="Elegir…" />
-          </Field>
-          <Field label="Vigencia desde">
-            <TextInput value={f.start} onChange={v => set('start', v)} mono placeholder="AAAA-MM-DD" />
-          </Field>
-          <Field label="Detalle del riesgo" span={2} hint="vehículo, domicilio, etc.">
-            <TextInput value={f.detalle} onChange={v => set('detalle', v)} placeholder="Ej: Peugeot 208 · AB 442 KQ" />
-          </Field>
-          <Field label="Prima" required hint="por período">
-            <TextInput value={f.prima} onChange={v => set('prima', v.replace(/[^0-9]/g, ''))} mono prefix="$" placeholder="0" />
-          </Field>
-          <Field label="Frecuencia">
-            <SelectInput value={f.freq} onChange={v => set('freq', v)} options={['Mensual', 'Trimestral', 'Semestral', 'Anual']} />
-          </Field>
-          <Field label="Suma asegurada" hint="opcional">
-            <TextInput value={f.suma} onChange={v => set('suma', v.replace(/[^0-9]/g, ''))} mono prefix="$" placeholder="0" />
-          </Field>
-          <Field label="Cobertura">
-            <TextInput value={f.cobertura} onChange={v => set('cobertura', v)} placeholder="Ej: Todo riesgo" />
-          </Field>
-        </div>
-
-        <div style={{ display: 'flex', alignItems: 'center', gap: 11, padding: '12px 14px', borderRadius: 10, background: 'var(--panel-2)', border: '1px solid var(--hair)' }}>
-          <Icon name="compass" size={18} style={{ color: 'var(--emerald)' }} />
-          <div style={{ fontSize: 12, color: 'var(--ink-2)' }}>¿No tenés la prima cerrada? <strong style={{ color: 'var(--orange-ink)' }}>Cotizá primero</strong> y emití la mejor opción con un clic.</div>
-        </div>
-      </div>
-    </Drawer>
-  );
-}
+const selectStyle = { ...inputStyle, appearance: 'none', cursor: 'pointer' };
 
 /* ============================================================
-   NUEVO SINIESTRO
+   NUEVO SINIESTRO — denuncia real (persiste vía POST /api/v1/claims)
+   Campos del modelo AR: póliza, tipo, fecha+hora del hecho, denunciante
+   (obligatorio), nº de siniestro de la aseguradora, prioridad, lugar, detalle.
    ============================================================ */
-function NuevoSiniestroForm({ open, onClose, onCreated }) {
+const CLAIM_TIPOS = [
+  ['choque', 'Choque / colisión'], ['granizo', 'Granizo'], ['robo', 'Robo'],
+  ['incendio', 'Incendio'], ['cristales', 'Cristales'], ['danos_agua', 'Daños por agua'],
+  ['resp_civil', 'Responsabilidad civil'], ['otros', 'Otro'],
+];
+const EMPTY_SINIESTRO = { policyId: '', tipo: 'choque', occurredAt: '', reportedBy: '', claimNumber: '', location: '', description: '', importance: '' };
+
+function NuevoSiniestroForm({ open, onClose }) {
   const { POLICIES } = window.RUMBO_DATA;
-  const tipos = ['Choque / colisión', 'Granizo', 'Robo total', 'Robo parcial', 'Incendio', 'Cristales', 'Daños por agua', 'Responsabilidad civil'];
-  const [f, setF] = useState({ poliza: '', tipo: '', fecha: '2026-06-22', lugar: '', desc: '', urgente: false });
+  const [f, setF] = useState(EMPTY_SINIESTRO);
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState(null);
+  useEffect(() => { if (open) { setF(EMPTY_SINIESTRO); setError(null); } }, [open]);
+
   const set = (k, v) => setF(s => ({ ...s, [k]: v }));
-  const valid = f.poliza && f.tipo && f.fecha;
+  const pol = POLICIES.find(p => p.id === f.policyId);
+  const valid = f.policyId && f.tipo && f.occurredAt && f.reportedBy.trim();
 
-  useEffect(() => { if (open) setF({ poliza: '', tipo: '', fecha: '2026-06-22', lugar: '', desc: '', urgente: false }); }, [open]);
-
-  const pol = POLICIES.find(p => p.num === f.poliza);
+  const submit = () => {
+    if (!valid || saving) return;
+    setSaving(true); setError(null);
+    const data = { policyId: f.policyId, tipo: f.tipo, occurredAt: f.occurredAt, reportedBy: f.reportedBy.trim() };
+    if (f.claimNumber.trim()) data.claimNumber = f.claimNumber.trim();
+    if (f.location.trim()) data.location = f.location.trim();
+    if (f.description.trim()) data.description = f.description.trim();
+    if (f.importance) data.importance = f.importance;
+    window.rumboApi.createClaim(data)
+      .then(() => { window.rumboUI?.toast?.('Siniestro cargado'); if (window.rumboRefresh) window.rumboRefresh(); onClose(); })
+      .catch(e => setError(e.message)).finally(() => setSaving(false));
+  };
 
   return (
-    <Drawer open={open} onClose={onClose} eyebrow="Siniestros · denuncia" title="Reportar siniestro" width={520}
+    <Drawer open={open} onClose={onClose} eyebrow="Siniestros · denuncia" title="Reportar siniestro" width={560}
       footer={<>
         <Btn variant="ghost" onClick={onClose}>Cancelar</Btn>
-        <Btn variant="primary" icon="check" onClick={() => { onCreated && onCreated(f); onClose(); }} style={{ opacity: valid ? 1 : 0.5, pointerEvents: valid ? 'auto' : 'none' }}>Cargar denuncia</Btn>
+        <Btn variant="primary" icon="check" onClick={submit} style={{ opacity: valid && !saving ? 1 : 0.5, pointerEvents: valid && !saving ? 'auto' : 'none' }}>Cargar denuncia</Btn>
       </>}>
       <div style={{ display: 'flex', flexDirection: 'column', gap: 18 }}>
         <Field label="Póliza afectada" required span={2}>
-          <SelectInput value={f.poliza} onChange={v => set('poliza', v)} options={POLICIES.map(p => `${p.num} — ${p.client}`)} placeholder="Buscar póliza…" />
+          <select value={f.policyId} onChange={e => set('policyId', e.target.value)} style={selectStyle}>
+            <option value="">Seleccionar póliza…</option>
+            {POLICIES.map(p => <option key={p.id} value={p.id}>{p.num} — {p.client}</option>)}
+          </select>
         </Field>
 
         {pol && (
           <div style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '11px 14px', borderRadius: 10, background: 'var(--panel-2)', border: '1px solid var(--hair)' }}>
             <RamoGlyph ramo={pol.ramo} size={34} />
-            <div style={{ flex: 1 }}>
+            <div style={{ flex: 1, minWidth: 0 }}>
               <div style={{ fontSize: 13, fontWeight: 600 }}>{pol.client}</div>
               <div className="font-mono" style={{ fontSize: 11, color: 'var(--ink-3)' }}>{pol.insurer} · {pol.detail}</div>
             </div>
-            <Pill tone="emerald" dot>Vigente</Pill>
           </div>
         )}
 
         <div style={useFormGrid()}>
           <Field label="Tipo de siniestro" required>
-            <SelectInput value={f.tipo} onChange={v => set('tipo', v)} options={tipos} placeholder="Elegir…" />
+            <select value={f.tipo} onChange={e => set('tipo', e.target.value)} style={selectStyle}>
+              {CLAIM_TIPOS.map(([v, l]) => <option key={v} value={v}>{l}</option>)}
+            </select>
           </Field>
-          <Field label="Fecha del hecho" required>
-            <TextInput value={f.fecha} onChange={v => set('fecha', v)} mono placeholder="AAAA-MM-DD" />
+          <Field label="Fecha y hora del hecho" required>
+            <input type="datetime-local" value={f.occurredAt} onChange={e => set('occurredAt', e.target.value)} style={inputStyle} />
           </Field>
-          <Field label="Lugar" span={2}>
-            <TextInput value={f.lugar} onChange={v => set('lugar', v)} placeholder="Dirección o referencia" />
+          <Field label="Denunciante" required hint="quién reporta">
+            <TextInput value={f.reportedBy} onChange={v => set('reportedBy', v)} placeholder="Ej: el asegurado" />
+          </Field>
+          <Field label="Nº de siniestro" hint="de la aseguradora">
+            <TextInput value={f.claimNumber} onChange={v => set('claimNumber', v)} mono placeholder="opcional" />
+          </Field>
+          <Field label="Prioridad" hint="triage">
+            <select value={f.importance} onChange={e => set('importance', e.target.value)} style={selectStyle}>
+              <option value="">Sin priorizar</option>
+              <option value="alta">Alta</option>
+              <option value="media">Media</option>
+              <option value="baja">Baja</option>
+            </select>
+          </Field>
+          <Field label="Lugar del hecho">
+            <TextInput value={f.location} onChange={v => set('location', v)} placeholder="Dirección o referencia" />
           </Field>
           <Field label="Descripción del hecho" span={2}>
-            <textarea value={f.desc} onChange={e => set('desc', e.target.value)} placeholder="Detalle de lo ocurrido…" rows={4}
-              style={{ ...inputStyle, resize: 'vertical', minHeight: 88 }} />
+            <textarea value={f.description} onChange={e => set('description', e.target.value)} rows={4}
+              style={{ ...inputStyle, resize: 'vertical', minHeight: 88 }} placeholder="Detalle de lo ocurrido…" />
           </Field>
         </div>
 
-        <button onClick={() => set('urgente', !f.urgente)} style={{
-          display: 'flex', alignItems: 'center', gap: 11, padding: '12px 14px', borderRadius: 10, width: '100%', textAlign: 'left',
-          border: `1px solid ${f.urgente ? 'var(--red)' : 'var(--hair)'}`, background: f.urgente ? 'var(--red-soft)' : 'var(--panel)',
-        }}>
-          <span style={{ width: 20, height: 20, borderRadius: 6, border: `1.5px solid ${f.urgente ? 'var(--red)' : 'var(--hair)'}`, background: f.urgente ? 'var(--red)' : 'transparent', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-            {f.urgente && <Icon name="check" size={13} stroke={3} style={{ color: '#fff' }} />}
-          </span>
-          <div>
-            <div style={{ fontSize: 13, fontWeight: 600, color: f.urgente ? 'var(--red-ink)' : 'var(--ink)' }}>Marcar como urgente</div>
-            <div style={{ fontSize: 11.5, color: 'var(--ink-3)' }}>Prioriza la gestión y avisa a la aseguradora hoy.</div>
-          </div>
-        </button>
+        {error && <div style={{ fontSize: 12.5, color: 'var(--red-ink)' }}>{error}</div>}
       </div>
     </Drawer>
   );
 }
 
-Object.assign(window, { Drawer, Field, TextInput, SelectInput, RamoPicker, inputStyle, FORM_GRID, NuevaPolizaForm, NuevoSiniestroForm });
+/* ============================================================
+   NUEVO CONTACTO — alta real (POST /api/v1/contacts). Regla de negocio:
+   nace SIEMPRE como prospecto (sin selector de estado). Pasa a cliente cuando
+   se importa su primera póliza.
+   ============================================================ */
+const EMPTY_CONTACTO = { kind: 'PERSONA_FISICA', firstName: '', lastName: '', legalName: '', dni: '', cuit: '', city: '', phone: '', notes: '' };
+
+function NuevoContactoForm({ open, onClose }) {
+  const [f, setF] = useState(EMPTY_CONTACTO);
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState(null);
+  useEffect(() => { if (open) { setF(EMPTY_CONTACTO); setError(null); } }, [open]);
+
+  const set = (k, v) => setF(s => ({ ...s, [k]: v }));
+  const juridica = f.kind === 'PERSONA_JURIDICA';
+  const valid = juridica ? f.legalName.trim() : (f.firstName.trim() || f.lastName.trim());
+
+  const submit = () => {
+    if (!valid || saving) return;
+    setSaving(true); setError(null);
+    const data = { kind: f.kind, city: f.city, phone: f.phone, notes: f.notes, cuit: f.cuit };
+    if (juridica) data.legalName = f.legalName;
+    else { data.firstName = f.firstName; data.lastName = f.lastName; data.dni = f.dni; }
+    window.rumboApi.createContact(data)
+      .then(() => { window.rumboUI?.toast?.('Contacto creado como prospecto'); if (window.rumboRefresh) window.rumboRefresh(); onClose(); })
+      .catch(e => setError(e.message)).finally(() => setSaving(false));
+  };
+
+  return (
+    <Drawer open={open} onClose={onClose} eyebrow="Cartera · alta" title="Nuevo contacto" width={540}
+      footer={<>
+        <Btn variant="ghost" onClick={onClose}>Cancelar</Btn>
+        <Btn variant="primary" icon="check" onClick={submit} style={{ opacity: valid && !saving ? 1 : 0.5, pointerEvents: valid && !saving ? 'auto' : 'none' }}>Crear prospecto</Btn>
+      </>}>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 18 }}>
+        <div style={{ display: 'flex', gap: 8 }}>
+          {[['PERSONA_FISICA', 'Persona'], ['PERSONA_JURIDICA', 'Empresa']].map(([v, l]) => (
+            <button key={v} onClick={() => set('kind', v)} style={{
+              flex: 1, padding: 10, borderRadius: 9, border: `1px solid ${f.kind === v ? 'var(--orange)' : 'var(--hair)'}`,
+              background: f.kind === v ? 'var(--orange-soft)' : 'var(--panel)', color: f.kind === v ? 'var(--orange-ink)' : 'var(--ink-2)', fontWeight: 600, fontSize: 13,
+            }}>{l}</button>
+          ))}
+        </div>
+
+        <div style={useFormGrid()}>
+          {juridica ? (
+            <Field label="Razón social" required span={2}><TextInput value={f.legalName} onChange={v => set('legalName', v)} placeholder="Razón social de la empresa" /></Field>
+          ) : (
+            <>
+              <Field label="Nombre"><TextInput value={f.firstName} onChange={v => set('firstName', v)} /></Field>
+              <Field label="Apellido"><TextInput value={f.lastName} onChange={v => set('lastName', v)} /></Field>
+            </>
+          )}
+          {juridica
+            ? <Field label="CUIT"><TextInput value={f.cuit} onChange={v => set('cuit', v.replace(/[^0-9]/g, ''))} mono placeholder="opcional" /></Field>
+            : <Field label="DNI"><TextInput value={f.dni} onChange={v => set('dni', v.replace(/[^0-9]/g, ''))} mono placeholder="opcional" /></Field>}
+          <Field label="Ciudad"><TextInput value={f.city} onChange={v => set('city', v)} placeholder="opcional" /></Field>
+          <Field label="Teléfono" span={2}><TextInput value={f.phone} onChange={v => set('phone', v)} mono placeholder="+54 9 ..." /></Field>
+          <Field label="Observaciones" span={2}>
+            <textarea value={f.notes} onChange={e => set('notes', e.target.value)} rows={2} style={{ ...inputStyle, resize: 'vertical', minHeight: 56 }} placeholder="opcional" />
+          </Field>
+        </div>
+
+        <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '11px 14px', borderRadius: 10, background: 'var(--panel-2)', border: '1px solid var(--hair)', fontSize: 12, color: 'var(--ink-2)' }}>
+          <Icon name="compass" size={16} style={{ color: 'var(--emerald)', flexShrink: 0 }} />
+          <span>Nace como <strong style={{ color: 'var(--orange-ink)' }}>prospecto</strong>. Pasa a cliente cuando importás su primera póliza.</span>
+        </div>
+
+        {error && <div style={{ fontSize: 12.5, color: 'var(--red-ink)' }}>{error}</div>}
+      </div>
+    </Drawer>
+  );
+}
+
+Object.assign(window, { Drawer, Field, TextInput, SelectInput, RamoPicker, inputStyle, FORM_GRID, useFormGrid, NuevoSiniestroForm, NuevoContactoForm });

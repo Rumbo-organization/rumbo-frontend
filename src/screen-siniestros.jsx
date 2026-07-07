@@ -3,6 +3,7 @@
    ============================================================ */
 function ScreenSiniestros({ go }) {
   const isMobile = useIsMobile();
+  useRumboVersion(); // re-render tras crear/gestionar un siniestro
   const { SINIESTROS, POLICIES } = window.RUMBO_DATA;
   const { daysFrom } = window.rumboFmt;
 
@@ -54,14 +55,17 @@ function ScreenSiniestros({ go }) {
                     const stale = s.stale >= 10;
                     const pol = polFor(s.policyId);
                     return (
-                      <div key={s.id} onClick={() => go('detail', { id: s.policyId })} style={{
+                      <div key={s.id} onClick={() => window.rumboUI?.openClaim(s.id)} style={{
                         background: 'var(--panel)', border: `1px solid ${stale ? 'var(--red)' : 'var(--hair)'}`, borderRadius: 10, padding: 13, cursor: 'pointer', boxShadow: 'var(--shadow-sm)', transition: 'transform .14s',
                       }}
                         onMouseEnter={e => e.currentTarget.style.transform = 'translateY(-2px)'}
                         onMouseLeave={e => e.currentTarget.style.transform = 'none'}>
                         <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 8, marginBottom: 9 }}>
-                          <div>
-                            <div style={{ fontSize: 14, fontWeight: 600, color: 'var(--ink)' }}>{s.tipo}</div>
+                          <div style={{ minWidth: 0 }}>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
+                              <span style={{ fontSize: 14, fontWeight: 600, color: 'var(--ink)' }}>{s.tipo}</span>
+                              {s.importance && <Pill tone={s.importance === 'Alta' ? 'red' : s.importance === 'Media' ? 'amber' : 'neutral'} style={{ fontSize: 9.5, padding: '1px 6px' }}>{s.importance}</Pill>}
+                            </div>
                             <div className="font-mono" style={{ fontSize: 10.5, color: 'var(--ink-3)', marginTop: 2 }}>{s.num}</div>
                           </div>
                           <RamoGlyph ramo={pol?.ramo || 'Automotor'} size={30} />

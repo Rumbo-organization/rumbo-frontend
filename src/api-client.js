@@ -76,8 +76,18 @@ const rumboApi = {
   deleteCalendarEvent: (id) => send('DELETE', `/api/v1/calendar/events/${id}`),
   toggleCalendarEvent: (id) => send('POST', `/api/v1/calendar/events/${id}/toggle`),
 
-  // Siniestros — gestión (escritura). Cambia el estado del siniestro.
+  // Siniestros — gestión (escritura).
+  createClaim: (data) => send('POST', '/api/v1/claims', data),
+  claimById: (id) => get('/api/v1/claims/' + id),
   updateClaimStatus: (id, status) => send('PATCH', `/api/v1/claims/${id}/status`, { status }),
+  updateClaimImportance: (id, importance) => send('PATCH', `/api/v1/claims/${id}/importance`, { importance }),
+  addClaimComment: (id, body) => send('POST', `/api/v1/claims/${id}/comments`, { body }),
+
+  // Contactos — alta (siempre nace prospecto, sin selector de estado).
+  createContact: (data) => send('POST', '/api/v1/contacts', data),
+
+  // Pólizas — editar solo observaciones (el resto se importa).
+  updatePolicyNotes: (id, notes) => send('PATCH', `/api/v1/policies/${id}`, { notes }),
 };
 
 // Hidrata window.RUMBO_DATA con los datos reales del backend, preservando lo
@@ -96,4 +106,17 @@ async function hydrateRumboData() {
   return window.RUMBO_DATA;
 }
 
-Object.assign(window, { rumboApi, hydrateRumboData });
+// Tras una mutación (crear siniestro, cambiar estado/prioridad, comentar, editar
+// observaciones, alta de contacto…) re-hidrata RUMBO_DATA desde el BFF y avisa a
+// las pantallas montadas (evento 'rumbo-data' → useRumboVersion re-renderiza).
+// Fuente única de verdad = la DB; sin merges optimistas por pantalla.
+async function rumboRefresh() {
+  try {
+    await hydrateRumboData();
+  } catch (e) {
+    console.error('[rumbo] refresh falló:', e.message);
+  }
+  window.dispatchEvent(new Event('rumbo-data'));
+}
+
+Object.assign(window, { rumboApi, hydrateRumboData, rumboRefresh });

@@ -3,6 +3,7 @@
    ============================================================ */
 function ScreenContactos({ go, params }) {
   const isMobile = useIsMobile();
+  useRumboVersion(); // re-render tras crear un contacto
   const { CONTACTS, POLICIES, SINIESTROS } = window.RUMBO_DATA;
   const { ars, arsShort, daysFrom } = window.rumboFmt;
   const [seg, setSeg] = useState('todos');
@@ -44,7 +45,7 @@ function ScreenContactos({ go, params }) {
       <div style={{ maxWidth: 1240, margin: '0 auto' }}>
         <PageHead eyebrow="Cartera" tick={1} title="Contactos"
           sub={<><strong className="font-mono tnum" style={{ color: 'var(--ink)' }}>{enriched.filter(c=>c.tags.includes('Cliente')).length}</strong> clientes · <strong className="font-mono tnum" style={{ color: 'var(--ink)' }}>{enriched.filter(c=>c.tags.includes('Prospecto')).length}</strong> prospectos en seguimiento</>}
-          actions={<><Btn variant="ghost" icon="download">Exportar</Btn><Btn variant="primary" icon="plus">Nuevo contacto</Btn></>} />
+          actions={<><Btn variant="ghost" icon="download">Exportar</Btn><Btn variant="primary" icon="plus" onClick={() => window.rumboUI?.newContacto()}>Nuevo contacto</Btn></>} />
 
         <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 16, flexWrap: 'wrap' }}>
           <Segmented segs={segs} value={seg} onChange={setSeg} />

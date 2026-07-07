@@ -21,6 +21,20 @@ function useIsMobile() {
   return mobile;
 }
 
+/* ---------- Suscripción a datos del BFF ----------
+   Devuelve un contador que se incrementa en cada 'rumbo-data' (lo dispara
+   window.rumboRefresh tras una mutación). Una pantalla que lee window.RUMBO_DATA
+   lo llama arriba de todo para re-renderizar con los datos frescos de la DB. */
+function useRumboVersion() {
+  const [v, setV] = useState(0);
+  useEffect(() => {
+    const h = () => setV(x => x + 1);
+    window.addEventListener('rumbo-data', h);
+    return () => window.removeEventListener('rumbo-data', h);
+  }, []);
+  return v;
+}
+
 /* ---------- Identidad de la sesión ----------
    Deriva nombre/iniciales/org/rol reales desde window.RUMBO_USER (usuario de la
    sesión, seteado en app.jsx) y window.RUMBO_DATA.ORG/ME (del BFF). Con fallback
@@ -565,5 +579,5 @@ function MobileMoreSheet({ open, onClose, route, go, dark, setDark }) {
 Object.assign(window, {
   BrandMark, Pill, RamoGlyph, Avatar, Ticks, SectionHead, Panel, Btn, Rail, InstrumentBar,
   urgencyTone, NAV, NAV_GROUPS, PageHead, Segmented, SearchBox, MiniStat,
-  useIsMobile, MobileTabBar, MobileMoreSheet, MOBILE_TABS, rumboIdentity,
+  useIsMobile, MobileTabBar, MobileMoreSheet, MOBILE_TABS, rumboIdentity, useRumboVersion,
 });
