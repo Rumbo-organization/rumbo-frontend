@@ -19,7 +19,7 @@ function ScreenCrossselling({ go }) {
 
   // coverage gap matrix
   const RAMOS = ['Automotor', 'Hogar', 'Vida', 'Comercio', 'ART'];
-  const clients = CONTACTS.filter(c => c.tags.includes('Cliente'));
+  const clients = CONTACTS.filter(c => c.tags.includes('Asegurado'));
   const hasRamo = (cid, ramo) => POLICIES.some(p => p.contactId === cid && p.ramo === ramo);
   const suggestedRamo = (cid, ramo) => CROSSSELL.some(x => x.contactId === cid && x.suggest === ramo);
 

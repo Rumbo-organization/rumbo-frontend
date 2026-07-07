@@ -289,4 +289,146 @@ function NuevoContactoForm({ open, onClose }) {
   );
 }
 
-Object.assign(window, { Drawer, Field, TextInput, SelectInput, RamoPicker, inputStyle, FORM_GRID, useFormGrid, NuevoSiniestroForm, NuevoContactoForm });
+/* ============================================================
+   EDITAR ASEGURADO — datos, domicilio y medios de contacto múltiples
+   (F-010 / F-020). Persiste vía PATCH /api/v1/contacts/:id. Se prefila con
+   `contact` = el objeto `form` crudo que devuelve GET /contacts/:id.
+   ============================================================ */
+const METHOD_TYPES = [
+  ['celular', 'Celular'], ['telefono', 'Teléfono'], ['whatsapp', 'WhatsApp'], ['email', 'Email'],
+];
+
+function fromContact(contact) {
+  const c = contact || {};
+  const methods = Array.isArray(c.contactMethods) && c.contactMethods.length
+    ? c.contactMethods.map(m => ({ type: m.type || 'celular', value: m.value || '', primary: !!m.primary }))
+    : [];
+  return {
+    kind: c.kind || 'PERSONA_FISICA',
+    firstName: c.firstName || '', lastName: c.lastName || '', legalName: c.legalName || '',
+    dni: c.dni || '', cuit: c.cuit || '', notes: c.notes || '',
+    addressStreet: c.addressStreet || '', addressNumber: c.addressNumber || '',
+    addressFloor: c.addressFloor || '', addressApartment: c.addressApartment || '',
+    addressCity: c.addressCity || '', addressProvince: c.addressProvince || '', addressPostalCode: c.addressPostalCode || '',
+    methods,
+  };
+}
+
+function EditContactoForm({ open, onClose, contact, onSaved }) {
+  const [f, setF] = useState(() => fromContact(contact));
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState(null);
+  useEffect(() => { if (open) { setF(fromContact(contact)); setError(null); } }, [open, contact]);
+
+  const set = (k, v) => setF(s => ({ ...s, [k]: v }));
+  const juridica = f.kind === 'PERSONA_JURIDICA';
+
+  const setMethod = (i, k, v) => setF(s => ({ ...s, methods: s.methods.map((m, j) => j === i ? { ...m, [k]: v } : m) }));
+  const setPrimary = (i) => setF(s => ({ ...s, methods: s.methods.map((m, j) => ({ ...m, primary: j === i })) }));
+  const addMethod = () => setF(s => ({ ...s, methods: [...s.methods, { type: 'celular', value: '', primary: s.methods.length === 0 }] }));
+  const removeMethod = (i) => setF(s => ({ ...s, methods: s.methods.filter((_, j) => j !== i) }));
+
+  const valid = juridica ? f.legalName.trim() : (f.firstName.trim() || f.lastName.trim());
+
+  const submit = () => {
+    if (!valid || saving) return;
+    setSaving(true); setError(null);
+    const data = {
+      notes: f.notes,
+      addressStreet: f.addressStreet, addressNumber: f.addressNumber,
+      addressFloor: f.addressFloor, addressApartment: f.addressApartment,
+      addressCity: f.addressCity, addressProvince: f.addressProvince, addressPostalCode: f.addressPostalCode,
+      contactMethods: f.methods.filter(m => m.value.trim()).map(m => ({ type: m.type, value: m.value.trim(), primary: !!m.primary })),
+    };
+    if (juridica) { data.legalName = f.legalName; data.cuit = f.cuit; }
+    else { data.firstName = f.firstName; data.lastName = f.lastName; data.dni = f.dni; data.cuit = f.cuit; }
+    window.rumboApi.updateContact(contact.id, data)
+      .then(() => { window.rumboUI?.toast?.('Asegurado actualizado'); if (window.rumboRefresh) window.rumboRefresh(); onSaved && onSaved(); onClose(); })
+      .catch(e => setError(e.message)).finally(() => setSaving(false));
+  };
+
+  return (
+    <Drawer open={open} onClose={onClose} eyebrow="Cartera · edición" title="Editar asegurado" width={560}
+      footer={<>
+        <Btn variant="ghost" onClick={onClose}>Cancelar</Btn>
+        <Btn variant="primary" icon="check" onClick={submit} style={{ opacity: valid && !saving ? 1 : 0.5, pointerEvents: valid && !saving ? 'auto' : 'none' }}>Guardar cambios</Btn>
+      </>}>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
+
+        {/* datos */}
+        <div style={useFormGrid()}>
+          {juridica ? (
+            <Field label="Razón social" required span={2}><TextInput value={f.legalName} onChange={v => set('legalName', v)} /></Field>
+          ) : (
+            <>
+              <Field label="Nombre"><TextInput value={f.firstName} onChange={v => set('firstName', v)} /></Field>
+              <Field label="Apellido"><TextInput value={f.lastName} onChange={v => set('lastName', v)} /></Field>
+            </>
+          )}
+          {juridica
+            ? <Field label="CUIT" span={2}><TextInput value={f.cuit} onChange={v => set('cuit', v.replace(/[^0-9]/g, ''))} mono placeholder="opcional" /></Field>
+            : <Field label="DNI" span={2}><TextInput value={f.dni} onChange={v => set('dni', v.replace(/[^0-9]/g, ''))} mono placeholder="opcional" /></Field>}
+        </div>
+
+        {/* domicilio */}
+        <div>
+          <div className="eyebrow" style={{ marginBottom: 10 }}>Domicilio</div>
+          <div style={useFormGrid()}>
+            <Field label="Calle" span={1}><TextInput value={f.addressStreet} onChange={v => set('addressStreet', v)} placeholder="Av. Colón" /></Field>
+            <Field label="Número" span={1}><TextInput value={f.addressNumber} onChange={v => set('addressNumber', v)} mono /></Field>
+            <Field label="Piso" span={1}><TextInput value={f.addressFloor} onChange={v => set('addressFloor', v)} mono placeholder="opcional" /></Field>
+            <Field label="Depto" span={1}><TextInput value={f.addressApartment} onChange={v => set('addressApartment', v)} mono placeholder="opcional" /></Field>
+            <Field label="Ciudad" span={1}><TextInput value={f.addressCity} onChange={v => set('addressCity', v)} /></Field>
+            <Field label="Provincia" span={1}><TextInput value={f.addressProvince} onChange={v => set('addressProvince', v)} /></Field>
+            <Field label="Código postal" span={2}><TextInput value={f.addressPostalCode} onChange={v => set('addressPostalCode', v)} mono placeholder="opcional" /></Field>
+          </div>
+        </div>
+
+        {/* medios de contacto múltiples */}
+        <div>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10 }}>
+            <span className="eyebrow">Medios de contacto</span>
+            <Btn size="sm" variant="ghost" icon="plus" onClick={addMethod}>Agregar</Btn>
+          </div>
+          {f.methods.length === 0 ? (
+            <div style={{ fontSize: 12.5, color: 'var(--ink-3)' }}>Sin medios. Agregá teléfono, celular, WhatsApp o email.</div>
+          ) : (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 9 }}>
+              {f.methods.map((m, i) => (
+                <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                  <select value={m.type} onChange={e => setMethod(i, 'type', e.target.value)}
+                    style={{ ...inputStyle, width: 118, flexShrink: 0, appearance: 'none', cursor: 'pointer', paddingRight: 12 }}>
+                    {METHOD_TYPES.map(([v, l]) => <option key={v} value={v}>{l}</option>)}
+                  </select>
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <TextInput value={m.value} onChange={v => setMethod(i, 'value', v)} mono
+                      placeholder={m.type === 'email' ? 'vos@correo.com' : '+54 9 ...'} />
+                  </div>
+                  <button title="Marcar como principal" onClick={() => setPrimary(i)} style={{
+                    flexShrink: 0, height: 38, padding: '0 10px', borderRadius: 9, fontSize: 11, fontWeight: 600,
+                    border: `1px solid ${m.primary ? 'var(--orange)' : 'var(--hair)'}`,
+                    background: m.primary ? 'var(--orange-soft)' : 'var(--panel)',
+                    color: m.primary ? 'var(--orange-ink)' : 'var(--ink-3)', cursor: 'pointer',
+                  }}>Principal</button>
+                  <button title="Quitar" onClick={() => removeMethod(i)} style={{
+                    flexShrink: 0, width: 38, height: 38, borderRadius: 9, border: '1px solid var(--hair)',
+                    background: 'var(--panel)', color: 'var(--ink-3)', cursor: 'pointer', display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
+                  }}><Icon name="x" size={15} /></button>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+
+        {/* observaciones */}
+        <Field label="Observaciones" span={2}>
+          <textarea value={f.notes} onChange={e => set('notes', e.target.value)} rows={2} style={{ ...inputStyle, resize: 'vertical', minHeight: 56 }} placeholder="opcional" />
+        </Field>
+
+        {error && <div style={{ fontSize: 12.5, color: 'var(--red-ink)' }}>{error}</div>}
+      </div>
+    </Drawer>
+  );
+}
+
+Object.assign(window, { Drawer, Field, TextInput, SelectInput, RamoPicker, inputStyle, FORM_GRID, useFormGrid, NuevoSiniestroForm, NuevoContactoForm, EditContactoForm });

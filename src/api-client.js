@@ -85,6 +85,7 @@ const rumboApi = {
 
   // Contactos — alta (siempre nace prospecto, sin selector de estado).
   createContact: (data) => send('POST', '/api/v1/contacts', data),
+  updateContact: (id, data) => send('PATCH', '/api/v1/contacts/' + id, data),
 
   // Pólizas — editar solo observaciones (el resto se importa).
   updatePolicyNotes: (id, notes) => send('PATCH', `/api/v1/policies/${id}`, { notes }),

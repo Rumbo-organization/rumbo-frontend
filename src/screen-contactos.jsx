@@ -27,13 +27,13 @@ function ScreenContactos({ go, params }) {
 
   const segs = [
     { id: 'todos', label: 'Todos', n: enriched.length },
-    { id: 'clientes', label: 'Clientes', n: enriched.filter(c => c.tags.includes('Cliente')).length },
+    { id: 'clientes', label: 'Asegurados', n: enriched.filter(c => c.tags.includes('Asegurado')).length },
     { id: 'prospectos', label: 'Prospectos', n: enriched.filter(c => c.tags.includes('Prospecto')).length },
     { id: 'empresas', label: 'Empresas', n: enriched.filter(c => c.kind === 'Empresa').length },
   ];
 
   let list = enriched;
-  if (seg === 'clientes') list = list.filter(c => c.tags.includes('Cliente'));
+  if (seg === 'clientes') list = list.filter(c => c.tags.includes('Asegurado'));
   if (seg === 'prospectos') list = list.filter(c => c.tags.includes('Prospecto'));
   if (seg === 'empresas') list = list.filter(c => c.kind === 'Empresa');
   if (q.trim()) { const t = q.toLowerCase(); list = list.filter(c => (c.name + c.city).toLowerCase().includes(t)); }
@@ -44,7 +44,7 @@ function ScreenContactos({ go, params }) {
     <div className="scroll rise" style={{ overflowY: 'auto', height: '100%', padding: isMobile ? '18px 16px 40px' : '30px 34px 60px' }}>
       <div style={{ maxWidth: 1240, margin: '0 auto' }}>
         <PageHead eyebrow="Cartera" tick={1} title="Contactos"
-          sub={<><strong className="font-mono tnum" style={{ color: 'var(--ink)' }}>{enriched.filter(c=>c.tags.includes('Cliente')).length}</strong> clientes · <strong className="font-mono tnum" style={{ color: 'var(--ink)' }}>{enriched.filter(c=>c.tags.includes('Prospecto')).length}</strong> prospectos en seguimiento</>}
+          sub={<><strong className="font-mono tnum" style={{ color: 'var(--ink)' }}>{enriched.filter(c=>c.tags.includes('Asegurado')).length}</strong> asegurados · <strong className="font-mono tnum" style={{ color: 'var(--ink)' }}>{enriched.filter(c=>c.tags.includes('Prospecto')).length}</strong> prospectos en seguimiento</>}
           actions={<><Btn variant="ghost" icon="download">Exportar</Btn><Btn variant="primary" icon="plus" onClick={() => window.rumboUI?.newContacto()}>Nuevo contacto</Btn></>} />
 
         <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 16, flexWrap: 'wrap' }}>

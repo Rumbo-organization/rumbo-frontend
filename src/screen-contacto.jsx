@@ -11,6 +11,8 @@ function ScreenContacto({ go, params }) {
   const [c, setC] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [editOpen, setEditOpen] = useState(false);
+  const [reload, setReload] = useState(0);
 
   useEffect(() => {
     let alive = true;
@@ -21,7 +23,7 @@ function ScreenContacto({ go, params }) {
       .then((d) => { if (alive) { setC(d); setLoading(false); } })
       .catch((e) => { if (alive) { setError(e); setLoading(false); } });
     return () => { alive = false; };
-  }, [id]);
+  }, [id, reload]);
 
   if (loading) {
     return (
@@ -49,7 +51,7 @@ function ScreenContacto({ go, params }) {
   }
 
   const prospecto = c.tags && c.tags.includes('Prospecto');
-  const statusTone = c.status === 'Cliente' ? 'emerald' : c.status === 'Prospecto' ? 'amber' : 'neutral';
+  const statusTone = c.status === 'Asegurado' ? 'emerald' : c.status === 'Prospecto' ? 'amber' : 'neutral';
   const waHref = c.phone ? `https://wa.me/${String(c.phone).replace(/[^0-9]/g, '')}` : null;
 
   return (
@@ -70,6 +72,7 @@ function ScreenContacto({ go, params }) {
           <div style={{ display: 'flex', gap: 9, flexWrap: 'wrap' }}>
             {waHref && <Btn variant="ghost" icon="whatsapp" onClick={() => window.open(waHref, '_blank')}>WhatsApp</Btn>}
             <Btn variant="ghost" icon="users" onClick={() => go('contactos', { id: c.id })}>En lista</Btn>
+            <Btn variant="primary" onClick={() => setEditOpen(true)}>Editar</Btn>
           </div>
         </div>
 
@@ -193,6 +196,13 @@ function ScreenContacto({ go, params }) {
           </div>
         </div>
       </div>
+
+      <EditContactoForm
+        open={editOpen}
+        onClose={() => setEditOpen(false)}
+        contact={{ ...(c.form || {}), id: c.id }}
+        onSaved={() => setReload((r) => r + 1)}
+      />
     </div>
   );
 }
