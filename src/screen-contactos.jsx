@@ -1,13 +1,19 @@
 /* ============================================================
    RUMBO — Contactos (agenda de clientes y prospectos)
    ============================================================ */
-function ScreenContactos({ go }) {
+function ScreenContactos({ go, params }) {
   const isMobile = useIsMobile();
   const { CONTACTS, POLICIES, SINIESTROS } = window.RUMBO_DATA;
   const { ars, arsShort, daysFrom } = window.rumboFmt;
   const [seg, setSeg] = useState('todos');
   const [q, setQ] = useState('');
-  const [sel, setSel] = useState(CONTACTS[0].id);
+  // Contacto a preseleccionar (p.ej. "Ver ficha" desde una póliza). Solo es un
+  // selector sobre CONTACTS, que el BFF ya scopeó por org/cartera (RLS): un id
+  // ajeno no está en la lista → cae al primer contacto propio, nunca filtra data.
+  const pid = params && params.id;
+  const [sel, setSel] = useState(pid || (CONTACTS[0] && CONTACTS[0].id));
+  // Si ya estábamos en Contactos y llega otro id por ruta, sincronizamos.
+  useEffect(() => { if (pid) setSel(pid); }, [pid]);
 
   // enrich
   const enriched = CONTACTS.map(c => {
@@ -89,10 +95,11 @@ function ScreenContactos({ go }) {
                   <div style={{ fontSize: 12.5, color: 'var(--ink-3)', marginTop: 3 }}>{current.kind} · cliente desde {current.since}</div>
                 </div>
               </div>
-              <div style={{ display: 'flex', gap: 8, marginBottom: 16 }}>
+              <div style={{ display: 'flex', gap: 8, marginBottom: 10 }}>
                 <Btn size="sm" variant="primary" icon="whatsapp" style={{ flex: 1 }}>WhatsApp</Btn>
                 <Btn size="sm" variant="soft" icon="phone" style={{ flex: 1 }}>Llamar</Btn>
               </div>
+              <Btn size="sm" variant="ghost" icon="users" style={{ width: '100%', marginBottom: 16 }} onClick={() => go('contacto', { id: current.id })}>Ver ficha completa</Btn>
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 1, background: 'var(--hair-2)', border: '1px solid var(--hair)', borderRadius: 10, overflow: 'hidden' }}>
                 <MiniStat label="Prima anual" value={arsShort(current.prima)} />
                 <MiniStat label="Pólizas" value={current.pols.length} />

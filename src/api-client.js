@@ -32,6 +32,30 @@ async function get(path) {
   return r.json();
 }
 
+// Escrituras (POST/PATCH/DELETE). Primer camino mutante del cliente — el resto
+// del cockpit es solo lectura del BFF. Mismo manejo de cookies/errores que get();
+// el body de error { error } del backend se propaga como Error.message.
+async function send(method, path, body) {
+  const r = await fetch(API + path, {
+    method,
+    credentials: 'include',
+    headers: { 'Content-Type': 'application/json' },
+    body: body != null ? JSON.stringify(body) : undefined,
+  });
+  if (!r.ok) {
+    let msg = `API ${r.status} en ${path}`;
+    try {
+      const j = await r.json();
+      if (j && j.error) msg = j.error;
+    } catch { /* respuesta sin JSON: dejamos el mensaje genérico */ }
+    const err = new Error(msg);
+    err.status = r.status;
+    throw err;
+  }
+  if (r.status === 204) return null;
+  return r.json();
+}
+
 const rumboApi = {
   apiBase: API,
 
@@ -40,9 +64,20 @@ const rumboApi = {
 
   // Lecturas REST individuales (base de la API pública, D-026).
   contacts: () => get('/api/v1/contacts'),
+  contactById: (id) => get('/api/v1/contacts/' + id),
   policies: () => get('/api/v1/policies'),
   claims: () => get('/api/v1/claims'),
   insurers: () => get('/api/v1/insurers'),
+
+  // Calendario (jul-2026): month view (lectura) + CRUD de la agenda (escritura).
+  calendarMonth: (year, month) => get(`/api/v1/calendar?year=${year}&month=${month}`),
+  createCalendarEvent: (data) => send('POST', '/api/v1/calendar/events', data),
+  updateCalendarEvent: (id, data) => send('PATCH', `/api/v1/calendar/events/${id}`, data),
+  deleteCalendarEvent: (id) => send('DELETE', `/api/v1/calendar/events/${id}`),
+  toggleCalendarEvent: (id) => send('POST', `/api/v1/calendar/events/${id}/toggle`),
+
+  // Siniestros — gestión (escritura). Cambia el estado del siniestro.
+  updateClaimStatus: (id, status) => send('PATCH', `/api/v1/claims/${id}/status`, { status }),
 };
 
 // Hidrata window.RUMBO_DATA con los datos reales del backend, preservando lo

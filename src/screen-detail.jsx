@@ -36,20 +36,76 @@ function CuotaRow({ c, last }) {
   );
 }
 
+/* Cambio de estado de un siniestro (gestión). PATCH al backend; al confirmar,
+   mergea el estado nuevo sobre RUMBO_DATA.SINIESTROS y fuerza re-render. */
+function ClaimStatusControl({ claim, onChanged }) {
+  const LABEL_TO_ENUM = { 'Abierto': 'abierto', 'En curso': 'en_curso', 'Cerrado': 'cerrado' };
+  const [saving, setSaving] = useState(false);
+  const val = LABEL_TO_ENUM[claim.status] || 'abierto';
+
+  const change = (e) => {
+    const status = e.target.value;
+    if (status === val || saving) return;
+    setSaving(true);
+    window.rumboApi.updateClaimStatus(claim.id, status)
+      .then((res) => {
+        const arr = (window.RUMBO_DATA && window.RUMBO_DATA.SINIESTROS) || [];
+        const it = arr.find(x => x.id === claim.id);
+        if (it) { it.status = res.status; it.stale = res.stale; }
+        window.rumboUI && window.rumboUI.toast && window.rumboUI.toast('Estado actualizado');
+        onChanged && onChanged();
+      })
+      .catch((err) => window.rumboUI && window.rumboUI.toast && window.rumboUI.toast(err.message))
+      .finally(() => setSaving(false));
+  };
+
+  return (
+    <div style={{ position: 'relative', flexShrink: 0 }}>
+      <select value={val} onChange={change} disabled={saving} title="Cambiar estado"
+        style={{ ...inputStyle, width: 'auto', padding: '6px 26px 6px 10px', fontSize: 12.5, appearance: 'none', cursor: saving ? 'wait' : 'pointer', opacity: saving ? 0.6 : 1 }}>
+        <option value="abierto">Abierto</option>
+        <option value="en_curso">En curso</option>
+        <option value="cerrado">Cerrado</option>
+      </select>
+      <Icon name="chevronDown" size={14} style={{ position: 'absolute', right: 9, top: '50%', transform: 'translateY(-50%)', color: 'var(--ink-3)', pointerEvents: 'none' }} />
+    </div>
+  );
+}
+
 function ScreenDetail({ go, params }) {
   const { POLICIES, CONTACTS, SINIESTROS, CROSSSELL, ACTIVITY } = window.RUMBO_DATA;
   const { ars, scheduleFor, daysFrom } = window.rumboFmt;
   const p = POLICIES.find(x => x.id === params.id) || POLICIES[0];
-  const contact = CONTACTS.find(c => c.id === p.contactId);
+  const isMobile = useIsMobile();
+  const [, force] = useState(0); // re-render tras cambiar el estado de un siniestro
+  // Sin pólizas (org vacía o id inexistente y lista vacía): no reventamos.
+  if (!p) {
+    return (
+      <div className="scroll rise" style={{ height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 40, color: 'var(--ink-3)' }}>
+        <div style={{ textAlign: 'center' }}>
+          <Icon name="scroll" size={26} stroke={1.7} style={{ color: 'var(--ink-3)' }} />
+          <div style={{ fontSize: 14, marginTop: 10 }}>Póliza no encontrada.</div>
+          <Btn size="sm" variant="ghost" onClick={() => go('polizas')} style={{ margin: '12px auto 0' }}>Ver pólizas</Btn>
+        </div>
+      </div>
+    );
+  }
+  // El contacto puede no estar en la tanda cargada (o el dato real no matchear):
+  // derivamos un fallback desde el nombre de la póliza en vez de crashear.
+  const contact = CONTACTS.find(c => c.id === p.contactId) || {
+    initials: (p.client || '—').replace(/,/g, '').split(/\s+/).filter(Boolean).slice(0, 2).map(w => w[0]).join('').toUpperCase() || '—',
+    name: p.client || '—', kind: '—', since: '—', phone: '—', city: '—',
+  };
   const sched = scheduleFor(p);
   const days = daysFrom(p.renew);
   const claims = SINIESTROS.filter(s => s.policyId === p.id);
   const cross = CROSSSELL.filter(x => x.contactId === p.contactId);
-  const acts = ACTIVITY[p.id] || ACTIVITY.p1;
+  // ACTIVITY solo tiene clave para pólizas con eventos de siniestro (data real).
+  // Antes caía a ACTIVITY.p1 (solo existe en el demo) → undefined.map() en prod.
+  const acts = ACTIVITY[p.id] || [];
   const paid = sched.filter(c => c.status === 'Pagada').length;
   const overdue = sched.filter(c => c.status === 'Vencida');
 
-  const isMobile = useIsMobile();
   return (
     <div className="scroll rise" style={{ overflowY: 'auto', height: '100%', padding: isMobile ? '16px 16px 40px' : '26px 34px 60px' }}>
       <div style={{ maxWidth: 1180, margin: '0 auto' }}>
@@ -131,8 +187,8 @@ function ScreenDetail({ go, params }) {
                       <div style={{ fontSize: 13.5, fontWeight: 600 }}>{s.tipo}</div>
                       <div className="font-mono" style={{ fontSize: 11, color: stale ? 'var(--red-ink)' : 'var(--ink-3)', marginTop: 2 }}>{s.num} · {stale ? `sin movimiento ${s.stale} d` : 'abierto ' + s.opened}</div>
                     </div>
-                    <Pill tone={s.status === 'Abierto' ? 'amber' : 'neutral'}>{s.status}</Pill>
-                    <Btn size="sm" variant="ghost">Gestionar</Btn>
+                    <Pill tone={s.status === 'Abierto' ? 'amber' : s.status === 'Cerrado' ? 'emerald' : 'neutral'}>{s.status}</Pill>
+                    <ClaimStatusControl claim={s} onChanged={() => force(n => n + 1)} />
                   </div>
                 );
               })}
@@ -158,7 +214,7 @@ function ScreenDetail({ go, params }) {
               </div>
               <div style={{ display: 'flex', gap: 8, marginTop: 14 }}>
                 <Btn size="sm" variant="soft" icon="whatsapp" style={{ flex: 1 }}>Mensaje</Btn>
-                <Btn size="sm" variant="soft" icon="users" style={{ flex: 1 }} onClick={() => go('polizas')}>Ver ficha</Btn>
+                <Btn size="sm" variant="soft" icon="users" style={{ flex: 1 }} onClick={() => go('contacto', { id: p.contactId })}>Ver ficha</Btn>
               </div>
             </Panel>
 
@@ -184,7 +240,8 @@ function ScreenDetail({ go, params }) {
             <Panel>
               <SectionHead label="Actividad" />
               <div style={{ position: 'relative', paddingLeft: 6 }}>
-                <div style={{ position: 'absolute', left: 9, top: 6, bottom: 6, width: 2, background: 'var(--hair-2)' }} />
+                {acts.length === 0 && <div style={{ fontSize: 13, color: 'var(--ink-3)' }}>Sin actividad registrada.</div>}
+                {acts.length > 0 && <div style={{ position: 'absolute', left: 9, top: 6, bottom: 6, width: 2, background: 'var(--hair-2)' }} />}
                 {acts.map((a, i) => (
                   <div key={i} style={{ display: 'flex', gap: 14, paddingBottom: i === acts.length - 1 ? 0 : 16, position: 'relative' }}>
                     <span style={{ width: 8, height: 8, borderRadius: 99, marginTop: 5, flexShrink: 0, zIndex: 1,

@@ -6,12 +6,7 @@ function ScreenSiniestros({ go }) {
   const { SINIESTROS, POLICIES } = window.RUMBO_DATA;
   const { daysFrom } = window.rumboFmt;
 
-  // enrich with extra synthetic ones so the board feels real
-  const EXTRA = [
-    { id: 's3', tipo: 'Robo parcial', client: 'Ferreyra, Lucía', policyId: 'p4', num: 'SIN-2026-0109', status: 'Cerrado', stale: 0, opened: '2026-04-18', insurer: 'La Segunda' },
-    { id: 's4', tipo: 'Cristales', client: 'Benítez, Jorge', policyId: 'p2', num: 'SIN-2026-0124', status: 'En curso', stale: 5, opened: '2026-06-10', insurer: 'San Cristóbal' },
-  ];
-  const all = [...SINIESTROS, ...EXTRA];
+  const all = SINIESTROS;
 
   const cols = [
     { id: 'Abierto', label: 'Abiertos', tone: 'amber', hint: 'Denuncia cargada, sin gestión' },

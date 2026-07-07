@@ -254,6 +254,7 @@ const NAV = [
   { id: 'contactos', label: 'Contactos', icon: 'users' },
   { id: 'polizas', label: 'Pólizas', icon: 'scroll' },
   { id: 'cotizaciones', label: 'Cotizaciones', icon: 'calc' },
+  { id: 'calendario', label: 'Calendario', icon: 'clock' },
   { id: 'vencimientos', label: 'Vencimientos', icon: 'calendar' },
   { id: 'siniestros', label: 'Siniestros', icon: 'shield' },
   { id: 'crossselling', label: 'Cross-selling', icon: 'sparkles' },
@@ -273,6 +274,7 @@ const NAV_GROUPS = [
     { id: 'cotizaciones', label: 'Cotizaciones', icon: 'calc' },
   ] },
   { label: 'Operación', items: [
+    { id: 'calendario', label: 'Calendario', icon: 'clock' },
     { id: 'vencimientos', label: 'Vencimientos', icon: 'calendar' },
     { id: 'siniestros', label: 'Siniestros', icon: 'shield' },
   ] },

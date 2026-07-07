@@ -126,7 +126,7 @@ function ScreenLogin({ onAuthed }) {
               <div>
                 <label style={label}>Nombre y apellido</label>
                 <input value={f.name} onChange={e => set('name', e.target.value)} required
-                  placeholder="Carolina Méndez" style={inputStyle} />
+                  placeholder="Nombre y apellido" style={inputStyle} />
               </div>
             )}
             <div>

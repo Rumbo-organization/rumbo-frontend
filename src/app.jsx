@@ -66,6 +66,7 @@ function App() {
       newSiniestro: () => setSiniestroOpen(true),
       cotizar: () => go('cotizador'),
       legal: (k) => setLegal(k),
+      toast: (msg) => flash(msg),
     };
   }, []);
 
@@ -87,7 +88,10 @@ function App() {
     content = <ScreenDetail go={go} params={route.params} />;
   } else if (route.name === 'contactos') {
     bar = <InstrumentBar crumbs={[{ label: 'Cartera' }, { label: 'Contactos' }]} openPalette={openP} isMobile={isMobile} onMenu={() => setMoreOpen(true)} right={<HeadingRight go={go} isMobile={isMobile} />} />;
-    content = <ScreenContactos go={go} />;
+    content = <ScreenContactos go={go} params={route.params} />;
+  } else if (route.name === 'contacto') {
+    bar = <InstrumentBar crumbs={[{ label: 'Contactos', onClick: () => go('contactos') }, { label: 'Ficha' }]} openPalette={openP} isMobile={isMobile} onMenu={() => setMoreOpen(true)} right={<HeadingRight go={go} isMobile={isMobile} />} />;
+    content = <ScreenContacto go={go} params={route.params} />;
   } else if (route.name === 'vencimientos') {
     bar = <InstrumentBar crumbs={[{ label: 'Cartera' }, { label: 'Vencimientos' }]} openPalette={openP} isMobile={isMobile} onMenu={() => setMoreOpen(true)} right={<HeadingRight go={go} isMobile={isMobile} />} />;
     content = <ScreenVencimientos go={go} />;
@@ -115,6 +119,9 @@ function App() {
   } else if (route.name === 'cotizador') {
     bar = <InstrumentBar crumbs={[{ label: 'Herramientas' }, { label: 'Cotizador' }]} openPalette={openP} isMobile={isMobile} onMenu={() => setMoreOpen(true)} right={<HeadingRight go={go} isMobile={isMobile} />} />;
     content = <ScreenCotizador go={go} onEmit={(d) => flash(`Póliza emitida en ${d.insurer} · ${rumboFmt.ars(d.monthly)}/mes`)} />;
+  } else if (route.name === 'calendario') {
+    bar = <InstrumentBar crumbs={[{ label: 'Operación' }, { label: 'Calendario' }]} openPalette={openP} isMobile={isMobile} onMenu={() => setMoreOpen(true)} right={<HeadingRight go={go} isMobile={isMobile} />} />;
+    content = <ScreenCalendario go={go} />;
   } else {
     // fallback placeholder
     bar = <InstrumentBar crumbs={[{ label: NAV.find(n => n.id === route.name)?.label || 'Módulo' }]} openPalette={openP} isMobile={isMobile} onMenu={() => setMoreOpen(true)} right={<HeadingRight go={go} isMobile={isMobile} />} />;
@@ -321,7 +328,7 @@ function BootSplash() {
 /* pantalla de error de carga de datos: en vez de mostrar el demo en silencio
    (que se confunde con "no tengo mi organización"), decimos qué falló y damos
    reintentar. `demo` deja entrar con los datos estáticos a propósito. */
-function DataLoadError({ message, onRetry, onDemo }) {
+function DataLoadError({ message, onRetry }) {
   return (
     <div style={{ height: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'var(--paper)', padding: 24 }}>
       <div style={{ maxWidth: 460, textAlign: 'center' }}>
@@ -330,7 +337,6 @@ function DataLoadError({ message, onRetry, onDemo }) {
         <p style={{ fontSize: 13.5, color: 'var(--ink-2)', lineHeight: 1.5, marginBottom: 20 }}>{message}</p>
         <div style={{ display: 'flex', gap: 10, justifyContent: 'center' }}>
           <Btn variant="primary" icon="refresh" onClick={onRetry}>Reintentar</Btn>
-          <Btn variant="ghost" onClick={onDemo}>Ver demo</Btn>
         </div>
       </div>
     </div>
@@ -378,11 +384,10 @@ function Root() {
       <DataLoadError
         message={msg}
         onRetry={() => setAttempt(a => a + 1)}
-        onDemo={() => setPhase('demo')}
       />
     );
   }
-  return <App />; // 'ready' (datos reales) o 'demo' (estáticos)
+  return <App />; // 'ready' — datos reales del BFF (ya no hay modo demo)
 }
 
 ReactDOM.createRoot(document.getElementById('root')).render(<Root />);

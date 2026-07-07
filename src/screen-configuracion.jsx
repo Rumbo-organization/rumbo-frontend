@@ -38,7 +38,7 @@ function ScreenConfiguracion({ go, dark, setDark }) {
     renovacion: { label: 'Renovación', body: 'Hola {cliente}, te escribo de Méndez Seguros 👋 Tu póliza de {ramo} ({poliza}) vence el {vencimiento}. ¿Avanzamos con la renovación? Cualquier duda quedo a disposición.' },
     cobranza: { label: 'Cuota vencida', body: 'Hola {cliente}, te recuerdo que la cuota {cuota} de tu póliza {poliza} venció el {fecha} por {monto}. Podés abonarla por transferencia o link de pago. ¡Gracias!' },
     siniestro: { label: 'Siniestro', body: 'Hola {cliente}, recibimos tu denuncia de siniestro {siniestro}. Ya iniciamos la gestión con {aseguradora} y te mantengo al tanto de cada novedad.' },
-    bienvenida: { label: 'Bienvenida', body: '¡Bienvenido/a a Méndez Seguros, {cliente}! Soy Carolina, tu productora. Ante cualquier consulta sobre tus coberturas, escribime directamente por acá.' },
+    bienvenida: { label: 'Bienvenida', body: '¡Bienvenido/a, {cliente}! Soy tu productor/a de seguros. Ante cualquier consulta sobre tus coberturas, escribime directamente por acá.' },
   };
 
   return (
