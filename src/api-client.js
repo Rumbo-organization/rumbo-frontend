@@ -66,6 +66,13 @@ const rumboApi = {
   contacts: () => get('/api/v1/contacts'),
   contactById: (id) => get('/api/v1/contacts/' + id),
   policies: () => get('/api/v1/policies'),
+  // Pólizas paginado server-side (Fase 1 escalabilidad): { q, seg, pay, sort, dir,
+  // limit, offset } → { data, total, limit, offset }.
+  policiesPage: (params = {}) => {
+    const qs = new URLSearchParams();
+    for (const [k, v] of Object.entries(params)) if (v != null && v !== '') qs.set(k, v);
+    return get('/api/v1/policies?' + qs.toString());
+  },
   claims: () => get('/api/v1/claims'),
   insurers: () => get('/api/v1/insurers'),
 
