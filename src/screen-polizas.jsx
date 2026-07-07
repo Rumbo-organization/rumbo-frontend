@@ -12,8 +12,12 @@ function ScreenPolizas({ go }) {
   // Pólizas con siniestro = las referenciadas por algún siniestro del BFF.
   const policiesWithClaim = new Set(SINIESTROS.map(s => s.policyId).filter(Boolean));
 
-  // Formas de pago presentes en la cartera (para el filtro). Solo las que existen.
-  const payMethods = [...new Set(POLICIES.map(p => p.paymentMethod).filter(Boolean))].sort();
+  // Formas de pago del filtro: las canónicas (etiquetas del BFF) siempre visibles,
+  // más cualquier otra presente en la cartera. Así el filtro es descubrible aunque
+  // ninguna póliza tenga forma de pago cargada todavía.
+  const PAY_CANON = ['Cupón', 'Débito bancario', 'Tarjeta de crédito'];
+  const payExtra = [...new Set(POLICIES.map(p => p.paymentMethod).filter(Boolean))].filter(m => !PAY_CANON.includes(m));
+  const payMethods = [...PAY_CANON, ...payExtra];
 
   const annual = POLICIES.reduce((a, p) => a + p.prima * (p.freq === 'Mensual' ? 12 : p.freq === 'Trimestral' ? 4 : 1), 0);
 
@@ -59,10 +63,7 @@ function ScreenPolizas({ go }) {
 
         <PageHead eyebrow="Cartera" tick={1} title="Pólizas"
           sub={<><strong className="font-mono tnum" style={{ color: 'var(--ink)' }}>{POLICIES.length}</strong> pólizas vigentes · <strong className="font-mono tnum" style={{ color: 'var(--ink)' }}>{arsShort(annual)}</strong> de prima anual gestionada</>}
-          actions={<>
-            {!isMobile && <Btn variant="ghost" icon="download">Exportar</Btn>}
-            <Btn variant="primary" icon="calc" onClick={() => go('cotizador')} style={isMobile ? { flex: 1 } : {}}>Cotizar</Btn>
-          </>} />
+          actions={<Btn variant="ghost" icon="download">Exportar</Btn>} />
 
         {/* toolbar */}
         <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 16, flexWrap: 'wrap' }}>

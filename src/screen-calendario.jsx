@@ -339,7 +339,7 @@ function ScreenCalendario({ go }) {
             <button onClick={() => nav(1)} title="Mes siguiente" style={NAV_BTN}>
               <Icon name="chevronRight" size={16} stroke={2.1} />
             </button>
-            <Btn size="sm" variant="ghost" onClick={goToday}>Hoy</Btn>
+            <button onClick={goToday} style={{ ...NAV_BTN, width: 'auto', padding: '0 14px', fontSize: 13, fontWeight: 600 }}>Hoy</button>
           </div>
           <h2 className="font-display" style={{ flex: 1, minWidth: 0, fontSize: isMobile ? 18 : 20, letterSpacing: '-0.02em', color: 'var(--ink)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{monthTitle(year, month)}</h2>
           <Segmented segs={segs} value={view} onChange={setViewChoice} />
