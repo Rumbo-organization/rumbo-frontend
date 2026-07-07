@@ -1,6 +1,8 @@
 /* ============================================================
    RUMBO — Login (split-screen de marca, D-025)
-   Google OAuth (F-002) como flujo primario + email/password.
+   Izquierda: panel de marca naranja (gradiente + grilla) fijo en ambos temas.
+   Derecha: formulario theme-aware (oscuro en dark, crema en light).
+   Google OAuth (F-002) + email/password. Email-first.
    ============================================================ */
 
 function GoogleG({ size = 17 }) {
@@ -14,23 +16,35 @@ function GoogleG({ size = 17 }) {
   );
 }
 
+/* Lockup de marca en blanco — para el panel naranja (símbolo blanco + wordmark). */
+function BrandWhite({ size = 30 }) {
+  return (
+    <div style={{ display: 'flex', alignItems: 'center', gap: 11 }}>
+      <img src="assets/symbol-white.png" width={size} height={size} alt="Rumbo"
+        style={{ objectFit: 'contain', display: 'block' }} />
+      <span className="font-display" style={{ fontSize: 21, fontWeight: 800, letterSpacing: '-0.03em', color: '#fff' }}>Rumbo</span>
+    </div>
+  );
+}
+
 function ScreenLogin({ onAuthed }) {
   const isMobile = useIsMobile();
   const [mode, setMode] = useState('login'); // login | signup
   const [f, setF] = useState({ name: '', email: '', password: '' });
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState(null);
+  const [note, setNote] = useState(null); // hint neutral (ej: reset asistido)
   const set = (k, v) => setF(s => ({ ...s, [k]: v }));
 
   const doGoogle = async () => {
-    setErr(null); setBusy(true);
+    setErr(null); setNote(null); setBusy(true);
     try { await rumboAuth.signInGoogle(); }
     catch (e) { setErr(e.message); setBusy(false); }
   };
 
   const doEmail = async (e) => {
     e.preventDefault();
-    setErr(null); setBusy(true);
+    setErr(null); setNote(null); setBusy(true);
     try {
       if (mode === 'signup') await rumboAuth.signUpEmail(f.name, f.email, f.password);
       else await rumboAuth.signInEmail(f.email, f.password);
@@ -40,89 +54,75 @@ function ScreenLogin({ onAuthed }) {
     } catch (e2) { setErr(e2.message); setBusy(false); }
   };
 
-  const label = { fontSize: 12, fontWeight: 600, color: 'var(--ink-2)', marginBottom: 7, display: 'block' };
+  const label = { fontSize: 12.5, fontWeight: 600, color: 'var(--ink)', marginBottom: 7, display: 'block' };
+  const signup = mode === 'signup';
 
   return (
     <div style={{ display: 'flex', height: '100vh', overflow: 'hidden', background: 'var(--paper)' }}>
 
-      {/* IZQUIERDA — panel de marca (solo desktop; en mobile el form ocupa todo) */}
-      {!isMobile && <div style={{
-        flex: '1.15 1 0', background: 'var(--paper-2)', borderRight: '1px solid var(--hair)',
-        display: 'flex', flexDirection: 'column', padding: '40px 48px', minWidth: 0,
-      }}>
-        <BrandMark size={34} />
+      {/* IZQUIERDA — panel de marca naranja (solo desktop) */}
+      {!isMobile && (
+        <div style={{
+          flex: '1.1 1 0', position: 'relative', overflow: 'hidden', minWidth: 0,
+          background: 'radial-gradient(130% 130% at 78% 8%, oklch(0.66 0.185 48) 0%, oklch(0.54 0.195 35) 46%, oklch(0.44 0.165 30) 100%)',
+          display: 'flex', flexDirection: 'column', padding: '44px 52px', color: '#fff',
+        }}>
+          {/* grilla técnica, se desvanece hacia abajo/izquierda */}
+          <div aria-hidden="true" style={{
+            position: 'absolute', inset: 0, pointerEvents: 'none',
+            backgroundImage: 'linear-gradient(oklch(1 0 0 / 0.07) 1px, transparent 1px), linear-gradient(90deg, oklch(1 0 0 / 0.07) 1px, transparent 1px)',
+            backgroundSize: '56px 56px',
+            WebkitMaskImage: 'radial-gradient(120% 105% at 72% 0%, #000 28%, transparent 100%)',
+            maskImage: 'radial-gradient(120% 105% at 72% 0%, #000 28%, transparent 100%)',
+          }} />
 
-        <div style={{ flex: 1, display: 'flex', flexDirection: 'column', justifyContent: 'center', maxWidth: 520 }}>
-          <div className="tick-row" style={{ marginBottom: 16 }}>
-            <Ticks n={7} active={3} />
-            <span className="eyebrow">Gestión para Productores Asesores de Seguros</span>
+          <div style={{ position: 'relative', zIndex: 1, display: 'flex', flexDirection: 'column', height: '100%' }}>
+            <BrandWhite size={34} />
+
+            <div style={{ flex: 1, display: 'flex', flexDirection: 'column', justifyContent: 'center', maxWidth: 500 }}>
+              <h1 className="font-display" style={{ fontSize: 46, lineHeight: 1.04, letterSpacing: '-0.03em', color: '#fff' }}>
+                Marcá el rumbo<br />de tu cartera.
+              </h1>
+              <p style={{ fontSize: 16, color: 'oklch(1 0 0 / 0.82)', marginTop: 20, lineHeight: 1.55, maxWidth: 420 }}>
+                El sistema para Productores Asesores de Seguros: asegurados, pólizas,
+                vencimientos y siniestros en un solo lugar.
+              </p>
+            </div>
+
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+              {[
+                'Precios transparentes, sin letra chica',
+                'Sin permanencia',
+                'Tus datos, siempre exportables',
+              ].map((tx) => (
+                <div key={tx} style={{ display: 'flex', alignItems: 'center', gap: 12, fontSize: 14.5, color: 'oklch(1 0 0 / 0.92)' }}>
+                  <span style={{ width: 26, height: 26, borderRadius: 99, background: 'oklch(1 0 0 / 0.15)', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                    <Icon name="check" size={14} stroke={2.6} />
+                  </span>
+                  {tx}
+                </div>
+              ))}
+            </div>
           </div>
-          <h1 className="font-display" style={{ fontSize: 44, lineHeight: 1.04, letterSpacing: '-0.03em', color: 'var(--ink)' }}>
-            Marcá el rumbo de tu cartera.
-          </h1>
-          <p style={{ fontSize: 15.5, color: 'var(--ink-2)', marginTop: 14, lineHeight: 1.55 }}>
-            Pólizas, vencimientos, siniestros y cotizaciones en un solo cockpit.
-            Sin permanencia, con tus datos siempre exportables.
+        </div>
+      )}
+
+      {/* DERECHA — formulario (theme-aware) */}
+      <div className="scroll" style={{ flex: '1 1 0', display: 'flex', alignItems: isMobile ? 'flex-start' : 'center', justifyContent: 'center', padding: isMobile ? '30px 20px 44px' : 40, overflowY: 'auto' }}>
+        <div style={{ width: 384, maxWidth: '100%' }}>
+          {isMobile && (
+            <div style={{ marginBottom: 22 }}><BrandMark size={30} /></div>
+          )}
+
+          <h2 className="font-display" style={{ fontSize: 30, letterSpacing: '-0.02em', color: 'var(--ink)' }}>
+            {signup ? 'Crear cuenta' : 'Ingresar'}
+          </h2>
+          <p style={{ fontSize: 14, color: 'var(--ink-3)', marginTop: 6, marginBottom: 26 }}>
+            {signup ? 'Empezá con Rumbo en un minuto.' : 'Accedé a tu cartera.'}
           </p>
 
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 12, marginTop: 30 }}>
-            {[
-              ['calendar', 'Ninguna renovación fuera del radar'],
-              ['shield', 'Siniestros con alertas cuando pierden rumbo'],
-              ['calc', 'Cotizá y compará todas tus aseguradoras'],
-            ].map(([ic, tx]) => (
-              <div key={ic} style={{ display: 'flex', alignItems: 'center', gap: 11, fontSize: 13.5, color: 'var(--ink-2)' }}>
-                <span style={{ width: 30, height: 30, borderRadius: 8, background: 'var(--panel)', border: '1px solid var(--hair)', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', color: 'var(--orange-ink)', flexShrink: 0 }}>
-                  <Icon name={ic} size={15} stroke={2} />
-                </span>
-                {tx}
-              </div>
-            ))}
-          </div>
-        </div>
-
-        <div style={{ fontSize: 11.5, color: 'var(--ink-3)', display: 'flex', alignItems: 'center', gap: 6 }}>
-          <Icon name="compass" size={13} style={{ color: 'var(--emerald)' }} />
-          © 2026 Rumbo · beta privada
-        </div>
-      </div>}
-
-      {/* DERECHA — formulario */}
-      <div className="scroll" style={{ flex: '1 1 0', display: 'flex', alignItems: isMobile ? 'flex-start' : 'center', justifyContent: 'center', padding: isMobile ? '30px 20px 44px' : 32, overflowY: 'auto' }}>
-        <div style={{ width: 380, maxWidth: '100%' }}>
-          {isMobile && (
-            <div style={{ marginBottom: 8 }}>
-              <BrandMark size={30} />
-              <div className="tick-row" style={{ margin: '18px 0 20px' }}>
-                <Ticks n={7} active={3} />
-                <span className="eyebrow">Gestión para PAS</span>
-              </div>
-            </div>
-          )}
-          <div className="eyebrow" style={{ marginBottom: 8 }}>{mode === 'signup' ? 'Crear cuenta' : 'Bienvenido de vuelta'}</div>
-          <h2 className="font-display" style={{ fontSize: 27, letterSpacing: '-0.02em', marginBottom: 22 }}>
-            {mode === 'signup' ? 'Empezá con Rumbo' : 'Iniciá sesión'}
-          </h2>
-
-          <button onClick={doGoogle} disabled={busy} style={{
-            display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 10, width: '100%',
-            padding: '11px 14px', borderRadius: 10, border: '1px solid var(--hair)', background: 'var(--panel)',
-            fontSize: 14, fontWeight: 600, color: 'var(--ink)', boxShadow: 'var(--shadow-sm)',
-            opacity: busy ? 0.6 : 1, transition: 'all .14s',
-          }}
-            onMouseEnter={e => e.currentTarget.style.borderColor = 'var(--ink-3)'}
-            onMouseLeave={e => e.currentTarget.style.borderColor = 'var(--hair)'}>
-            <GoogleG /> Continuar con Google
-          </button>
-
-          <div style={{ display: 'flex', alignItems: 'center', gap: 12, margin: '20px 0' }}>
-            <span style={{ flex: 1, height: 1, background: 'var(--hair-2)' }} />
-            <span style={{ fontSize: 11.5, color: 'var(--ink-3)' }}>o con tu email</span>
-            <span style={{ flex: 1, height: 1, background: 'var(--hair-2)' }} />
-          </div>
-
-          <form onSubmit={doEmail} style={{ display: 'flex', flexDirection: 'column', gap: 15 }}>
-            {mode === 'signup' && (
+          <form onSubmit={doEmail} style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+            {signup && (
               <div>
                 <label style={label}>Nombre y apellido</label>
                 <input value={f.name} onChange={e => set('name', e.target.value)} required
@@ -137,7 +137,13 @@ function ScreenLogin({ onAuthed }) {
             <div>
               <label style={label}>Contraseña</label>
               <input type="password" value={f.password} onChange={e => set('password', e.target.value)} required
-                minLength={8} placeholder="Mínimo 8 caracteres" style={inputStyle} />
+                minLength={8} placeholder={signup ? 'Mínimo 8 caracteres' : '••••••••'} style={inputStyle} />
+              {!signup && (
+                <div style={{ textAlign: 'right', marginTop: 8 }}>
+                  <a href="#" onClick={e => { e.preventDefault(); setErr(null); setNote('Por ahora el reset es asistido: escribinos a hola@rumbo.app y te la restablecemos.'); }}
+                    style={{ fontSize: 12.5, color: 'var(--orange-ink)', fontWeight: 600, textDecoration: 'none' }}>¿La olvidaste?</a>
+                </div>
+              )}
             </div>
 
             {err && (
@@ -145,20 +151,42 @@ function ScreenLogin({ onAuthed }) {
                 <Icon name="alert" size={15} style={{ flexShrink: 0 }} />{err}
               </div>
             )}
+            {note && (
+              <div style={{ padding: '10px 13px', borderRadius: 9, background: 'var(--panel-2)', border: '1px solid var(--hair)', fontSize: 12.5, color: 'var(--ink-2)', lineHeight: 1.45 }}>
+                {note}
+              </div>
+            )}
 
             {/* Btn renderiza <button> sin type → submit por defecto dentro del form */}
-            <Btn variant="primary" size="md" iconRight="arrowRight" style={{ width: '100%', opacity: busy ? 0.6 : 1, pointerEvents: busy ? 'none' : 'auto' }}>
-              {busy ? 'Un momento…' : mode === 'signup' ? 'Crear cuenta' : 'Entrar'}
+            <Btn variant="primary" size="md" style={{ width: '100%', justifyContent: 'center', opacity: busy ? 0.6 : 1, pointerEvents: busy ? 'none' : 'auto' }}>
+              {busy ? 'Un momento…' : signup ? 'Crear cuenta' : 'Ingresar'}
             </Btn>
           </form>
 
-          <div style={{ marginTop: 20, fontSize: 13, color: 'var(--ink-2)', textAlign: 'center' }}>
-            {mode === 'signup' ? (
+          <div style={{ display: 'flex', alignItems: 'center', gap: 12, margin: '22px 0' }}>
+            <span style={{ flex: 1, height: 1, background: 'var(--hair-2)' }} />
+            <span style={{ fontSize: 12, color: 'var(--ink-3)' }}>o</span>
+            <span style={{ flex: 1, height: 1, background: 'var(--hair-2)' }} />
+          </div>
+
+          <button onClick={doGoogle} disabled={busy} style={{
+            display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 10, width: '100%',
+            padding: '12px 14px', borderRadius: 10, border: '1px solid var(--hair)', background: 'var(--panel)',
+            fontSize: 14, fontWeight: 600, color: 'var(--ink)', boxShadow: 'var(--shadow-sm)',
+            opacity: busy ? 0.6 : 1, transition: 'all .14s',
+          }}
+            onMouseEnter={e => e.currentTarget.style.borderColor = 'var(--ink-3)'}
+            onMouseLeave={e => e.currentTarget.style.borderColor = 'var(--hair)'}>
+            <GoogleG /> Continuar con Google
+          </button>
+
+          <div style={{ marginTop: 24, fontSize: 13.5, color: 'var(--ink-2)', textAlign: 'center' }}>
+            {signup ? (
               <>¿Ya tenés cuenta?{' '}
-                <a href="#" onClick={e => { e.preventDefault(); setErr(null); setMode('login'); }} style={{ color: 'var(--orange-ink)', fontWeight: 600, textDecoration: 'none' }}>Iniciá sesión</a></>
+                <a href="#" onClick={e => { e.preventDefault(); setErr(null); setNote(null); setMode('login'); }} style={{ color: 'var(--orange-ink)', fontWeight: 600, textDecoration: 'none' }}>Ingresá</a></>
             ) : (
-              <>¿Primera vez?{' '}
-                <a href="#" onClick={e => { e.preventDefault(); setErr(null); setMode('signup'); }} style={{ color: 'var(--orange-ink)', fontWeight: 600, textDecoration: 'none' }}>Creá tu cuenta</a></>
+              <>¿No tenés cuenta?{' '}
+                <a href="#" onClick={e => { e.preventDefault(); setErr(null); setNote(null); setMode('signup'); }} style={{ color: 'var(--orange-ink)', fontWeight: 600, textDecoration: 'none' }}>Registrate</a></>
             )}
           </div>
         </div>

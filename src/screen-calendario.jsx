@@ -357,10 +357,7 @@ function ScreenCalendario({ go }) {
         </div>
 
         {loading ? (
-          <div style={{ padding: 60, textAlign: 'center', color: 'var(--ink-3)' }}>
-            <Icon name="compass" size={26} stroke={1.8} style={{ color: 'var(--ink-3)' }} />
-            <div style={{ fontSize: 13, marginTop: 10 }}>Cargando el mes…</div>
-          </div>
+          <CalendarSkeleton view={view} isMobile={isMobile} />
         ) : error ? (
           <CalendarError error={error} onRetry={refetch} />
         ) : view === 'mes' && !isMobile ? (
@@ -381,6 +378,64 @@ function ScreenCalendario({ go }) {
         defaultDate={selected} event={editing} onSaved={refetch} />
     </div>
   );
+}
+
+/* ---------- Skeleton de carga (con la forma del calendario real) ---------- */
+function CalendarSkeleton({ view, isMobile }) {
+  const heads = ['lun', 'mar', 'mié', 'jue', 'vie', 'sáb', 'dom'];
+  const monthGrid = (
+    <div style={{ background: 'var(--panel)', border: '1px solid var(--hair)', borderRadius: 'var(--radius-lg)', overflow: 'hidden' }}>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', borderBottom: '1px solid var(--hair)' }}>
+        {heads.map((h) => (
+          <div key={h} className="eyebrow" style={{ padding: '10px 8px', textAlign: 'center' }}>{h}</div>
+        ))}
+      </div>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)' }}>
+        {Array.from({ length: 42 }).map((_, i) => (
+          <div key={i} style={{
+            minHeight: 92, display: 'flex', flexDirection: 'column', gap: 7, padding: 8,
+            borderRight: i % 7 !== 6 ? '1px solid var(--hair)' : 'none',
+            borderBottom: i < 35 ? '1px solid var(--hair)' : 'none',
+          }}>
+            <span className="skel" style={{ width: 18, height: 18, borderRadius: 99 }} />
+            {(i * 7) % 5 === 0 && <span className="skel" style={{ width: '80%', height: 9 }} />}
+            {(i * 3) % 4 === 0 && <span className="skel" style={{ width: '60%', height: 9 }} />}
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+
+  const dayPanel = (
+    <div style={{ background: 'var(--panel)', border: '1px solid var(--hair)', borderRadius: 'var(--radius-lg)', padding: 18, display: 'flex', flexDirection: 'column', gap: 14 }}>
+      <span className="skel" style={{ width: 140, height: 13 }} />
+      <div style={{ display: 'flex', gap: 8 }}>
+        <span className="skel" style={{ width: 92, height: 30, borderRadius: 9 }} />
+        <span className="skel" style={{ width: 92, height: 30, borderRadius: 9 }} />
+      </div>
+      {Array.from({ length: 3 }).map((_, i) => (
+        <span key={i} className="skel" style={{ width: '100%', height: 44, borderRadius: 10 }} />
+      ))}
+    </div>
+  );
+
+  const agenda = (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+      {Array.from({ length: 6 }).map((_, i) => (
+        <span key={i} className="skel" style={{ width: '100%', height: 58, borderRadius: 12 }} />
+      ))}
+    </div>
+  );
+
+  if (view === 'mes' && !isMobile) {
+    return (
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 360px', gap: 20, alignItems: 'start' }}>
+        {monthGrid}
+        {dayPanel}
+      </div>
+    );
+  }
+  return agenda;
 }
 
 /* ---------- Grid mensual (desktop) ---------- */

@@ -299,7 +299,7 @@ function Toast({ msg }) {
 /* placeholder for not-yet-built modules — keeps the tool feeling whole */
 function ModulePlaceholder({ route, go }) {
   const meta = {
-    contactos: { title: 'Contactos', body: 'Tu base de clientes y prospectos, con historial y pólizas vinculadas.', icon: 'users' },
+    contactos: { title: 'Asegurados', body: 'Tu base de asegurados y prospectos, con historial y pólizas vinculadas.', icon: 'users' },
     vencimientos: { title: 'Vencimientos', body: 'El calendario completo de renovaciones — cada waypoint de tu cartera en una sola vista.', icon: 'calendar' },
     siniestros: { title: 'Siniestros', body: 'Seguimiento de denuncias activas, con alertas cuando un caso pierde el rumbo.', icon: 'shield' },
     crossselling: { title: 'Cross-selling', body: 'Oportunidades detectadas en tu cartera para sumar coberturas.', icon: 'sparkles' },

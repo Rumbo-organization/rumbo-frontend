@@ -265,7 +265,7 @@ function Btn({ children, variant = 'ghost', size = 'md', icon, iconRight, onClic
 /* ---------- Left rail ---------- */
 const NAV = [
   { id: 'inicio', label: 'Inicio', icon: 'layout' },
-  { id: 'contactos', label: 'Contactos', icon: 'users' },
+  { id: 'contactos', label: 'Asegurados', icon: 'users' },
   { id: 'polizas', label: 'Pólizas', icon: 'scroll' },
   { id: 'cotizaciones', label: 'Cotizaciones', icon: 'calc' },
   { id: 'calendario', label: 'Calendario', icon: 'clock' },
@@ -282,7 +282,7 @@ const NAV = [
 const NAV_GROUPS = [
   { label: null, items: [{ id: 'inicio', label: 'Inicio', icon: 'layout' }] },
   { label: 'Cartera', items: [
-    { id: 'contactos', label: 'Contactos', icon: 'users' },
+    { id: 'contactos', label: 'Asegurados', icon: 'users' },
     { id: 'prospectos', label: 'Prospectos', icon: 'kanban' },
     { id: 'polizas', label: 'Pólizas', icon: 'scroll' },
     { id: 'cotizaciones', label: 'Cotizaciones', icon: 'calc' },

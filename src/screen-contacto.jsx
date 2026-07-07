@@ -25,16 +25,7 @@ function ScreenContacto({ go, params }) {
     return () => { alive = false; };
   }, [id, reload]);
 
-  if (loading) {
-    return (
-      <div style={{ height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--ink-3)' }}>
-        <div style={{ textAlign: 'center' }}>
-          <Icon name="compass" size={26} stroke={1.8} style={{ color: 'var(--ink-3)' }} />
-          <div style={{ fontSize: 13, marginTop: 10 }}>Cargando la ficha…</div>
-        </div>
-      </div>
-    );
-  }
+  if (loading) return <ContactoSkeleton isMobile={isMobile} />;
   if (error || !c) {
     const notFound = error && error.status === 404;
     return (
@@ -203,6 +194,41 @@ function ScreenContacto({ go, params }) {
         contact={{ ...(c.form || {}), id: c.id }}
         onSaved={() => setReload((r) => r + 1)}
       />
+    </div>
+  );
+}
+
+/* ---------- Skeleton de la ficha (con la forma del contenido real) ---------- */
+function ContactoSkeleton({ isMobile }) {
+  const card = (h) => <span className="skel" style={{ display: 'block', width: '100%', height: h, borderRadius: 'var(--radius-lg)' }} />;
+  return (
+    <div className="scroll" style={{ overflowY: 'auto', height: '100%', padding: isMobile ? '18px 16px 40px' : '30px 34px 60px' }}>
+      <div style={{ maxWidth: 1180, margin: '0 auto' }}>
+        {/* header */}
+        <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'flex-start', gap: 16, marginBottom: 22 }}>
+          <span className="skel" style={{ width: 54, height: 54, borderRadius: 14, flexShrink: 0 }} />
+          <div style={{ flex: '1 1 240px', minWidth: 0, display: 'flex', flexDirection: 'column', gap: 10 }}>
+            <div style={{ display: 'flex', gap: 8 }}>
+              <span className="skel" style={{ width: 88, height: 20, borderRadius: 99 }} />
+              <span className="skel" style={{ width: 76, height: 20, borderRadius: 99 }} />
+            </div>
+            <span className="skel" style={{ width: isMobile ? 220 : 300, height: isMobile ? 26 : 32 }} />
+            <span className="skel" style={{ width: 200, height: 13 }} />
+          </div>
+          {!isMobile && (
+            <div style={{ display: 'flex', gap: 8 }}>
+              <span className="skel" style={{ width: 96, height: 36, borderRadius: 9 }} />
+              <span className="skel" style={{ width: 84, height: 36, borderRadius: 9 }} />
+            </div>
+          )}
+        </div>
+
+        {/* cuerpo: dos columnas de paneles */}
+        <div className="rgrid" style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1.5fr 1fr', gap: 18, alignItems: 'start' }}>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 18 }}>{card(190)}{card(150)}</div>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 18 }}>{card(140)}{card(120)}</div>
+        </div>
+      </div>
     </div>
   );
 }

@@ -36,20 +36,20 @@ function ScreenContactos({ go, params }) {
   if (seg === 'clientes') list = list.filter(c => c.tags.includes('Asegurado'));
   if (seg === 'prospectos') list = list.filter(c => c.tags.includes('Prospecto'));
   if (seg === 'empresas') list = list.filter(c => c.kind === 'Empresa');
-  if (q.trim()) { const t = q.toLowerCase(); list = list.filter(c => (c.name + c.city).toLowerCase().includes(t)); }
+  if (q.trim()) { const t = q.toLowerCase(); list = list.filter(c => (c.name + ' ' + c.city + ' ' + (c.document || '')).toLowerCase().includes(t)); }
 
   const current = enriched.find(c => c.id === sel) || list[0] || enriched[0];
 
   return (
     <div className="scroll rise" style={{ overflowY: 'auto', height: '100%', padding: isMobile ? '18px 16px 40px' : '30px 34px 60px' }}>
       <div style={{ maxWidth: 1240, margin: '0 auto' }}>
-        <PageHead eyebrow="Cartera" tick={1} title="Contactos"
+        <PageHead eyebrow="Cartera" tick={1} title="Asegurados"
           sub={<><strong className="font-mono tnum" style={{ color: 'var(--ink)' }}>{enriched.filter(c=>c.tags.includes('Asegurado')).length}</strong> asegurados · <strong className="font-mono tnum" style={{ color: 'var(--ink)' }}>{enriched.filter(c=>c.tags.includes('Prospecto')).length}</strong> prospectos en seguimiento</>}
           actions={<><Btn variant="ghost" icon="download">Exportar</Btn><Btn variant="primary" icon="plus" onClick={() => window.rumboUI?.newContacto()}>Nuevo contacto</Btn></>} />
 
         <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 16, flexWrap: 'wrap' }}>
           <Segmented segs={segs} value={seg} onChange={setSeg} />
-          <SearchBox q={q} setQ={setQ} placeholder="Buscar contacto…" />
+          <SearchBox q={q} setQ={setQ} placeholder="Buscar por nombre o DNI…" />
         </div>
 
         <div className="rgrid" style={{ display: 'grid', gridTemplateColumns: '1.4fr 1fr', gap: 24, alignItems: 'start' }}>
