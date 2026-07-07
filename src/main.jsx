@@ -28,3 +28,9 @@ import './auth-client.js';
 import './api-client.js';
 import './screen-login.jsx';
 import './app.jsx';
+
+// Vercel Web Analytics — inject() es el método agnóstico de framework (esta SPA
+// usa React vía globals de window, sin router). Requiere habilitar Analytics en
+// el proyecto Vercel del frontend para que /_vercel/insights/script.js exista.
+import { inject } from '@vercel/analytics';
+inject();
