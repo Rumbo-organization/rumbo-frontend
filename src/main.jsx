@@ -22,6 +22,7 @@ import './screen-actividad.jsx';
 import './screen-configuracion.jsx';
 import './screen-cotizador.jsx';
 import './forms.jsx';
+import './extras.jsx';
 import './claim-drawer.jsx';
 import './tweaks-panel.jsx';
 import './auth-client.js';

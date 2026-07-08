@@ -10,7 +10,7 @@ function StatChip({ label, value, mono = true, tone }) {
   );
 }
 
-function CuotaRow({ c, last }) {
+function CuotaRow({ c, last, onToggle }) {
   const { ars } = window.rumboFmt;
   const isMobile = useIsMobile();
   const map = {
@@ -22,12 +22,12 @@ function CuotaRow({ c, last }) {
   const m = map[c.status];
   return (
     <div style={{ display: 'flex', alignItems: 'center', gap: isMobile ? 8 : 14, padding: '11px 0', borderBottom: last ? 'none' : '1px solid var(--hair-2)' }}>
-      <span style={{ width: 26, height: 26, borderRadius: 7, flexShrink: 0, display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
+      <button onClick={onToggle} title={c.paid ? 'Marcar impaga' : 'Marcar pagada'} style={{ width: 26, height: 26, borderRadius: 7, flexShrink: 0, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', cursor: onToggle ? 'pointer' : 'default',
         background: c.status === 'Vencida' ? 'var(--red-soft)' : c.status === 'Pagada' ? 'var(--emerald-soft)' : 'var(--panel-2)',
         color: c.status === 'Vencida' ? 'var(--red-ink)' : c.status === 'Pagada' ? 'var(--emerald-ink)' : 'var(--ink-3)',
         border: '1px solid var(--hair)' }}>
         <Icon name={m.icon} size={13} stroke={2.2} />
-      </span>
+      </button>
       <span className="font-mono tnum" style={{ fontSize: 12, color: 'var(--ink-3)', width: isMobile ? 44 : 56, flexShrink: 0 }}>{isMobile ? c.cuota : `Cuota ${c.cuota}`}</span>
       <span className="font-mono tnum" style={{ fontSize: 12, color: 'var(--ink-2)', flex: 1, minWidth: 0 }}>{c.date}</span>
       {!isMobile && <Pill tone={m.tone} style={{ fontSize: 10.5 }}>{c.status}</Pill>}
@@ -103,6 +103,8 @@ function ScreenDetail({ go, params }) {
   const [error, setError] = useState(null);
   const [editOpen, setEditOpen] = useState(false);
   const [wspOpen, setWspOpen] = useState(false);
+  const [reload, setReload] = useState(0);
+  const refetch = () => setReload(r => r + 1);
 
   useEffect(() => {
     let alive = true;
@@ -113,7 +115,7 @@ function ScreenDetail({ go, params }) {
       .then((d) => { if (alive) { setData(d); setLoading(false); } })
       .catch((e) => { if (alive) { setError(e); setLoading(false); } });
     return () => { alive = false; };
-  }, [id, version]);
+  }, [id, version, reload]);
 
   if (loading) return <DetailSkeleton isMobile={isMobile} />;
   if (error || !data) {
@@ -207,18 +209,29 @@ function ScreenDetail({ go, params }) {
               <SectionHead
                 label="Plan de pagos"
                 sub={sched.length === 0 ? 'Sin plan de pagos cargado' : <span><strong style={{ color: 'var(--emerald-ink)' }}>{paid} pagadas</strong>{overdue.length > 0 && <> · <strong style={{ color: 'var(--red-ink)' }}>{overdue.length} vencida{overdue.length > 1 ? 's' : ''}</strong></>}</span>}
-                action={overdue.length > 0 ? <Btn size="sm" variant="primary" icon="whatsapp">Reclamar</Btn> : null}
+                action={
+                  <div style={{ display: 'flex', gap: 8 }}>
+                    {overdue.length > 0 && data.contact && <Btn size="sm" variant="primary" icon="whatsapp" onClick={() => setWspOpen(true)}>Reclamar</Btn>}
+                    <InstallmentsActions policyId={p.id} hasPlan={sched.length > 0} onChanged={refetch} />
+                  </div>
+                }
               />
               {sched.length === 0 ? (
                 <div style={{ fontSize: 13, color: 'var(--ink-3)', padding: '6px 0' }}>
-                  Las cuotas llegan con el import de cartera de la aseguradora.
+                  Las cuotas llegan con el import de la aseguradora, o generá el plan a mano.
                 </div>
               ) : (
                 <div style={{ maxHeight: 320, overflowY: 'auto' }} className="scroll">
-                  {sched.map((c, i) => <CuotaRow key={i} c={c} last={i === sched.length - 1} />)}
+                  {sched.map((c, i) => (
+                    <CuotaRow key={c.id || i} c={c} last={i === sched.length - 1}
+                      onToggle={() => window.rumboApi.setInstallmentPaid(c.id, !c.paid).then(refetch).catch(e => window.rumboUI?.toast?.(e.message))} />
+                  ))}
                 </div>
               )}
             </Panel>
+
+            {/* endosos (Slice 4) */}
+            <EndososPanel endosos={data.endosos || []} policyId={p.id} onChanged={refetch} />
 
             {/* linked claims */}
             <Panel>
@@ -269,6 +282,11 @@ function ScreenDetail({ go, params }) {
                 <Btn size="sm" variant="soft" icon="users" style={{ flex: 1 }} onClick={() => go('contacto', { id: p.contactId })}>Ver ficha</Btn>
               </div>
             </Panel>
+
+            {/* bien asegurado + personas + documentos (Slice 4) */}
+            <RisksPanel risks={data.risks} />
+            <PersonasPanel personas={data.personas || []} policyId={p.id} onChanged={refetch} />
+            <DocumentsPanel docs={data.documentos || []} target={{ policyId: p.id }} onChanged={refetch} />
 
             {/* cross-sell */}
             {cross.length > 0 && (

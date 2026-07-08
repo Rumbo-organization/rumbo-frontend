@@ -150,6 +150,39 @@ const rumboApi = {
   // Aceptación de Términos y Privacidad (Ley 25.326): registro o modal de
   // única vez. Idempotente en el backend.
   acceptTerms: () => send('POST', '/api/v1/me/accept-terms'),
+
+  // ── Slice 4: plan de pagos, endosos, personas, relaciones, direcciones,
+  //    responsables y documentos. Lecturas: viajan en policyDetail/contactById.
+  generateInstallments: (policyId, data) => send('POST', `/api/v1/policies/${policyId}/installments`, data),
+  setInstallmentPaid: (id, paid) => send('PATCH', `/api/v1/installments/${id}`, { paid }),
+  clearInstallments: (policyId) => send('DELETE', `/api/v1/policies/${policyId}/installments`),
+  createEndorsement: (policyId, data) => send('POST', `/api/v1/policies/${policyId}/endorsements`, data),
+  deleteEndorsement: (id) => send('DELETE', `/api/v1/endorsements/${id}`),
+  createPolicyParty: (policyId, data) => send('POST', `/api/v1/policies/${policyId}/parties`, data),
+  deletePolicyParty: (id) => send('DELETE', `/api/v1/parties/${id}`),
+  createRelationship: (contactId, data) => send('POST', `/api/v1/contacts/${contactId}/relationships`, data),
+  deleteRelationship: (id) => send('DELETE', `/api/v1/relationships/${id}`),
+  createContactAddress: (contactId, data) => send('POST', `/api/v1/contacts/${contactId}/addresses`, data),
+  deleteContactAddress: (id) => send('DELETE', `/api/v1/addresses/${id}`),
+  orgUsers: () => get('/api/v1/org/users'),
+  createAssignee: (contactId, data) => send('POST', `/api/v1/contacts/${contactId}/assignees`, data),
+  deleteAssignee: (id) => send('DELETE', `/api/v1/assignees/${id}`),
+  // Documentos: multipart (policyId XOR contactId). documentUrl para <a href>.
+  uploadDocument: async (file, target) => {
+    const fd = new FormData();
+    fd.append('file', file);
+    if (target.policyId) fd.append('policyId', target.policyId);
+    if (target.contactId) fd.append('contactId', target.contactId);
+    const r = await fetch(API + '/api/v1/documents/upload', { method: 'POST', credentials: 'include', body: fd });
+    if (!r.ok) {
+      let msg = `API ${r.status}`;
+      try { const j = await r.json(); if (j && j.error) msg = j.error; } catch { /* sin JSON */ }
+      const err = new Error(msg); err.status = r.status; throw err;
+    }
+    return r.json();
+  },
+  documentUrl: (id) => API + '/api/v1/documents/' + id,
+  deleteDocument: (id) => send('DELETE', `/api/v1/documents/${id}`),
 };
 
 // Hidrata window.RUMBO_DATA con los datos reales del backend, preservando lo

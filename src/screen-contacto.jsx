@@ -185,6 +185,12 @@ function ScreenContacto({ go, params }) {
               </Panel>
             )}
 
+            {/* relaciones + direcciones + responsables + documentos (Slice 4) */}
+            <RelacionesPanel relaciones={c.relaciones || []} contactId={c.id} onChanged={() => setReload(r => r + 1)} go={go} />
+            <DireccionesPanel direcciones={c.direcciones || []} contactId={c.id} onChanged={() => setReload(r => r + 1)} />
+            <ResponsablesPanel responsables={c.responsables || []} contactId={c.id} onChanged={() => setReload(r => r + 1)} />
+            <DocumentsPanel docs={c.documentos || []} target={{ contactId: c.id }} onChanged={() => setReload(r => r + 1)} />
+
             {/* comunicaciones (Slice 2): log del "marqué que envié" */}
             <Panel>
               <SectionHead label="Comunicaciones" sub={c.comunicaciones && c.comunicaciones.length ? `${c.comunicaciones.length} registradas` : 'Sin comunicaciones'}
