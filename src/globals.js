@@ -8,6 +8,9 @@ import * as ReactDOM from 'react-dom/client';
 Object.assign(window, {
   React,
   ReactDOM,
+  // Superficie pública (landing, /terminos, /privacidad): vive en OTRO proyecto
+  // de Vercel (decisión 08-jul-2026). Configurable por env para staging.
+  RUMBO_PUBLIC_URL: import.meta.env.VITE_PUBLIC_SITE_URL || 'https://rumbo.app',
   useState: React.useState,
   useEffect: React.useEffect,
   useRef: React.useRef,

@@ -29,7 +29,7 @@ function ScreenSiniestros({ go }) {
           <div style={{ display: 'flex', alignItems: 'center', gap: 13, padding: '13px 18px', borderRadius: 'var(--radius)', background: 'var(--red-soft)', border: '1px solid var(--red)', marginBottom: 22 }}>
             <Icon name="alert" size={20} style={{ color: 'var(--red-ink)' }} />
             <div style={{ flex: 1, fontSize: 13.5, color: 'var(--red-ink)' }}>
-              <strong>{staleCount} siniestro{staleCount > 1 ? 's' : ''} sin movimiento hace más de 10 días.</strong> Reactivá la gestión antes de que el cliente lo note.
+              <strong>{staleCount} siniestro{staleCount > 1 ? 's' : ''} sin movimiento hace más de 10 días.</strong> Reactivá la gestión antes de que el asegurado lo note.
             </div>
             <Btn size="sm" variant="ghost" style={{ borderColor: 'var(--red)', color: 'var(--red-ink)' }}>Ver atrasados</Btn>
           </div>

@@ -239,7 +239,7 @@ function ScreenInicio({ go }) {
                       <Icon name={stale ? 'alert' : 'clock'} size={16} stroke={2} />
                     </span>
                     <div style={{ flex: 1, minWidth: 0 }}>
-                      <div style={{ fontSize: 13.5, fontWeight: 600, color: 'var(--ink)' }}>{s.tipo} — {s.client}</div>
+                      <div style={{ fontSize: 13.5, fontWeight: 600, color: 'var(--ink)' }}>{s.tipo} · {s.client}</div>
                       <div className="font-mono" style={{ fontSize: 11, color: stale ? 'var(--red-ink)' : 'var(--ink-3)', marginTop: 2 }}>
                         {stale ? `Sin movimiento hace ${s.stale} días` : `${s.num} · activo`}
                       </div>

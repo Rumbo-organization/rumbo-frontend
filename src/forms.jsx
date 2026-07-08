@@ -250,8 +250,8 @@ function NuevoSiniestroForm({ open, onClose }) {
         <Field label="Póliza afectada" required span={2}>
           <SearchPicker value={pol} onChange={row => { setPol(row); set('policyId', row ? row.id : ''); }}
             fetcher={window.rumboApi.policiesPicker}
-            format={p => `${p.num} — ${p.client}`} sub={p => `${p.insurer} · ${p.ramo}`}
-            placeholder="Buscar por nº, cliente o aseguradora…" />
+            format={p => `${p.num} · ${p.client}`} sub={p => `${p.insurer} · ${p.ramo}`}
+            placeholder="Buscar por nº, asegurado o aseguradora…" />
         </Field>
 
         {pol && (
@@ -304,7 +304,7 @@ function NuevoSiniestroForm({ open, onClose }) {
 
 /* ============================================================
    NUEVO CONTACTO — alta real (POST /api/v1/contacts). Regla de negocio:
-   nace SIEMPRE como prospecto (sin selector de estado). Pasa a cliente cuando
+   nace SIEMPRE como prospecto (sin selector de estado). Pasa a asegurado cuando
    se importa su primera póliza.
    ============================================================ */
 const EMPTY_CONTACTO = { kind: 'PERSONA_FISICA', firstName: '', lastName: '', legalName: '', dni: '', cuit: '', city: '', phone: '', notes: '' };
@@ -367,7 +367,7 @@ function NuevoContactoForm({ open, onClose }) {
 
         <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '11px 14px', borderRadius: 10, background: 'var(--panel-2)', border: '1px solid var(--hair)', fontSize: 12, color: 'var(--ink-2)' }}>
           <Icon name="compass" size={16} style={{ color: 'var(--emerald)', flexShrink: 0 }} />
-          <span>Nace como <strong style={{ color: 'var(--orange-ink)' }}>prospecto</strong>. Pasa a cliente cuando importás su primera póliza.</span>
+          <span>Nace como <strong style={{ color: 'var(--orange-ink)' }}>prospecto</strong>. Pasa a asegurado cuando importás su primera póliza.</span>
         </div>
 
         {error && <div style={{ fontSize: 12.5, color: 'var(--red-ink)' }}>{error}</div>}

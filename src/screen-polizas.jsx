@@ -101,7 +101,7 @@ function ScreenPolizas({ go }) {
           </div>
           <div style={{ display: 'flex', alignItems: 'center', gap: 9, padding: '8px 12px', borderRadius: 9, border: '1px solid var(--hair)', background: 'var(--panel)', width: 250, flex: '1 1 220px', maxWidth: 320 }}>
             <Icon name="search" size={16} stroke={2} style={{ color: 'var(--ink-3)' }} />
-            <input value={q} onChange={e => setQ(e.target.value)} placeholder="Buscar nº, cliente, aseguradora…"
+            <input value={q} onChange={e => setQ(e.target.value)} placeholder="Buscar nº, asegurado, aseguradora…"
               style={{ border: 'none', outline: 'none', background: 'transparent', fontSize: 13, flex: 1, minWidth: 0 }} />
           </div>
         </div>

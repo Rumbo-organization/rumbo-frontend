@@ -36,31 +36,53 @@ function CuotaRow({ c, last }) {
   );
 }
 
-/* Editar observaciones de la póliza (única edición: se importan de la
-   aseguradora). PATCH /policies/:id → rumboRefresh re-hidrata el detalle. */
-function PolicyNotesDrawer({ open, onClose, policy }) {
+/* Editar la póliza: SOLO observaciones y forma de pago (el resto se importa de
+   la aseguradora, read-only). PATCH /policies/:id → rumboRefresh re-hidrata. */
+const PAYMENT_OPTIONS = [
+  ['', 'Sin dato'],
+  ['cupon', 'Cupón'],
+  ['debito_bancario', 'Débito bancario'],
+  ['tarjeta_credito', 'Tarjeta de crédito'],
+];
+// El BFF manda la forma de pago como label de display: volver al valor de enum
+// para precargar el select.
+const PAYMENT_LABEL_TO_VALUE = { 'Cupón': 'cupon', 'Débito bancario': 'debito_bancario', 'Tarjeta de crédito': 'tarjeta_credito' };
+
+function PolicyEditDrawer({ open, onClose, policy }) {
   const [notes, setNotes] = useState('');
+  const [payment, setPayment] = useState('');
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState(null);
   useEffect(() => {
-    if (open) { setNotes(policy.coverage && policy.coverage !== '—' ? policy.coverage : ''); setError(null); }
+    if (open) {
+      setNotes(policy.coverage && policy.coverage !== '—' ? policy.coverage : '');
+      setPayment(PAYMENT_LABEL_TO_VALUE[policy.paymentMethod] || '');
+      setError(null);
+    }
   }, [open, policy]);
   const submit = () => {
     if (saving) return;
     setSaving(true); setError(null);
-    window.rumboApi.updatePolicyNotes(policy.id, notes)
-      .then(() => { window.rumboUI?.toast?.('Observaciones guardadas'); if (window.rumboRefresh) window.rumboRefresh(); onClose(); })
+    window.rumboApi.updatePolicy(policy.id, { notes, paymentMethod: payment || null })
+      .then(() => { window.rumboUI?.toast?.('Póliza actualizada'); if (window.rumboRefresh) window.rumboRefresh(); onClose(); })
       .catch(e => setError(e.message)).finally(() => setSaving(false));
   };
   return (
-    <Drawer open={open} onClose={onClose} eyebrow="Póliza" title="Editar observaciones" width={480}
+    <Drawer open={open} onClose={onClose} eyebrow="Póliza" title="Editar póliza" width={480}
       footer={<>
         <Btn variant="ghost" onClick={onClose}>Cancelar</Btn>
         <Btn variant="primary" icon="check" onClick={submit} style={{ opacity: saving ? 0.5 : 1, pointerEvents: saving ? 'none' : 'auto' }}>Guardar</Btn>
       </>}>
-      <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-        <div style={{ fontSize: 12.5, color: 'var(--ink-3)' }}>Las pólizas se importan de las aseguradoras. Acá solo editás tus observaciones internas.</div>
-        <textarea value={notes} onChange={e => setNotes(e.target.value)} rows={6} maxLength={4000} style={{ ...inputStyle, resize: 'vertical', minHeight: 140 }} placeholder="Notas internas de la póliza…" />
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+        <div style={{ fontSize: 12.5, color: 'var(--ink-3)' }}>Las pólizas se importan de las aseguradoras. Acá editás tus observaciones internas y la forma de pago.</div>
+        <Field label="Forma de pago">
+          <select value={payment} onChange={e => setPayment(e.target.value)} style={{ ...inputStyle, appearance: 'none', cursor: 'pointer' }}>
+            {PAYMENT_OPTIONS.map(([v, l]) => <option key={v} value={v}>{l}</option>)}
+          </select>
+        </Field>
+        <Field label="Observaciones">
+          <textarea value={notes} onChange={e => setNotes(e.target.value)} rows={6} maxLength={4000} style={{ ...inputStyle, resize: 'vertical', minHeight: 140 }} placeholder="Notas internas de la póliza…" />
+        </Field>
         {error && <div style={{ fontSize: 12.5, color: 'var(--red-ink)' }}>{error}</div>}
       </div>
     </Drawer>
@@ -68,7 +90,7 @@ function PolicyNotesDrawer({ open, onClose, policy }) {
 }
 
 function ScreenDetail({ go, params }) {
-  const { ars, scheduleFor, daysFrom } = window.rumboFmt;
+  const { ars, daysFrom } = window.rumboFmt;
   const isMobile = useIsMobile();
   // Datos en vivo por id vía GET /policies/:id/detail (Fase 3: sin RUMBO_DATA.
   // POLICIES/CONTACTS, que vienen capados a 1000/500 en el bootstrap). RLS: un
@@ -115,7 +137,9 @@ function ScreenDetail({ go, params }) {
     initials: (p.client || '—').replace(/,/g, '').split(/\s+/).filter(Boolean).slice(0, 2).map(w => w[0]).join('').toUpperCase() || '—',
     name: p.client || '—', kind: '—', since: '—', phone: '—', city: '—',
   };
-  const sched = scheduleFor(p);
+  // Plan de pagos REAL (policy_installments del backend). Antes se proyectaba
+  // desde prima/frecuencia: números inventados con cartera real.
+  const sched = data.installments || [];
   const days = daysFrom(p.renew);
   const claims = data.siniestros;
   const cross = data.crosssell;
@@ -126,7 +150,7 @@ function ScreenDetail({ go, params }) {
   return (
     <div className="scroll rise" style={{ overflowY: 'auto', height: '100%', padding: isMobile ? '16px 16px 40px' : '26px 34px 60px' }}>
       <div style={{ maxWidth: 1180, margin: '0 auto' }}>
-        <PolicyNotesDrawer open={editOpen} onClose={() => setEditOpen(false)} policy={p} />
+        <PolicyEditDrawer open={editOpen} onClose={() => setEditOpen(false)} policy={p} />
 
         {/* renewal banner */}
         {days <= 30 && (
@@ -134,9 +158,8 @@ function ScreenDetail({ go, params }) {
             <Icon name="compass" size={22} style={{ color: 'var(--orange-ink)' }} />
             <div style={{ flex: '1 1 200px' }}>
               <div style={{ fontSize: 13.5, fontWeight: 600, color: 'var(--orange-ink)' }}>Renovación en {days} días</div>
-              <div style={{ fontSize: 12.5, color: 'var(--orange-ink)', opacity: 0.85 }}>Esta póliza renueva el {p.renew}. Marcá el rumbo antes de que venza.</div>
+              <div style={{ fontSize: 12.5, color: 'var(--orange-ink)', opacity: 0.85 }}>Esta póliza renueva el {p.renew}. La renovación se gestiona en el portal de {p.insurer}.</div>
             </div>
-            <Btn variant="primary" icon="refresh">Renovar póliza</Btn>
           </div>
         )}
 
@@ -153,7 +176,7 @@ function ScreenDetail({ go, params }) {
           </div>
           <div style={{ display: 'flex', gap: 9, flexWrap: 'wrap' }}>
             <Btn variant="ghost" icon="whatsapp">WhatsApp</Btn>
-            <Btn variant="ghost" onClick={() => setEditOpen(true)}>Editar observaciones</Btn>
+            <Btn variant="ghost" onClick={() => setEditOpen(true)}>Editar</Btn>
           </div>
         </div>
 
@@ -167,6 +190,7 @@ function ScreenDetail({ go, params }) {
             <StatChip label="Ramo" value={p.ramo} mono={false} />
             <StatChip label="Prima" value={`${ars(p.prima)} / ${p.freq.toLowerCase()}`} />
             {p.sumaAseg && <StatChip label="Suma asegurada" value={ars(p.sumaAseg)} />}
+            <StatChip label="Forma de pago" value={p.paymentMethod || 'Sin dato'} mono={false} />
             <StatChip label="Vigencia" value={`${p.start} → ${p.renew}`} />
           </div>
         </Panel>
@@ -178,13 +202,19 @@ function ScreenDetail({ go, params }) {
             {/* cuotas */}
             <Panel>
               <SectionHead
-                label="Cronograma de cuotas"
-                sub={<span><strong style={{ color: 'var(--emerald-ink)' }}>{paid} pagadas</strong>{overdue.length > 0 && <> · <strong style={{ color: 'var(--red-ink)' }}>{overdue.length} vencida{overdue.length > 1 ? 's' : ''}</strong></>}</span>}
+                label="Plan de pagos"
+                sub={sched.length === 0 ? 'Sin plan de pagos cargado' : <span><strong style={{ color: 'var(--emerald-ink)' }}>{paid} pagadas</strong>{overdue.length > 0 && <> · <strong style={{ color: 'var(--red-ink)' }}>{overdue.length} vencida{overdue.length > 1 ? 's' : ''}</strong></>}</span>}
                 action={overdue.length > 0 ? <Btn size="sm" variant="primary" icon="whatsapp">Reclamar</Btn> : null}
               />
-              <div style={{ maxHeight: 320, overflowY: 'auto' }} className="scroll">
-                {sched.map((c, i) => <CuotaRow key={i} c={c} last={i === sched.length - 1} />)}
-              </div>
+              {sched.length === 0 ? (
+                <div style={{ fontSize: 13, color: 'var(--ink-3)', padding: '6px 0' }}>
+                  Las cuotas llegan con el import de cartera de la aseguradora.
+                </div>
+              ) : (
+                <div style={{ maxHeight: 320, overflowY: 'auto' }} className="scroll">
+                  {sched.map((c, i) => <CuotaRow key={i} c={c} last={i === sched.length - 1} />)}
+                </div>
+              )}
             </Panel>
 
             {/* linked claims */}
@@ -219,12 +249,12 @@ function ScreenDetail({ go, params }) {
 
             {/* client */}
             <Panel>
-              <SectionHead label="Cliente" />
+              <SectionHead label="Asegurado" />
               <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 14 }}>
                 <Avatar initials={contact.initials} size={42} />
                 <div>
                   <div style={{ fontSize: 15, fontWeight: 600 }}>{contact.name}</div>
-                  <div style={{ fontSize: 12, color: 'var(--ink-3)' }}>{contact.kind} · cliente desde {contact.since}</div>
+                  <div style={{ fontSize: 12, color: 'var(--ink-3)' }}>{contact.kind} · asegurado desde {contact.since}</div>
                 </div>
               </div>
               <div style={{ display: 'flex', flexDirection: 'column', gap: 8, fontSize: 13, color: 'var(--ink-2)' }}>

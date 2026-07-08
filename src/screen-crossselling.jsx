@@ -84,7 +84,7 @@ function ScreenCrossselling({ go }) {
             </div>
             <InfoCell label="Prima potencial / año" value={arsShort(totalPot)} tone="var(--emerald-ink)" />
             <InfoCell label="Probabilidad alta" value={`${altas} de ${totalOps}`} />
-            <InfoCell label="Clientes alcanzados" value={totalOps} />
+            <InfoCell label="Asegurados alcanzados" value={totalOps} />
           </div>
         </Panel>
 
@@ -103,7 +103,7 @@ function ScreenCrossselling({ go }) {
                   </div>
                   <div style={{ flex: '1 1 180px', minWidth: 0 }}>
                     <div style={{ fontSize: 14.5, fontWeight: 600, color: 'var(--ink)' }}>{o.client}</div>
-                    <div style={{ fontSize: 12.5, color: 'var(--ink-2)', marginTop: 2 }}>Sumar <strong style={{ color: 'var(--orange-ink)' }}>{o.suggest}</strong> — {o.reason}</div>
+                    <div style={{ fontSize: 12.5, color: 'var(--ink-2)', marginTop: 2 }}>Sumar <strong style={{ color: 'var(--orange-ink)' }}>{o.suggest}</strong> · {o.reason}</div>
                   </div>
                   <div style={{ textAlign: 'right' }}>
                     <div className="font-mono tnum" style={{ fontSize: 13.5, fontWeight: 600, color: 'var(--emerald-ink)' }}>+{arsShort(o.estim)}</div>
@@ -117,7 +117,7 @@ function ScreenCrossselling({ go }) {
 
           {/* coverage gap matrix */}
           <Panel>
-            <SectionHead label="Mapa de cobertura" sub="Qué tiene y qué le falta a cada cliente" />
+            <SectionHead label="Mapa de cobertura" sub="Qué tiene y qué le falta a cada asegurado" />
             <div style={{ overflowX: 'auto' }} className="scroll">
               <table style={{ width: '100%', borderCollapse: 'collapse' }}>
                 <thead>

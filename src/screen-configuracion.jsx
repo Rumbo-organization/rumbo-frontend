@@ -63,7 +63,8 @@ function ScreenConfiguracion({ go, dark, setDark }) {
             <SettingRow label="Plan" sub="Gratis durante la beta, sin permanencia." control={<Btn size="sm" variant="ghost">Ver planes</Btn>} last />
           </Panel>
 
-          {/* datos del PAS */}
+          {/* datos del PAS — sección del organizador (paridad organizadorProcedure) */}
+          {window.RUMBO_DATA?.ME?.role === 'owner' && (
           <Panel>
             <SectionHead label="Datos del PAS" sub="Aparecen en tus comprobantes y comunicaciones cuando corresponde." />
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
@@ -74,6 +75,7 @@ function ScreenConfiguracion({ go, dark, setDark }) {
             </div>
             <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: 16 }}><Btn variant="primary" size="sm" icon="check">Guardar datos</Btn></div>
           </Panel>
+          )}
 
           {/* seguridad y preferencias */}
           <Panel>
@@ -86,7 +88,7 @@ function ScreenConfiguracion({ go, dark, setDark }) {
 
           {/* plantillas de mensajes */}
           <Panel>
-            <SectionHead label="Plantillas de mensajes" sub="Editá los textos que Rumbo usa al escribirle a tus clientes por WhatsApp."
+            <SectionHead label="Plantillas de mensajes" sub="Editá los textos que usás al escribirle a tus asegurados por WhatsApp."
               action={<Pill tone="emerald" dot>WhatsApp conectado</Pill>} />
             <div style={{ display: 'flex', gap: 7, flexWrap: 'wrap', marginBottom: 16 }}>
               {Object.entries(TEMPLATES).map(([k, v]) => {

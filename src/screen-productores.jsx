@@ -2,8 +2,22 @@
    RUMBO — Productores (análisis del equipo)
    ============================================================ */
 function ScreenProductores({ go }) {
-  const { PRODUCTORES } = window.RUMBO_DATA;
+  const { PRODUCTORES, ME } = window.RUMBO_DATA;
   const { ars, arsShort } = window.rumboFmt;
+
+  // Sección del organizador (paridad con organizadorProcedure): los productores
+  // ven un empty-state. El backend además gatea /productores con requireOwner.
+  if (ME?.role !== 'owner') {
+    return (
+      <div style={{ height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 40 }}>
+        <div style={{ textAlign: 'center', maxWidth: 380, color: 'var(--ink-3)' }}>
+          <Icon name="users" size={26} stroke={1.7} />
+          <div style={{ fontSize: 15, fontWeight: 600, color: 'var(--ink)', marginTop: 12 }}>Sección del organizador</div>
+          <div style={{ fontSize: 13, marginTop: 6, lineHeight: 1.5 }}>El análisis del equipo lo ve el organizador de tu estudio.</div>
+        </div>
+      </div>
+    );
+  }
 
   const annual = (m) => m * 12;
   const ranked = [...PRODUCTORES].sort((a, b) => b.prima - a.prima);

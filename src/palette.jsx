@@ -30,7 +30,7 @@ function CommandPalette({ open, onClose, go }) {
             ramo: p.ramo, run: () => go('detail', { id: p.id }),
           }));
           (cr.data || []).forEach(c => its.push({
-            id: 'c-' + c.id, kind: 'Contacto', label: c.name, meta: `${c.kind} · ${c.city}`,
+            id: 'c-' + c.id, kind: 'Asegurado', label: c.name, meta: `${c.kind} · ${c.city}`,
             initials: c.initials, run: () => go('contacto', { id: c.id }),
           }));
           setItems(its);
@@ -43,7 +43,7 @@ function CommandPalette({ open, onClose, go }) {
   const actions = [
     { id: 'a-cotizar', kind: 'Acción', label: 'Cotizar nueva póliza', icon: 'calc', run: () => go('cotizador') },
     { id: 'a-siniestro', kind: 'Acción', label: 'Reportar siniestro', icon: 'shield', run: () => window.rumboUI?.newSiniestro() },
-    { id: 'a-wsp', kind: 'Acción', label: 'Enviar WhatsApp a cliente', icon: 'whatsapp', run: () => go('contactos') },
+    { id: 'a-wsp', kind: 'Acción', label: 'Enviar WhatsApp a asegurado', icon: 'whatsapp', run: () => go('contactos') },
     { id: 'a-venc', kind: 'Acción', label: 'Ver vencimientos del mes', icon: 'calendar', run: () => go('vencimientos') },
   ];
 
@@ -69,7 +69,7 @@ function CommandPalette({ open, onClose, go }) {
 
   if (!open) return null;
 
-  const kindTone = { 'Acción': 'orange', 'Póliza': 'neutral', 'Contacto': 'neutral' };
+  const kindTone = { 'Acción': 'orange', 'Póliza': 'neutral', 'Asegurado': 'neutral' };
 
   return (
     <div onClick={onClose} style={{
@@ -85,7 +85,7 @@ function CommandPalette({ open, onClose, go }) {
         <div style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '16px 18px', borderBottom: '1px solid var(--hair)' }}>
           <Icon name="search" size={19} stroke={2} style={{ color: 'var(--ink-3)' }} />
           <input ref={inputRef} value={q} onChange={e => setQ(e.target.value)}
-            placeholder="Buscar clientes, pólizas o ejecutar una acción…"
+            placeholder="Buscar asegurados, pólizas o ejecutar una acción…"
             style={{ flex: 1, border: 'none', outline: 'none', background: 'transparent', fontSize: 15.5, color: 'var(--ink)' }} />
           <kbd style={{ fontFamily: 'var(--font-mono)', fontSize: 11, padding: '3px 7px', borderRadius: 5, background: 'var(--panel-2)', border: '1px solid var(--hair)', color: 'var(--ink-3)' }}>esc</kbd>
         </div>

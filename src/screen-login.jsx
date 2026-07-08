@@ -31,6 +31,7 @@ function ScreenLogin({ onAuthed }) {
   const isMobile = useIsMobile();
   const [mode, setMode] = useState('login'); // login | signup
   const [f, setF] = useState({ name: '', email: '', password: '' });
+  const [terms, setTerms] = useState(false); // aceptación de legales (solo signup)
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState(null);
   const [note, setNote] = useState(null); // hint neutral (ej: reset asistido)
@@ -46,10 +47,17 @@ function ScreenLogin({ onAuthed }) {
     e.preventDefault();
     setErr(null); setNote(null); setBusy(true);
     try {
-      if (mode === 'signup') await rumboAuth.signUpEmail(f.name, f.email, f.password);
-      else await rumboAuth.signInEmail(f.email, f.password);
+      if (mode === 'signup') {
+        if (!terms) { setErr('Para crear la cuenta tenés que aceptar los Términos y la Política de privacidad.'); setBusy(false); return; }
+        await rumboAuth.signUpEmail(f.name, f.email, f.password);
+      } else {
+        await rumboAuth.signInEmail(f.email, f.password);
+      }
       const s = await rumboAuth.getSession();
       if (!s) throw new Error('No se pudo crear la sesión');
+      // Registrar la aceptación marcada en el checkbox. Si falla, el modal de
+      // única vez del cockpit la vuelve a pedir (no bloquea el alta).
+      if (mode === 'signup') { try { await window.rumboApi.acceptTerms(); } catch { /* modal fallback */ } }
       onAuthed(s);
     } catch (e2) { setErr(e2.message); setBusy(false); }
   };
@@ -145,6 +153,20 @@ function ScreenLogin({ onAuthed }) {
                 </div>
               )}
             </div>
+
+            {signup && (
+              <label style={{ display: 'flex', alignItems: 'flex-start', gap: 9, fontSize: 12.5, color: 'var(--ink-2)', lineHeight: 1.45, cursor: 'pointer' }}>
+                <input type="checkbox" checked={terms} onChange={e => setTerms(e.target.checked)}
+                  style={{ marginTop: 2, accentColor: 'var(--orange)', width: 15, height: 15, flexShrink: 0 }} />
+                <span>
+                  Leí y acepto los{' '}
+                  <a href={window.RUMBO_PUBLIC_URL + '/terminos'} target="_blank" rel="noreferrer" style={{ color: 'var(--orange-ink)', fontWeight: 600 }}>Términos y condiciones</a>
+                  {' '}y la{' '}
+                  <a href={window.RUMBO_PUBLIC_URL + '/privacidad'} target="_blank" rel="noreferrer" style={{ color: 'var(--orange-ink)', fontWeight: 600 }}>Política de privacidad</a>
+                  {' '}(Ley 25.326).
+                </span>
+              </label>
+            )}
 
             {err && (
               <div style={{ display: 'flex', alignItems: 'center', gap: 9, padding: '10px 13px', borderRadius: 9, background: 'var(--red-soft)', border: '1px solid var(--red)', fontSize: 12.5, color: 'var(--red-ink)' }}>

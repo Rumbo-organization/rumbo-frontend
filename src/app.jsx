@@ -216,7 +216,7 @@ function LegalDrawer({ which, onClose }) {
     privacidad: {
       title: 'Política de Privacidad', eyebrow: 'Legal · Ley 25.326 de Protección de Datos',
       body: [
-        ['Datos que tratamos', 'Datos de contacto del PAS y de su cartera (clientes, pólizas, siniestros) cargados por el usuario, con la única finalidad de prestar el servicio.'],
+        ['Datos que tratamos', 'Datos de contacto del PAS y de su cartera (asegurados, pólizas, siniestros) cargados por el usuario, con la única finalidad de prestar el servicio.'],
         ['Titularidad', 'Los datos son propiedad del PAS. Rumbo actúa como encargado del tratamiento y no los comercializa ni cede a terceros.'],
         ['Derechos', 'El titular puede acceder, rectificar y suprimir sus datos en cualquier momento desde Configuración → Exportá tus datos, o solicitando la baja de la cuenta.'],
         ['Seguridad', 'Aplicamos cifrado en tránsito y en reposo, y controles de acceso por organización.'],
@@ -268,7 +268,7 @@ function AppFooter({ go, isMobile }) {
     }}>
       <div style={{ display: 'flex', alignItems: 'center', gap: 9, fontSize: 11, color: 'var(--ink-3)' }}>
         <img src="assets/symbol-ondark.png" width={16} height={16} alt="" style={{ objectFit: 'contain', opacity: 0.8 }} />
-        <span>© 2026 Rumbo{isMobile ? '' : ` · ${window.RUMBO_DATA?.ORG?.name ?? 'Rumbo'} — Productora Asesora de Seguros`}</span>
+        <span>© 2026 Rumbo{isMobile ? '' : ` · ${window.RUMBO_DATA?.ORG?.name ?? 'Rumbo'} · Productora Asesora de Seguros`}</span>
       </div>
       <nav style={{ marginLeft: isMobile ? 0 : 'auto', display: 'flex', alignItems: 'center', gap: isMobile ? 12 : 18, flexWrap: 'wrap' }}>
         {links.map(l => (
@@ -390,7 +390,53 @@ function Root() {
       />
     );
   }
-  return <App />; // 'ready' — datos reales del BFF (ya no hay modo demo)
+  return (
+    <>
+      <App />
+      <TermsGate />
+    </>
+  ); // 'ready' — datos reales del BFF (ya no hay modo demo)
+}
+
+/* Aceptación de legales de ÚNICA vez (Ley 25.326): cuentas creadas antes del
+   checkbox del registro entran con ME.termsAcceptedAt = null → overlay
+   bloqueante hasta aceptar. Los documentos viven en la superficie pública
+   (otro proyecto de Vercel, window.RUMBO_PUBLIC_URL). */
+function TermsGate() {
+  const [accepted, setAccepted] = useState(() => !!window.RUMBO_DATA?.ME?.termsAcceptedAt);
+  const [busy, setBusy] = useState(false);
+  const [err, setErr] = useState(null);
+  if (accepted) return null;
+  const accept = () => {
+    if (busy) return;
+    setBusy(true); setErr(null);
+    window.rumboApi.acceptTerms()
+      .then(() => {
+        if (window.RUMBO_DATA?.ME) window.RUMBO_DATA.ME.termsAcceptedAt = new Date().toISOString();
+        setAccepted(true);
+      })
+      .catch(e => { setErr(e.message); setBusy(false); });
+  };
+  const link = { color: 'var(--orange-ink)', fontWeight: 600 };
+  return (
+    <div style={{ position: 'fixed', inset: 0, zIndex: 200, background: 'oklch(0.2 0.01 50 / 0.5)', backdropFilter: 'blur(4px)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 20 }}>
+      <div style={{ width: 480, maxWidth: '94vw', background: 'var(--panel)', border: '1px solid var(--hair)', borderRadius: 16, boxShadow: 'var(--shadow-pop)', padding: '28px 30px' }}>
+        <div className="eyebrow" style={{ marginBottom: 8 }}>Antes de seguir</div>
+        <h2 className="font-display" style={{ fontSize: 22, letterSpacing: '-0.02em', marginBottom: 10 }}>Términos y privacidad</h2>
+        <p style={{ fontSize: 13.5, color: 'var(--ink-2)', lineHeight: 1.55, marginBottom: 18 }}>
+          Para seguir usando la app necesitamos que aceptes los{' '}
+          <a href={window.RUMBO_PUBLIC_URL + '/terminos'} target="_blank" rel="noreferrer" style={link}>Términos y condiciones</a>
+          {' '}y la{' '}
+          <a href={window.RUMBO_PUBLIC_URL + '/privacidad'} target="_blank" rel="noreferrer" style={link}>Política de privacidad</a>
+          {' '}(Ley 25.326). Es una sola vez.
+        </p>
+        {err && <div style={{ fontSize: 12.5, color: 'var(--red-ink)', marginBottom: 12 }}>{err}</div>}
+        <Btn variant="primary" icon="check" onClick={accept} style={{ width: '100%', justifyContent: 'center', opacity: busy ? 0.6 : 1, pointerEvents: busy ? 'none' : 'auto' }}>
+          {busy ? 'Un momento…' : 'Acepto y continuar'}
+        </Btn>
+      </div>
+    </div>
+  );
 }
 
 ReactDOM.createRoot(document.getElementById('root')).render(<Root />);

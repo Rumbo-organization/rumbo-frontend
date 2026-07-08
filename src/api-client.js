@@ -122,8 +122,13 @@ const rumboApi = {
   createContact: (data) => send('POST', '/api/v1/contacts', data),
   updateContact: (id, data) => send('PATCH', '/api/v1/contacts/' + id, data),
 
-  // Pólizas — editar solo observaciones (el resto se importa).
+  // Pólizas — editable solo observaciones y forma de pago (el resto se importa).
   updatePolicyNotes: (id, notes) => send('PATCH', `/api/v1/policies/${id}`, { notes }),
+  updatePolicy: (id, data) => send('PATCH', `/api/v1/policies/${id}`, data),
+
+  // Aceptación de Términos y Privacidad (Ley 25.326): registro o modal de
+  // única vez. Idempotente en el backend.
+  acceptTerms: () => send('POST', '/api/v1/me/accept-terms'),
 };
 
 // Hidrata window.RUMBO_DATA con los datos reales del backend, preservando lo
