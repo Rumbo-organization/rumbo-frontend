@@ -3,14 +3,42 @@
    Quick lookup of contacts/policies + quick actions.
    ============================================================ */
 function CommandPalette({ open, onClose, go }) {
-  const { CONTACTS, POLICIES } = window.RUMBO_DATA;
   const [q, setQ] = useState('');
   const [sel, setSel] = useState(0);
+  const [items, setItems] = useState([]);
   const inputRef = useRef(null);
+  const seqRef = useRef(0);
 
   useEffect(() => {
-    if (open) { setQ(''); setSel(0); setTimeout(() => inputRef.current?.focus(), 30); }
+    if (open) { setQ(''); setSel(0); setItems([]); setTimeout(() => inputRef.current?.focus(), 30); }
   }, [open]);
+
+  // Búsqueda server-side (Fase 3): pólizas y contactos salen de los pickers
+  // livianos del backend, no de las arrays capadas del bootstrap. Debounce +
+  // guard de secuencia contra respuestas fuera de orden.
+  useEffect(() => {
+    if (!open) return;
+    const seq = ++seqRef.current;
+    const term = q.trim();
+    const t = setTimeout(() => {
+      Promise.all([window.rumboApi.policiesPicker(term), window.rumboApi.contactsPicker(term)])
+        .then(([pr, cr]) => {
+          if (seq !== seqRef.current) return;
+          const its = [];
+          (pr.data || []).forEach(p => its.push({
+            id: 'p-' + p.id, kind: 'Póliza', label: p.client, meta: `${p.num} · ${p.insurer} · ${p.ramo}`,
+            ramo: p.ramo, run: () => go('detail', { id: p.id }),
+          }));
+          (cr.data || []).forEach(c => its.push({
+            id: 'c-' + c.id, kind: 'Contacto', label: c.name, meta: `${c.kind} · ${c.city}`,
+            initials: c.initials, run: () => go('contacto', { id: c.id }),
+          }));
+          setItems(its);
+        })
+        .catch(() => { if (seq === seqRef.current) setItems([]); });
+    }, term ? 250 : 0);
+    return () => clearTimeout(t);
+  }, [q, open]);
 
   const actions = [
     { id: 'a-cotizar', kind: 'Acción', label: 'Cotizar nueva póliza', icon: 'calc', run: () => go('cotizador') },
@@ -21,19 +49,9 @@ function CommandPalette({ open, onClose, go }) {
 
   const results = useMemo(() => {
     const term = q.trim().toLowerCase();
-    const items = [];
-    POLICIES.forEach(p => items.push({
-      id: 'p-' + p.id, kind: 'Póliza', label: p.client, meta: `${p.num} · ${p.insurer} · ${p.ramo}`,
-      ramo: p.ramo, run: () => go('detail', { id: p.id }),
-    }));
-    CONTACTS.forEach(c => items.push({
-      id: 'c-' + c.id, kind: 'Contacto', label: c.name, meta: `${c.kind} · ${c.city}`,
-      initials: c.initials, run: () => go('polizas'),
-    }));
-    const all = [...actions, ...items];
-    if (!term) return all.slice(0, 8);
-    return all.filter(i => (i.label + ' ' + (i.meta || '')).toLowerCase().includes(term)).slice(0, 9);
-  }, [q]);
+    const acts = term ? actions.filter(a => a.label.toLowerCase().includes(term)) : actions;
+    return [...acts, ...items].slice(0, term ? 9 : 8);
+  }, [q, items]);
 
   useEffect(() => { setSel(0); }, [q]);
 

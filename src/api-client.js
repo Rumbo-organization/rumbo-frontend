@@ -82,6 +82,18 @@ const rumboApi = {
   policies: () => get('/api/v1/policies'),
   // Detalle 360° de una póliza (Fase 3): { policy, contact, siniestros, crosssell, activity }.
   policyDetail: (id) => get('/api/v1/policies/' + id + '/detail'),
+  // Pickers livianos (Fase 3): typeahead de dropdowns y palette. q opcional.
+  // → { data: [{id, num, client, ramo, insurer, detail}] } / { data: [{id, name, initials, kind, city}] }.
+  policiesPicker: (q = '') => get('/api/v1/policies/picker' + (q ? '?q=' + encodeURIComponent(q) : '')),
+  contactsPicker: (q = '') => get('/api/v1/contacts/picker' + (q ? '?q=' + encodeURIComponent(q) : '')),
+  // Cross-selling server-side (Fase 3): { ops, total, limit, offset,
+  // counts: { altas, bySuggest }, matrix, matrixTotal }.
+  crosssell: (params = {}) => {
+    const qs = new URLSearchParams();
+    for (const [k, v] of Object.entries(params)) if (v != null && v !== '') qs.set(k, v);
+    const s = qs.toString();
+    return get('/api/v1/crosssell' + (s ? '?' + s : ''));
+  },
   // Pólizas paginado server-side (Fase 1 escalabilidad): { q, seg, pay, sort, dir,
   // limit, offset } → { data, total, limit, offset }.
   policiesPage: (params = {}) => {

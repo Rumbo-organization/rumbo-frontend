@@ -4,7 +4,7 @@
    ============================================================ */
 function ScreenCotizador({ go, onEmit }) {
   const isMobile = useIsMobile();
-  const { CONTACTS, INSURERS } = window.RUMBO_DATA;
+  const { INSURERS } = window.RUMBO_DATA;
   const { ars, arsShort } = window.rumboFmt;
   const [step, setStep] = useState(1);
   const [ramo, setRamo] = useState('Automotor');
@@ -78,7 +78,11 @@ function ScreenCotizador({ go, onEmit }) {
               </div>
               <div className="rgrid" style={FORM_GRID}>
                 <Field label="Cliente / prospecto" required span={2}>
-                  <SelectInput value={f.cliente} onChange={v => set('cliente', v)} options={CONTACTS.map(c => c.name)} placeholder="Seleccionar…" />
+                  <SearchPicker value={f.cliente ? { id: 'sel', name: f.cliente } : null}
+                    onChange={row => set('cliente', row ? row.name : '')}
+                    fetcher={window.rumboApi.contactsPicker}
+                    format={c => c.name} sub={c => `${c.kind} · ${c.city}`}
+                    placeholder="Buscar asegurado…" />
                 </Field>
                 {ramo === 'Automotor' ? (
                   <>

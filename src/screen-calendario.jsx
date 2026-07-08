@@ -168,7 +168,10 @@ function EventDrawer({ open, onClose, defaultDate, event, onSaved }) {
   const [kind, setKind] = useState('llamada');
   const [date, setDate] = useState(defaultDate);
   const [time, setTime] = useState('');
-  const [contactId, setContactId] = useState('');
+  // Asegurado vinculado: fila del picker {id, name} o null (Fase 3: typeahead
+  // server-side, sin RUMBO_DATA.CONTACTS). Al editar se precarga con el
+  // contactName que ahora manda el month view.
+  const [contact, setContact] = useState(null);
   const [notes, setNotes] = useState('');
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState(null);
@@ -181,11 +184,10 @@ function EventDrawer({ open, onClose, defaultDate, event, onSaved }) {
     setKind(event ? event.kind : 'llamada');
     setDate(event ? event.date : defaultDate);
     setTime(event && event.time ? event.time : '');
-    setContactId(event && event.contactId ? event.contactId : '');
+    setContact(event && event.contactId ? { id: event.contactId, name: event.contactName || 'Asegurado vinculado' } : null);
     setNotes(event && event.notes ? event.notes : '');
   }, [open, event, defaultDate]);
 
-  const CONTACTS = (window.RUMBO_DATA && window.RUMBO_DATA.CONTACTS) || [];
   const valid = title.trim().length > 0 && /^\d{4}-\d{2}-\d{2}$/.test(date);
 
   const submit = () => {
@@ -193,7 +195,7 @@ function EventDrawer({ open, onClose, defaultDate, event, onSaved }) {
     const data = { kind, title: title.trim(), date };
     if (time) data.time = time;
     if (notes.trim()) data.notes = notes.trim();
-    if (contactId) data.contactId = contactId;
+    if (contact) data.contactId = contact.id;
     setSaving(true);
     setError(null);
     const p = editing
@@ -235,11 +237,10 @@ function EventDrawer({ open, onClose, defaultDate, event, onSaved }) {
             <input type="time" value={time} onChange={(e) => setTime(e.target.value)} style={inputStyle} />
           </Field>
           <Field label="Asegurado" hint="opcional">
-            <select value={contactId} onChange={(e) => setContactId(e.target.value)}
-              style={{ ...inputStyle, appearance: 'none', cursor: 'pointer' }}>
-              <option value="">Sin vincular</option>
-              {CONTACTS.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
-            </select>
+            <SearchPicker value={contact} onChange={setContact}
+              fetcher={window.rumboApi.contactsPicker}
+              format={(c) => c.name} sub={(c) => `${c.kind || ''}${c.city ? ' · ' + c.city : ''}`}
+              placeholder="Buscar asegurado…" />
           </Field>
         </div>
 

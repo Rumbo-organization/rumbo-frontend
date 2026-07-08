@@ -3,25 +3,65 @@
    ============================================================ */
 function ScreenCrossselling({ go }) {
   const isMobile = useIsMobile();
-  const { CROSSSELL, CONTACTS, POLICIES, ramoMeta } = window.RUMBO_DATA;
+  const { ramoMeta } = window.RUMBO_DATA;
   const { arsShort } = window.rumboFmt;
+  // Server-side (Fase 3): ops + matriz de cobertura salen de GET /crosssell
+  // (agregados por contacto en SQL, uncapped) — no de las arrays capadas del
+  // bootstrap. Refetch tras mutaciones (rumboRefresh → version).
+  const version = useRumboVersion();
+  const [data, setData] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+
+  useEffect(() => {
+    let alive = true;
+    setLoading(true);
+    setError(null);
+    window.rumboApi.crosssell({ limit: 100 })
+      .then((d) => { if (alive) { setData(d); setLoading(false); } })
+      .catch((e) => { if (alive) { setError(e); setLoading(false); } });
+    return () => { alive = false; };
+  }, [version]);
 
   // estimate premium for each suggested ramo
   const ESTIM = { Hogar: 720000, Vida: 540000, Integral: 1850000, Automotor: 2100000, ART: 9600000, Comercio: 4200000 };
 
-  const ops = CROSSSELL.map(x => {
-    const c = CONTACTS.find(k => k.id === x.contactId);
-    return { ...x, contact: c, estim: ESTIM[x.suggest] || 600000 };
-  });
+  if (loading) {
+    return (
+      <div className="scroll" style={{ overflowY: 'auto', height: '100%', padding: isMobile ? '18px 16px 40px' : '30px 34px 60px' }}>
+        <div style={{ maxWidth: 1180, margin: '0 auto', display: 'flex', flexDirection: 'column', gap: 24 }}>
+          <span className="skel" style={{ display: 'block', width: 320, height: 34 }} />
+          <span className="skel" style={{ display: 'block', width: '100%', height: 90, borderRadius: 'var(--radius-lg)' }} />
+          <div className="rgrid" style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1.3fr 1fr', gap: 24 }}>
+            <span className="skel" style={{ display: 'block', width: '100%', height: 300, borderRadius: 'var(--radius-lg)' }} />
+            <span className="skel" style={{ display: 'block', width: '100%', height: 300, borderRadius: 'var(--radius-lg)' }} />
+          </div>
+        </div>
+      </div>
+    );
+  }
+  if (error || !data) {
+    return (
+      <div style={{ height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 40, color: 'var(--ink-3)' }}>
+        <div style={{ textAlign: 'center', maxWidth: 420 }}>
+          <Icon name="sparkles" size={26} stroke={1.7} style={{ color: 'var(--ink-3)' }} />
+          <div style={{ fontSize: 14, color: 'var(--ink-2)', marginTop: 10 }}>{(error && error.message) || 'No pudimos cargar las oportunidades.'}</div>
+        </div>
+      </div>
+    );
+  }
 
-  const totalPot = ops.reduce((a, o) => a + o.estim, 0);
-  const altas = ops.filter(o => o.score === 'Alta').length;
+  const ops = data.ops.map(x => ({ ...x, estim: ESTIM[x.suggest] || 600000 }));
+  // Prima potencial TOTAL (no solo la página): counts.bySuggest × estimación.
+  const totalPot = Object.entries(data.counts.bySuggest || {}).reduce((a, [ramo, n]) => a + (ESTIM[ramo] || 600000) * n, 0);
+  const altas = data.counts.altas;
+  const totalOps = data.total;
 
-  // coverage gap matrix
+  // coverage gap matrix (filas que manda el server: con oportunidad primero)
   const RAMOS = ['Automotor', 'Hogar', 'Vida', 'Comercio', 'ART'];
-  const clients = CONTACTS.filter(c => c.tags.includes('Asegurado'));
-  const hasRamo = (cid, ramo) => POLICIES.some(p => p.contactId === cid && p.ramo === ramo);
-  const suggestedRamo = (cid, ramo) => CROSSSELL.some(x => x.contactId === cid && x.suggest === ramo);
+  const clients = data.matrix;
+  const hasRamo = (row, ramo) => row.ramos.includes(ramo);
+  const suggestedRamo = (row, ramo) => row.suggest === ramo;
 
   return (
     <div className="scroll rise" style={{ overflowY: 'auto', height: '100%', padding: isMobile ? '18px 16px 40px' : '30px 34px 60px' }}>
@@ -39,24 +79,25 @@ function ScreenCrossselling({ go }) {
               </span>
               <div>
                 <div className="eyebrow" style={{ marginBottom: 5 }}>Oportunidades</div>
-                <div className="font-display tnum" style={{ fontSize: 26, color: 'var(--ink)' }}>{ops.length}</div>
+                <div className="font-display tnum" style={{ fontSize: 26, color: 'var(--ink)' }}>{totalOps}</div>
               </div>
             </div>
             <InfoCell label="Prima potencial / año" value={arsShort(totalPot)} tone="var(--emerald-ink)" />
-            <InfoCell label="Probabilidad alta" value={`${altas} de ${ops.length}`} />
-            <InfoCell label="Clientes alcanzados" value={new Set(ops.map(o => o.contactId)).size} />
+            <InfoCell label="Probabilidad alta" value={`${altas} de ${totalOps}`} />
+            <InfoCell label="Clientes alcanzados" value={totalOps} />
           </div>
         </Panel>
 
         <div className="rgrid" style={{ display: 'grid', gridTemplateColumns: '1.3fr 1fr', gap: 24, alignItems: 'start' }}>
           {/* opportunity cards */}
           <div>
-            <SectionHead label="Oportunidades priorizadas" sub="Ordenadas por probabilidad de cierre" />
+            <SectionHead label="Oportunidades priorizadas"
+              sub={ops.length < totalOps ? `Mostrando ${ops.length} de ${totalOps} · ordenadas por probabilidad` : 'Ordenadas por probabilidad de cierre'} />
             <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-              {ops.sort((a, b) => (b.score === 'Alta' ? 1 : 0) - (a.score === 'Alta' ? 1 : 0)).map(o => (
+              {ops.map(o => (
                 <div key={o.id} style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: 14, padding: 16, background: 'var(--panel)', border: '1px solid var(--hair)', borderRadius: 'var(--radius)', boxShadow: 'var(--shadow-sm)' }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                    <Avatar initials={o.contact.initials} size={40} tone="neutral" />
+                    <Avatar initials={o.initials} size={40} tone="neutral" />
                     <Icon name="arrowRight" size={16} style={{ color: 'var(--ink-3)' }} />
                     <RamoGlyph ramo={o.suggest} size={40} />
                   </div>
@@ -94,8 +135,8 @@ function ScreenCrossselling({ go }) {
                     <tr key={c.id} style={{ borderTop: '1px solid var(--hair-2)' }}>
                       <td style={{ padding: '9px 8px 9px 0', fontSize: 12.5, fontWeight: 600, color: 'var(--ink)', whiteSpace: 'nowrap' }}>{c.name.split(' ')[0].replace(',', '')}</td>
                       {RAMOS.map(r => {
-                        const has = hasRamo(c.id, r);
-                        const sug = suggestedRamo(c.id, r);
+                        const has = hasRamo(c, r);
+                        const sug = suggestedRamo(c, r);
                         return (
                           <td key={r} style={{ textAlign: 'center', padding: '9px 4px' }}>
                             {has ? (

@@ -117,6 +117,92 @@ const FORM_GRID = FORM_GRID_BASE;
 
 const selectStyle = { ...inputStyle, appearance: 'none', cursor: 'pointer' };
 
+/* ---------- Typeahead server-side (Fase 3 escalabilidad) ----------
+   Reemplaza los <select> que iteraban RUMBO_DATA.POLICIES/CONTACTS (capados a
+   1000/500 en el bootstrap). Busca contra un picker liviano del backend.
+   - fetcher(q) → Promise<{ data: [...] }>  (rumboApi.policiesPicker / contactsPicker)
+   - format(row) → string de la opción y del valor elegido
+   - value: fila elegida (o null). onChange(row|null). */
+function SearchPicker({ value, onChange, fetcher, format, placeholder, sub }) {
+  const [q, setQ] = useState('');
+  const [rows, setRows] = useState([]);
+  const [open, setOpen] = useState(false);
+  const [sel, setSel] = useState(0);
+  const [loading, setLoading] = useState(false);
+  const [foc, setFoc] = useState(false);
+  const boxRef = useRef(null);
+
+  useEffect(() => {
+    if (!open) return;
+    setLoading(true);
+    const t = setTimeout(() => {
+      fetcher(q.trim())
+        .then(r => { setRows(r.data || []); setSel(0); })
+        .catch(() => setRows([]))
+        .finally(() => setLoading(false));
+    }, 250);
+    return () => clearTimeout(t);
+  }, [q, open]);
+
+  useEffect(() => {
+    if (!open) return;
+    const h = (e) => { if (boxRef.current && !boxRef.current.contains(e.target)) setOpen(false); };
+    document.addEventListener('mousedown', h);
+    return () => document.removeEventListener('mousedown', h);
+  }, [open]);
+
+  const pick = (row) => { onChange(row); setOpen(false); setQ(''); };
+
+  if (value) {
+    return (
+      <div style={{ ...inputStyle, display: 'flex', alignItems: 'center', gap: 8, padding: '7px 7px 7px 12px' }}>
+        <span style={{ flex: 1, minWidth: 0, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{format(value)}</span>
+        <button onClick={() => { onChange(null); setQ(''); }} title="Cambiar"
+          style={{ width: 26, height: 26, borderRadius: 7, border: '1px solid var(--hair)', background: 'var(--panel-2)', color: 'var(--ink-3)', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, cursor: 'pointer' }}>
+          <Icon name="x" size={13} />
+        </button>
+      </div>
+    );
+  }
+
+  return (
+    <div ref={boxRef} style={{ position: 'relative' }}>
+      <div style={{ position: 'relative', display: 'flex', alignItems: 'center' }}>
+        <Icon name="search" size={14} style={{ position: 'absolute', left: 11, color: 'var(--ink-3)', pointerEvents: 'none' }} />
+        <input value={q} placeholder={placeholder}
+          onChange={e => { setQ(e.target.value); setOpen(true); }}
+          onFocus={() => { setFoc(true); setOpen(true); }}
+          onBlur={() => setFoc(false)}
+          onKeyDown={e => {
+            if (!open) return;
+            if (e.key === 'ArrowDown') { e.preventDefault(); setSel(s => Math.min(s + 1, rows.length - 1)); }
+            else if (e.key === 'ArrowUp') { e.preventDefault(); setSel(s => Math.max(s - 1, 0)); }
+            else if (e.key === 'Enter') { e.preventDefault(); if (rows[sel]) pick(rows[sel]); }
+            else if (e.key === 'Escape') { setOpen(false); }
+          }}
+          style={{ ...inputStyle, paddingLeft: 32, borderColor: foc ? 'var(--orange)' : 'var(--hair)' }} />
+      </div>
+      {open && (
+        <div className="scroll" style={{
+          position: 'absolute', top: 'calc(100% + 4px)', left: 0, right: 0, zIndex: 30,
+          maxHeight: 240, overflowY: 'auto', background: 'var(--panel)', border: '1px solid var(--hair)',
+          borderRadius: 10, boxShadow: 'var(--shadow-pop)', padding: 4,
+        }}>
+          {loading && rows.length === 0 && <div style={{ padding: '10px 12px', fontSize: 12.5, color: 'var(--ink-3)' }}>Buscando…</div>}
+          {!loading && rows.length === 0 && <div style={{ padding: '10px 12px', fontSize: 12.5, color: 'var(--ink-3)' }}>Sin resultados{q ? ` para “${q}”` : ''}.</div>}
+          {rows.map((r, i) => (
+            <button key={r.id} onMouseDown={e => e.preventDefault()} onClick={() => pick(r)} onMouseEnter={() => setSel(i)}
+              style={{ display: 'block', width: '100%', textAlign: 'left', padding: '8px 10px', borderRadius: 7, background: i === sel ? 'var(--orange-soft)' : 'transparent', cursor: 'pointer' }}>
+              <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--ink)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{format(r)}</div>
+              {sub && <div className="font-mono" style={{ fontSize: 11, color: 'var(--ink-3)', marginTop: 1, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{sub(r)}</div>}
+            </button>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
 /* ============================================================
    NUEVO SINIESTRO — denuncia real (persiste vía POST /api/v1/claims)
    Campos del modelo AR: póliza, tipo, fecha+hora del hecho, denunciante
@@ -130,14 +216,15 @@ const CLAIM_TIPOS = [
 const EMPTY_SINIESTRO = { policyId: '', tipo: 'choque', occurredAt: '', reportedBy: '', claimNumber: '', location: '', description: '', importance: '' };
 
 function NuevoSiniestroForm({ open, onClose }) {
-  const { POLICIES } = window.RUMBO_DATA;
   const [f, setF] = useState(EMPTY_SINIESTRO);
+  // Póliza elegida en el typeahead (fila del picker: num/client/ramo/insurer/
+  // detail). Fase 3: sin RUMBO_DATA.POLICIES (capada a 1000 en el bootstrap).
+  const [pol, setPol] = useState(null);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState(null);
-  useEffect(() => { if (open) { setF(EMPTY_SINIESTRO); setError(null); } }, [open]);
+  useEffect(() => { if (open) { setF(EMPTY_SINIESTRO); setPol(null); setError(null); } }, [open]);
 
   const set = (k, v) => setF(s => ({ ...s, [k]: v }));
-  const pol = POLICIES.find(p => p.id === f.policyId);
   const valid = f.policyId && f.tipo && f.occurredAt && f.reportedBy.trim();
 
   const submit = () => {
@@ -161,10 +248,10 @@ function NuevoSiniestroForm({ open, onClose }) {
       </>}>
       <div style={{ display: 'flex', flexDirection: 'column', gap: 18 }}>
         <Field label="Póliza afectada" required span={2}>
-          <select value={f.policyId} onChange={e => set('policyId', e.target.value)} style={selectStyle}>
-            <option value="">Seleccionar póliza…</option>
-            {POLICIES.map(p => <option key={p.id} value={p.id}>{p.num} — {p.client}</option>)}
-          </select>
+          <SearchPicker value={pol} onChange={row => { setPol(row); set('policyId', row ? row.id : ''); }}
+            fetcher={window.rumboApi.policiesPicker}
+            format={p => `${p.num} — ${p.client}`} sub={p => `${p.insurer} · ${p.ramo}`}
+            placeholder="Buscar por nº, cliente o aseguradora…" />
         </Field>
 
         {pol && (
@@ -431,4 +518,4 @@ function EditContactoForm({ open, onClose, contact, onSaved }) {
   );
 }
 
-Object.assign(window, { Drawer, Field, TextInput, SelectInput, RamoPicker, inputStyle, FORM_GRID, useFormGrid, NuevoSiniestroForm, NuevoContactoForm, EditContactoForm });
+Object.assign(window, { Drawer, Field, TextInput, SelectInput, SearchPicker, RamoPicker, inputStyle, FORM_GRID, useFormGrid, NuevoSiniestroForm, NuevoContactoForm, EditContactoForm });

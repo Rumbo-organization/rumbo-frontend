@@ -2,7 +2,7 @@
    RUMBO — Productores (análisis del equipo)
    ============================================================ */
 function ScreenProductores({ go }) {
-  const { PRODUCTORES, POLICIES } = window.RUMBO_DATA;
+  const { PRODUCTORES } = window.RUMBO_DATA;
   const { ars, arsShort } = window.rumboFmt;
 
   const annual = (m) => m * 12;
