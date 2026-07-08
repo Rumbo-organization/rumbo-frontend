@@ -122,6 +122,71 @@ function TwoFactorDrawer({ open, onClose, enabled, onChanged }) {
   );
 }
 
+/* Plantillas de mensajes propias del PAS (Slice 6): CRUD real contra
+   /message-templates. Las 4 built-in (saludo/vencimiento/cobranza/siniestro)
+   viven en el diálogo de WhatsApp y no se editan acá. */
+function TemplatesEditor() {
+  const [rows, setRows] = useState([]);
+  const [editing, setEditing] = useState(null); // null | 'new' | {id,name,body}
+  const [f, setF] = useState({ name: '', body: '' });
+  const [busy, setBusy] = useState(false);
+  const [reload, setReload] = useState(0);
+  useEffect(() => {
+    let alive = true;
+    window.rumboApi.messageTemplates().then(d => { if (alive) setRows(d.data || []); }).catch(() => {});
+    return () => { alive = false; };
+  }, [reload]);
+
+  const startNew = () => { setEditing('new'); setF({ name: '', body: '' }); };
+  const startEdit = (t) => { setEditing(t); setF({ name: t.name, body: t.body }); };
+  const save = () => {
+    if (busy || !f.name.trim() || !f.body.trim()) return;
+    setBusy(true);
+    const p = editing === 'new'
+      ? window.rumboApi.createMessageTemplate(f)
+      : window.rumboApi.updateMessageTemplate(editing.id, f);
+    p.then(() => { window.rumboUI?.toast?.('Plantilla guardada'); setEditing(null); setReload(r => r + 1); })
+      .catch(e => window.rumboUI?.toast?.(e.message)).finally(() => setBusy(false));
+  };
+  const del = (t) => {
+    window.rumboApi.deleteMessageTemplate(t.id)
+      .then(() => { window.rumboUI?.toast?.('Plantilla eliminada'); setReload(r => r + 1); })
+      .catch(e => window.rumboUI?.toast?.(e.message));
+  };
+
+  return (
+    <>
+      <SectionHead label="Plantillas de mensajes" sub="Tus textos propios para WhatsApp; se suman a los 4 prearmados."
+        action={<Btn size="sm" variant="soft" icon={editing ? 'x' : 'plus'} onClick={() => (editing ? setEditing(null) : startNew())}>{editing ? 'Cerrar' : 'Nueva'}</Btn>} />
+      {editing && (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 10, padding: '4px 0 14px', borderBottom: '1px solid var(--hair-2)', marginBottom: 10 }}>
+          <TextInput value={f.name} onChange={v => setF(s => ({ ...s, name: v }))} placeholder="Nombre (ej: Cobranza amable)" />
+          <textarea value={f.body} onChange={e => setF(s => ({ ...s, body: e.target.value }))} rows={4} maxLength={2000}
+            style={{ ...inputStyle, resize: 'vertical', minHeight: 96, lineHeight: 1.5 }} placeholder="Hola {nombre}, …" />
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10, flexWrap: 'wrap' }}>
+            <span style={{ fontSize: 11.5, color: 'var(--ink-3)' }}>Variable disponible: <code className="font-mono" style={{ fontSize: 11 }}>{'{nombre}'}</code> (se reemplaza al enviar)</span>
+            <Btn size="sm" variant="primary" icon="check" onClick={save} style={{ opacity: f.name.trim() && f.body.trim() && !busy ? 1 : 0.5 }}>Guardar</Btn>
+          </div>
+        </div>
+      )}
+      {rows.length === 0 && !editing ? (
+        <div style={{ fontSize: 13, color: 'var(--ink-3)' }}>Todavía no creaste plantillas propias.</div>
+      ) : rows.map((t, i) => (
+        <div key={t.id} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '10px 0', borderBottom: i === rows.length - 1 ? 'none' : '1px solid var(--hair-2)' }}>
+          <div style={{ flex: 1, minWidth: 0, cursor: 'pointer' }} onClick={() => startEdit(t)}>
+            <div style={{ fontSize: 13, fontWeight: 600 }}>{t.name}</div>
+            <div style={{ fontSize: 11.5, color: 'var(--ink-3)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{t.body}</div>
+          </div>
+          <Btn size="sm" variant="ghost" onClick={() => startEdit(t)}>Editar</Btn>
+          <button title="Eliminar" onClick={() => del(t)} style={{ width: 26, height: 26, borderRadius: 7, border: '1px solid var(--hair)', background: 'var(--panel-2)', color: 'var(--ink-3)', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}>
+            <Icon name="x" size={12} />
+          </button>
+        </div>
+      ))}
+    </>
+  );
+}
+
 function ScreenConfiguracion({ go, dark, setDark }) {
   const isMobile = useIsMobile();
   // Estado real del 2FA: viene del user de la sesión (Better Auth).
@@ -222,38 +287,7 @@ function ScreenConfiguracion({ go, dark, setDark }) {
 
           {/* plantillas de mensajes */}
           <Panel>
-            <SectionHead label="Plantillas de mensajes" sub="Editá los textos que usás al escribirle a tus asegurados por WhatsApp."
-              action={<Pill tone="emerald" dot>WhatsApp conectado</Pill>} />
-            <div style={{ display: 'flex', gap: 7, flexWrap: 'wrap', marginBottom: 16 }}>
-              {Object.entries(TEMPLATES).map(([k, v]) => {
-                const active = tpl === k;
-                return (
-                  <button key={k} onClick={() => setTpl(k)} style={{
-                    padding: '7px 13px', borderRadius: 99, fontSize: 12.5, fontWeight: 600,
-                    border: `1px solid ${active ? 'var(--orange)' : 'var(--hair)'}`,
-                    background: active ? 'var(--orange-soft)' : 'var(--panel)',
-                    color: active ? 'var(--orange-ink)' : 'var(--ink-2)', transition: 'all .14s',
-                  }}>{v.label}</button>
-                );
-              })}
-              <button style={{ padding: '7px 11px', borderRadius: 99, fontSize: 12.5, fontWeight: 600, border: '1px dashed var(--hair)', color: 'var(--ink-3)', display: 'inline-flex', alignItems: 'center', gap: 5 }}>
-                <Icon name="plus" size={13} stroke={2.2} /> Nueva
-              </button>
-            </div>
-            <textarea value={TEMPLATES[tpl].body} onChange={() => {}} rows={4}
-              style={{ ...inputStyle, resize: 'vertical', minHeight: 96, lineHeight: 1.5 }} />
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginTop: 12, gap: 12, flexWrap: 'wrap' }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
-                <span style={{ fontSize: 11.5, color: 'var(--ink-3)' }}>Variables:</span>
-                {['{cliente}', '{poliza}', '{ramo}', '{vencimiento}', '{monto}'].map(v => (
-                  <code key={v} className="font-mono" style={{ fontSize: 11, padding: '2px 7px', borderRadius: 5, background: 'var(--panel-2)', border: '1px solid var(--hair)', color: 'var(--ink-2)', cursor: 'pointer' }}>{v}</code>
-                ))}
-              </div>
-              <div style={{ display: 'flex', gap: 8 }}>
-                <Btn size="sm" variant="soft" icon="whatsapp">Vista previa</Btn>
-                <Btn size="sm" variant="primary" icon="check">Guardar plantilla</Btn>
-              </div>
-            </div>
+            <TemplatesEditor />
           </Panel>
 
           {/* export */}

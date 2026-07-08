@@ -13,6 +13,8 @@ function ScreenContactos({ go, params }) {
   const { ars, arsShort, daysFrom } = window.rumboFmt;
 
   const [seg, setSeg] = useState('todos');
+  const [importOpen, setImportOpen] = useState(false);
+  const [reloadTick, setReloadTick] = useState(0);
   const [q, setQ] = useState('');
   const [qDebounced, setQDebounced] = useState('');
   const [offset, setOffset] = useState(0);
@@ -50,7 +52,7 @@ function ScreenContactos({ go, params }) {
       })
       .catch(e => { if (alive) { setError(e); setLoading(false); } });
     return () => { alive = false; };
-  }, [qDebounced, seg, offset, version, reload]);
+  }, [qDebounced, seg, offset, version, reload, reloadTick]);
 
   // Detalle del contacto seleccionado (resumen/ficha corta).
   useEffect(() => {
@@ -138,7 +140,9 @@ function ScreenContactos({ go, params }) {
       <div style={{ maxWidth: 1240, margin: '0 auto' }}>
         <PageHead eyebrow="Cartera" tick={1} title="Asegurados"
           sub={<><strong className="font-mono tnum" style={{ color: 'var(--ink)' }}>{total.toLocaleString('es-AR')}</strong> {seg === 'todos' && !qDebounced ? 'en tu cartera' : 'en el filtro actual'}</>}
-          actions={<><Btn variant="ghost" icon="download" onClick={() => window.open(window.rumboApi.contactsExportUrl(), '_blank')}>Exportar</Btn><Btn variant="primary" icon="plus" onClick={() => window.rumboUI?.newContacto()}>Nuevo contacto</Btn></>} />
+          actions={<><Btn variant="ghost" icon="download" onClick={() => setImportOpen(true)}>Importar</Btn><Btn variant="ghost" icon="external" onClick={() => window.open(window.rumboApi.contactsExportUrl(), '_blank')}>Exportar</Btn><Btn variant="primary" icon="plus" onClick={() => window.rumboUI?.newContacto()}>Nuevo contacto</Btn></>} />
+
+        <ImportContactsDrawer open={importOpen} onClose={() => setImportOpen(false)} onDone={() => setReloadTick(t => t + 1)} />
 
         <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 16, flexWrap: 'wrap' }}>
           <Segmented segs={segs} value={seg} onChange={(v) => setFilter(() => setSeg(v))} />

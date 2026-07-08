@@ -200,9 +200,12 @@ function HeadingRight({ go, isMobile }) {
   );
 }
 
-/* legal drawer — términos, privacidad, etc. */
-function LegalDrawer({ which, onClose }) {
-  const CONTENT = {
+/* legal drawer — términos, privacidad, etc.
+   LEGAL_CONTENT es la fuente interna de los textos: la usan este drawer, el
+   TermsGate (aceptación de única vez) y el checkbox del registro. Cuando la
+   superficie pública (D-027) publique los documentos definitivos, estos textos
+   se sincronizan desde ahí. */
+const LEGAL_CONTENT = {
     terminos: {
       title: 'Términos y Condiciones', eyebrow: 'Legal · última actualización 06/2026',
       body: [
@@ -230,8 +233,10 @@ function LegalDrawer({ which, onClose }) {
         ['Rol de Rumbo', 'Rumbo facilita la gestión documental del reclamo pero no sustituye los canales oficiales de defensa del consumidor de seguros.'],
       ],
     },
-  };
-  const c = CONTENT[which];
+};
+
+function LegalDrawer({ which, onClose }) {
+  const c = LEGAL_CONTENT[which];
   return (
     <Drawer open={!!which} onClose={onClose} eyebrow={c?.eyebrow} title={c?.title || ''} width={560}
       footer={<Btn variant="primary" icon="check" onClick={onClose}>Entendido</Btn>}>
@@ -406,6 +411,9 @@ function TermsGate() {
   const [accepted, setAccepted] = useState(() => !!window.RUMBO_DATA?.ME?.termsAcceptedAt);
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState(null);
+  // Documento expandido DENTRO del modal (el LegalDrawer de la app queda por
+  // debajo de este overlay; acá el texto se lee sin salir del gate).
+  const [showDoc, setShowDoc] = useState(null); // 'terminos' | 'privacidad' | null
   if (accepted) return null;
   const accept = () => {
     if (busy) return;
@@ -417,26 +425,49 @@ function TermsGate() {
       })
       .catch(e => { setErr(e.message); setBusy(false); });
   };
-  const link = { color: 'var(--orange-ink)', fontWeight: 600 };
+  const link = { color: 'var(--orange-ink)', fontWeight: 600, cursor: 'pointer', textDecoration: 'underline' };
+  const doc = showDoc ? LEGAL_CONTENT[showDoc] : null;
   return (
     <div style={{ position: 'fixed', inset: 0, zIndex: 200, background: 'oklch(0.2 0.01 50 / 0.5)', backdropFilter: 'blur(4px)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 20 }}>
-      <div style={{ width: 480, maxWidth: '94vw', background: 'var(--panel)', border: '1px solid var(--hair)', borderRadius: 16, boxShadow: 'var(--shadow-pop)', padding: '28px 30px' }}>
-        <div className="eyebrow" style={{ marginBottom: 8 }}>Antes de seguir</div>
-        <h2 className="font-display" style={{ fontSize: 22, letterSpacing: '-0.02em', marginBottom: 10 }}>Términos y privacidad</h2>
-        <p style={{ fontSize: 13.5, color: 'var(--ink-2)', lineHeight: 1.55, marginBottom: 18 }}>
-          Para seguir usando la app necesitamos que aceptes los{' '}
-          <a href={window.RUMBO_PUBLIC_URL + '/terminos'} target="_blank" rel="noreferrer" style={link}>Términos y condiciones</a>
-          {' '}y la{' '}
-          <a href={window.RUMBO_PUBLIC_URL + '/privacidad'} target="_blank" rel="noreferrer" style={link}>Política de privacidad</a>
-          {' '}(Ley 25.326). Es una sola vez.
-        </p>
-        {err && <div style={{ fontSize: 12.5, color: 'var(--red-ink)', marginBottom: 12 }}>{err}</div>}
-        <Btn variant="primary" icon="check" onClick={accept} style={{ width: '100%', justifyContent: 'center', opacity: busy ? 0.6 : 1, pointerEvents: busy ? 'none' : 'auto' }}>
-          {busy ? 'Un momento…' : 'Acepto y continuar'}
-        </Btn>
+      <div style={{ width: doc ? 560 : 480, maxWidth: '94vw', maxHeight: '88vh', display: 'flex', flexDirection: 'column', background: 'var(--panel)', border: '1px solid var(--hair)', borderRadius: 16, boxShadow: 'var(--shadow-pop)', padding: '28px 30px' }}>
+        {!doc ? (
+          <>
+            <div className="eyebrow" style={{ marginBottom: 8 }}>Antes de seguir</div>
+            <h2 className="font-display" style={{ fontSize: 22, letterSpacing: '-0.02em', marginBottom: 10 }}>Términos y privacidad</h2>
+            <p style={{ fontSize: 13.5, color: 'var(--ink-2)', lineHeight: 1.55, marginBottom: 18 }}>
+              Para seguir usando la app necesitamos que aceptes los{' '}
+              <a onClick={() => setShowDoc('terminos')} style={link}>Términos y condiciones</a>
+              {' '}y la{' '}
+              <a onClick={() => setShowDoc('privacidad')} style={link}>Política de privacidad</a>
+              {' '}(Ley 25.326). Es una sola vez.
+            </p>
+            {err && <div style={{ fontSize: 12.5, color: 'var(--red-ink)', marginBottom: 12 }}>{err}</div>}
+            <Btn variant="primary" icon="check" onClick={accept} style={{ width: '100%', justifyContent: 'center', opacity: busy ? 0.6 : 1, pointerEvents: busy ? 'none' : 'auto' }}>
+              {busy ? 'Un momento…' : 'Acepto y continuar'}
+            </Btn>
+          </>
+        ) : (
+          <>
+            <div className="eyebrow" style={{ marginBottom: 6 }}>{doc.eyebrow}</div>
+            <h2 className="font-display" style={{ fontSize: 20, letterSpacing: '-0.02em', marginBottom: 12 }}>{doc.title}</h2>
+            <div className="scroll" style={{ flex: 1, overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: 16, paddingRight: 6, marginBottom: 16 }}>
+              {doc.body.map(([h, p], i) => (
+                <div key={i}>
+                  <div style={{ fontSize: 13.5, fontWeight: 600, color: 'var(--ink)', marginBottom: 4 }}>{h}</div>
+                  <p style={{ fontSize: 12.5, color: 'var(--ink-2)', lineHeight: 1.6 }}>{p}</p>
+                </div>
+              ))}
+            </div>
+            <Btn variant="ghost" onClick={() => setShowDoc(null)} style={{ width: '100%', justifyContent: 'center' }}>Volver</Btn>
+          </>
+        )}
       </div>
     </div>
   );
 }
+
+// LegalDrawer/LEGAL_CONTENT también los usa el registro (screen-login se
+// renderiza después de que este módulo cargó, así que el global ya existe).
+Object.assign(window, { LegalDrawer, LEGAL_CONTENT });
 
 ReactDOM.createRoot(document.getElementById('root')).render(<Root />);

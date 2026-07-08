@@ -14,6 +14,8 @@ function ScreenVencimientos({ go }) {
   const { ars, arsShort, daysFrom } = window.rumboFmt;
   const [seg, setSeg] = useState('todos');
   const [pay, setPay] = useState('Todas las formas');
+  const [producer, setProducer] = useState('');
+  const PRODUCTORES_LIST = (window.RUMBO_DATA?.PRODUCTORES ?? []);
   const [offset, setOffset] = useState(0);
 
   const [data, setData] = useState([]);
@@ -32,7 +34,7 @@ function ScreenVencimientos({ go }) {
     setLoading(true); setError(null);
     const win = seg === 'todos' ? '' : seg;
     const payParam = pay === 'Todas las formas' ? '' : (VENC_PAY_ENUM[pay] || '');
-    window.rumboApi.vencimientosPage({ window: win, pay: payParam, limit: VENC_LIMIT, offset })
+    window.rumboApi.vencimientosPage({ window: win, pay: payParam, producer, limit: VENC_LIMIT, offset })
       .then(r => {
         if (!alive) return;
         setData(r.data || []); setTotal(r.total || 0); setTotalPrima(r.totalPrima || 0);
@@ -40,7 +42,7 @@ function ScreenVencimientos({ go }) {
       })
       .catch(e => { if (alive) { setError(e); setLoading(false); } });
     return () => { alive = false; };
-  }, [seg, pay, offset, version, reload]);
+  }, [seg, pay, producer, offset, version, reload]);
 
   const setFilter = (fn) => { fn(); setOffset(0); };
 
@@ -73,6 +75,15 @@ function ScreenVencimientos({ go }) {
         <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 22, flexWrap: 'wrap' }}>
           <Segmented segs={segs} value={seg} onChange={(v) => setFilter(() => setSeg(v))} />
           <div style={{ minWidth: 200 }}><SelectInput value={pay} onChange={(v) => setFilter(() => setPay(v))} options={VENC_PAY_OPTIONS} /></div>
+          {PRODUCTORES_LIST.length > 1 && (
+            <div style={{ minWidth: 200 }}>
+              <select value={producer} onChange={(e) => setFilter(() => setProducer(e.target.value))}
+                style={{ width: '100%', padding: '10px 12px', fontSize: 13.5, color: 'var(--ink)', background: 'var(--panel)', border: '1px solid var(--hair)', borderRadius: 9, appearance: 'none', cursor: 'pointer' }}>
+                <option value="">Todos los productores</option>
+                {PRODUCTORES_LIST.map(pr => <option key={pr.id} value={pr.id}>{pr.name}</option>)}
+              </select>
+            </div>
+          )}
         </div>
 
         {loading ? (

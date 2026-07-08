@@ -17,6 +17,8 @@ function ScreenPolizas({ go }) {
 
   const [seg, setSeg] = useState('todas');
   const [pay, setPay] = useState('');            // '' = toda forma de pago
+  const [producer, setProducer] = useState(''); // '' = todos (visible si la org tiene >1)
+  const PRODUCTORES_LIST = (window.RUMBO_DATA?.PRODUCTORES ?? []);
   // Vista Resumen (Slice 5): agrupado por ramo/estado con subtotales de premio.
   const [showSummary, setShowSummary] = useState(false);
   const [summaryBy, setSummaryBy] = useState('ramo');
@@ -50,13 +52,13 @@ function ScreenPolizas({ go }) {
     let alive = true;
     setLoading(true); setError(null);
     window.rumboApi.policiesPage({
-      q: qDebounced, seg: seg === 'todas' ? '' : seg, pay,
+      q: qDebounced, seg: seg === 'todas' ? '' : seg, pay, producer,
       sort: sort.key, dir: sort.dir, limit: POLIZAS_LIMIT, offset,
     })
       .then(r => { if (alive) { setData(r.data || []); setTotal(r.total || 0); setLoading(false); } })
       .catch(e => { if (alive) { setError(e); setLoading(false); } });
     return () => { alive = false; };
-  }, [qDebounced, seg, pay, sort.key, sort.dir, offset, reload]);
+  }, [qDebounced, seg, pay, producer, sort.key, sort.dir, offset, reload]);
 
   const setFilter = (fn) => { fn(); setOffset(0); };
   const changeSort = (k) => setFilter(() => setSort(s => ({ key: k, dir: s.key === k && s.dir === 'asc' ? 'desc' : 'asc' })));
@@ -158,6 +160,17 @@ function ScreenPolizas({ go }) {
             </select>
             <Icon name="chevronDown" size={13} style={{ color: 'var(--ink-3)' }} />
           </div>
+          {PRODUCTORES_LIST.length > 1 && (
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '0 12px', height: 38, borderRadius: 9, border: '1px solid var(--hair)', background: 'var(--panel)', flexShrink: 0 }}>
+              <Icon name="users" size={15} stroke={2} style={{ color: 'var(--ink-3)' }} />
+              <select value={producer} onChange={e => setFilter(() => setProducer(e.target.value))}
+                style={{ border: 'none', outline: 'none', background: 'transparent', fontSize: 13, fontWeight: 500, color: 'var(--ink-2)', cursor: 'pointer', appearance: 'none', paddingRight: 4 }}>
+                <option value="">Todos los productores</option>
+                {PRODUCTORES_LIST.map(pr => <option key={pr.id} value={pr.id}>{pr.name}</option>)}
+              </select>
+              <Icon name="chevronDown" size={13} style={{ color: 'var(--ink-3)' }} />
+            </div>
+          )}
           <div style={{ display: 'flex', alignItems: 'center', gap: 9, padding: '8px 12px', borderRadius: 9, border: '1px solid var(--hair)', background: 'var(--panel)', width: 250, flex: '1 1 220px', maxWidth: 320 }}>
             <Icon name="search" size={16} stroke={2} style={{ color: 'var(--ink-3)' }} />
             <input value={q} onChange={e => setQ(e.target.value)} placeholder="Buscar nº, asegurado, aseguradora…"

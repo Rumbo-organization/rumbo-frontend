@@ -132,17 +132,24 @@ function WhatsAppDialog({ open, onClose, contact, policyId, onLogged }) {
   const [body, setBody] = useState('');
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState(null);
+  // Plantillas propias del PAS (Slice 6): se suman a las built-in.
+  const [custom, setCustom] = useState([]);
   const firstName = (contact?.name || '').split(',').pop()?.trim().split(' ')[0] || contact?.name || '';
   const phone = contact?.phone ? String(contact.phone).replace(/[^0-9]/g, '') : '';
 
   useEffect(() => {
-    if (open) { setTpl('saludo'); setBody(WSP_TEMPLATES[0][2].replace('{nombre}', firstName)); setError(null); }
+    if (open) {
+      setTpl('saludo'); setBody(WSP_TEMPLATES[0][2].replace('{nombre}', firstName)); setError(null);
+      window.rumboApi.messageTemplates().then(d => setCustom(d.data || [])).catch(() => setCustom([]));
+    }
   }, [open, contact]);
 
   const pickTpl = (k) => {
     setTpl(k);
     const t = WSP_TEMPLATES.find(([id]) => id === k);
-    if (t) setBody(t[2].replace('{nombre}', firstName));
+    if (t) { setBody(t[2].replace('{nombre}', firstName)); return; }
+    const c = custom.find(x => x.id === k);
+    if (c) setBody(c.body.replace(/\{nombre\}/g, firstName));
   };
 
   const log = (thenOpen) => {
@@ -171,7 +178,7 @@ function WhatsAppDialog({ open, onClose, contact, policyId, onLogged }) {
       <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
         {!phone && <div style={{ fontSize: 12.5, color: 'var(--ink-2)', padding: '9px 12px', borderRadius: 9, background: 'var(--panel-2)', border: '1px solid var(--hair)' }}>Este asegurado no tiene teléfono cargado: solo se puede registrar la comunicación.</div>}
         <div style={{ display: 'flex', gap: 7, flexWrap: 'wrap' }}>
-          {WSP_TEMPLATES.map(([k, label]) => (
+          {[...WSP_TEMPLATES.map(([k, label]) => [k, label]), ...custom.map(c => [c.id, c.name])].map(([k, label]) => (
             <button key={k} onClick={() => pickTpl(k)} style={{
               fontSize: 12, fontWeight: 600, padding: '6px 12px', borderRadius: 99, cursor: 'pointer',
               border: `1px solid ${tpl === k ? 'var(--orange)' : 'var(--hair)'}`,

@@ -139,6 +139,14 @@ const rumboApi = {
   insurersPicker: () => get('/api/v1/insurers/picker'),
   createInsurer: (name) => send('POST', '/api/v1/insurers', { name }),
 
+  // Plantillas de mensajes propias del PAS (Slice 6).
+  messageTemplates: () => get('/api/v1/message-templates'),
+  createMessageTemplate: (data) => send('POST', '/api/v1/message-templates', data),
+  updateMessageTemplate: (id, data) => send('PATCH', '/api/v1/message-templates/' + id, data),
+  deleteMessageTemplate: (id) => send('DELETE', '/api/v1/message-templates/' + id),
+  // Import de asegurados por CSV (Slice 6): rows ya mapeadas por la UI.
+  importContacts: (rows) => send('POST', '/api/v1/contacts/import', { rows }),
+
   updateOrgProfile: (data) => send('PATCH', '/api/v1/org', data),
   deleteAccount: () => send('DELETE', '/api/v1/account'),
   accountExportUrl: () => API + '/api/v1/account/export',

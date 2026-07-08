@@ -38,6 +38,7 @@ function ScreenLogin({ onAuthed }) {
   const [code, setCode] = useState(''); // TOTP / backup code (modo twofactor)
   const [useBackup, setUseBackup] = useState(false);
   const [resetToken, setResetToken] = useState(null);
+  const [legal, setLegal] = useState(null); // 'terminos' | 'privacidad' (drawer interno)
   const set = (k, v) => setF(s => ({ ...s, [k]: v }));
 
   // El link del email de reset vuelve con ?mode=reset&token=… (Slice 3).
@@ -267,9 +268,9 @@ function ScreenLogin({ onAuthed }) {
                   style={{ marginTop: 2, accentColor: 'var(--orange)', width: 15, height: 15, flexShrink: 0 }} />
                 <span>
                   Leí y acepto los{' '}
-                  <a href={window.RUMBO_PUBLIC_URL + '/terminos'} target="_blank" rel="noreferrer" style={{ color: 'var(--orange-ink)', fontWeight: 600 }}>Términos y condiciones</a>
+                  <a onClick={e => { e.preventDefault(); setLegal('terminos'); }} style={{ color: 'var(--orange-ink)', fontWeight: 600, cursor: 'pointer', textDecoration: 'underline' }}>Términos y condiciones</a>
                   {' '}y la{' '}
-                  <a href={window.RUMBO_PUBLIC_URL + '/privacidad'} target="_blank" rel="noreferrer" style={{ color: 'var(--orange-ink)', fontWeight: 600 }}>Política de privacidad</a>
+                  <a onClick={e => { e.preventDefault(); setLegal('privacidad'); }} style={{ color: 'var(--orange-ink)', fontWeight: 600, cursor: 'pointer', textDecoration: 'underline' }}>Política de privacidad</a>
                   {' '}(Ley 25.326).
                 </span>
               </label>
@@ -323,6 +324,9 @@ function ScreenLogin({ onAuthed }) {
           </>)}
         </div>
       </div>
+
+      {/* Legales internos (D-027): mismo contenido que el LegalDrawer de la app. */}
+      <LegalDrawer which={legal} onClose={() => setLegal(null)} />
     </div>
   );
 }

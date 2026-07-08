@@ -390,3 +390,160 @@ Object.assign(window, {
   DocumentsPanel, RisksPanel, EndososPanel, PersonasPanel, InstallmentsActions,
   RelacionesPanel, DireccionesPanel, ResponsablesPanel,
 });
+
+/* ---------- Import de asegurados por CSV (Slice 6, paridad 7.2) ----------
+   Subir → autodetección de columnas por sinónimos → mapeo editable → preview
+   → POST /contacts/import (dedup por DNI/CUIT en el backend). */
+const IMPORT_FIELDS = [
+  ['lastName', 'Apellido', ['apellido', 'apellidos']],
+  ['firstName', 'Nombre', ['nombre', 'nombres']],
+  ['legalName', 'Razón social', ['razon social', 'razón social', 'empresa', 'razonsocial']],
+  ['dni', 'DNI', ['dni', 'documento', 'nro documento']],
+  ['cuit', 'CUIT', ['cuit', 'cuil', 'cuit/cuil']],
+  ['phone', 'Teléfono', ['telefono', 'teléfono', 'celular', 'tel', 'movil', 'móvil']],
+  ['email', 'Email', ['email', 'e-mail', 'mail', 'correo']],
+  ['addressStreet', 'Calle', ['calle', 'direccion', 'dirección', 'domicilio']],
+  ['addressCity', 'Ciudad', ['ciudad', 'localidad']],
+  ['addressProvince', 'Provincia', ['provincia']],
+  ['notes', 'Observaciones', ['observaciones', 'notas', 'nota', 'segmento']],
+];
+
+// Parser CSV chico con soporte de comillas; autodetecta ; o , por la 1ª línea.
+function parseCsv(text) {
+  const firstLine = text.slice(0, text.indexOf('\n') === -1 ? text.length : text.indexOf('\n'));
+  const sep = (firstLine.match(/;/g) || []).length >= (firstLine.match(/,/g) || []).length ? ';' : ',';
+  const rows = [];
+  let row = [], cell = '', inQ = false;
+  const src = text.replace(/^﻿/, '');
+  for (let i = 0; i < src.length; i++) {
+    const ch = src[i];
+    if (inQ) {
+      if (ch === '"') { if (src[i + 1] === '"') { cell += '"'; i++; } else inQ = false; }
+      else cell += ch;
+    } else if (ch === '"') inQ = true;
+    else if (ch === sep) { row.push(cell); cell = ''; }
+    else if (ch === '\n' || ch === '\r') {
+      if (ch === '\r' && src[i + 1] === '\n') i++;
+      row.push(cell); cell = '';
+      if (row.some(c => c.trim() !== '')) rows.push(row);
+      row = [];
+    } else cell += ch;
+  }
+  row.push(cell);
+  if (row.some(c => c.trim() !== '')) rows.push(row);
+  return rows;
+}
+
+function ImportContactsDrawer({ open, onClose, onDone }) {
+  const [headers, setHeaders] = useState(null);
+  const [rows, setRows] = useState([]);
+  const [map, setMap] = useState({});
+  const [busy, setBusy] = useState(false);
+  const [result, setResult] = useState(null);
+  const inputRef = useRef(null);
+  useEffect(() => { if (open) { setHeaders(null); setRows([]); setMap({}); setResult(null); } }, [open]);
+
+  const onFile = (e) => {
+    const file = e.target.files?.[0];
+    e.target.value = '';
+    if (!file) return;
+    file.text().then((text) => {
+      const parsed = parseCsv(text);
+      if (parsed.length < 2) { window.rumboUI?.toast?.('El archivo no tiene filas de datos.'); return; }
+      const hs = parsed[0].map(h => h.trim());
+      const norm = (s) => s.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '').trim();
+      const auto = {};
+      IMPORT_FIELDS.forEach(([field, , syns]) => {
+        const idx = hs.findIndex(h => syns.includes(norm(h)));
+        if (idx >= 0) auto[field] = idx;
+      });
+      setHeaders(hs);
+      setRows(parsed.slice(1));
+      setMap(auto);
+    });
+  };
+
+  const buildRows = () => rows.map((r) => {
+    const get = (f) => (map[f] != null && map[f] !== '' ? String(r[map[f]] ?? '').trim() : '');
+    const legalName = get('legalName');
+    const firstName = get('firstName');
+    const lastName = get('lastName');
+    const kind = legalName && !firstName && !lastName ? 'PERSONA_JURIDICA' : 'PERSONA_FISICA';
+    return {
+      kind, firstName, lastName, legalName,
+      dni: get('dni'), cuit: get('cuit'), phone: get('phone'), email: get('email'),
+      addressStreet: get('addressStreet'), addressCity: get('addressCity'), addressProvince: get('addressProvince'),
+      notes: get('notes'), status: 'asegurado',
+    };
+  });
+
+  const doImport = () => {
+    if (busy) return;
+    setBusy(true);
+    window.rumboApi.importContacts(buildRows())
+      .then((res) => { setResult(res); onDone(); })
+      .catch(e => window.rumboUI?.toast?.(e.message))
+      .finally(() => setBusy(false));
+  };
+
+  const mapped = Object.values(map).filter(v => v !== '' && v != null).length;
+
+  return (
+    <Drawer open={open} onClose={onClose} eyebrow="Asegurados" title="Importar por CSV" width={620}
+      footer={result ? <Btn variant="primary" onClick={onClose}>Listo</Btn> : <>
+        <Btn variant="ghost" onClick={onClose}>Cancelar</Btn>
+        <Btn variant="primary" icon="check" onClick={doImport}
+          style={{ opacity: headers && mapped > 0 && !busy ? 1 : 0.5, pointerEvents: headers && mapped > 0 && !busy ? 'auto' : 'none' }}>
+          {busy ? 'Importando…' : `Importar ${rows.length.toLocaleString('es-AR')} filas`}
+        </Btn>
+      </>}>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+        {result ? (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 10, fontSize: 13.5 }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 9, color: 'var(--emerald-ink)', fontWeight: 600 }}>
+              <Icon name="check" size={17} /> {result.created.toLocaleString('es-AR')} asegurados importados
+            </div>
+            {result.skippedDuplicates > 0 && <div style={{ color: 'var(--ink-2)' }}>{result.skippedDuplicates} salteados por DNI/CUIT ya existente.</div>}
+            {result.skippedInvalid > 0 && <div style={{ color: 'var(--ink-2)' }}>{result.skippedInvalid} salteados por falta de nombre o razón social.</div>}
+          </div>
+        ) : !headers ? (
+          <>
+            <div style={{ fontSize: 13, color: 'var(--ink-2)', lineHeight: 1.55 }}>
+              Subí un CSV con tus asegurados (separado por ; o ,). La primera fila debe tener los títulos de columna: se detectan solos y podés ajustar el mapeo antes de confirmar. Duplicados por DNI/CUIT se saltean.
+            </div>
+            <input ref={inputRef} type="file" accept=".csv,text/csv" style={{ display: 'none' }} onChange={onFile} />
+            <Btn variant="soft" icon="download" onClick={() => inputRef.current?.click()} style={{ alignSelf: 'flex-start' }}>Elegir archivo CSV</Btn>
+          </>
+        ) : (
+          <>
+            <div style={{ fontSize: 12.5, color: 'var(--ink-3)' }}>{rows.length.toLocaleString('es-AR')} filas · mapeá cada dato a su columna del archivo:</div>
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
+              {IMPORT_FIELDS.map(([field, label]) => (
+                <div key={field} style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                  <span style={{ fontSize: 12, fontWeight: 600, width: 92, flexShrink: 0, color: 'var(--ink-2)' }}>{label}</span>
+                  <select value={map[field] ?? ''} onChange={e => setMap(m => ({ ...m, [field]: e.target.value === '' ? '' : Number(e.target.value) }))}
+                    style={{ ...inputStyle, padding: '6px 8px', fontSize: 12, appearance: 'none', cursor: 'pointer' }}>
+                    <option value="">(sin mapear)</option>
+                    {headers.map((h, i) => <option key={i} value={i}>{h || `Columna ${i + 1}`}</option>)}
+                  </select>
+                </div>
+              ))}
+            </div>
+            <div>
+              <div className="eyebrow" style={{ marginBottom: 8 }}>Vista previa (primeras 5)</div>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+                {buildRows().slice(0, 5).map((r, i) => (
+                  <div key={i} className="font-mono" style={{ fontSize: 11.5, color: 'var(--ink-2)', padding: '7px 10px', borderRadius: 8, background: 'var(--panel-2)', border: '1px solid var(--hair)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                    {(r.kind === 'PERSONA_JURIDICA' ? r.legalName : `${r.lastName}, ${r.firstName}`) || '—'} · {r.dni || r.cuit || 'sin doc'} · {r.phone || r.email || 'sin contacto'} · {r.addressCity || 'sin ciudad'}
+                  </div>
+                ))}
+              </div>
+            </div>
+          </>
+        )}
+      </div>
+    </Drawer>
+  );
+}
+
+Object.assign(window, { ImportContactsDrawer });
