@@ -17,6 +17,17 @@ function ScreenPolizas({ go }) {
 
   const [seg, setSeg] = useState('todas');
   const [pay, setPay] = useState('');            // '' = toda forma de pago
+  // Vista Resumen (Slice 5): agrupado por ramo/estado con subtotales de premio.
+  const [showSummary, setShowSummary] = useState(false);
+  const [summaryBy, setSummaryBy] = useState('ramo');
+  const [summary, setSummary] = useState(null);
+  useEffect(() => {
+    if (!showSummary) return;
+    let alive = true;
+    setSummary(null);
+    window.rumboApi.policiesSummary(summaryBy).then(d => { if (alive) setSummary(d); }).catch(() => {});
+    return () => { alive = false; };
+  }, [showSummary, summaryBy]);
   const [sort, setSort] = useState({ key: 'renew', dir: 'asc' });
   const [q, setQ] = useState('');
   const [qDebounced, setQDebounced] = useState('');
@@ -77,9 +88,57 @@ function ScreenPolizas({ go }) {
 
         <PageHead eyebrow="Cartera" tick={1} title="Pólizas"
           sub={<><strong className="font-mono tnum" style={{ color: 'var(--ink)' }}>{total.toLocaleString('es-AR')}</strong> pólizas {seg !== 'todas' || pay || qDebounced ? 'en el filtro actual' : 'en tu cartera'}</>}
-          actions={<Btn variant="ghost" icon="download">Exportar</Btn>} />
+          actions={<><Btn variant="ghost" icon="barchart" onClick={() => setShowSummary(v => !v)}>{showSummary ? 'Listado' : 'Resumen'}</Btn><Btn variant="ghost" icon="download" onClick={() => window.open(window.rumboApi.policiesExportUrl(), '_blank')}>Exportar</Btn></>} />
+
+        {/* vista Resumen (Slice 5): subtotales por ramo o estado, uncapped */}
+        {showSummary && (
+          <Panel style={{ marginBottom: 24 }}>
+            <SectionHead label="Resumen de cartera" sub="Cantidad y premio anual por grupo"
+              action={
+                <div style={{ display: 'flex', gap: 4, background: 'var(--panel-2)', border: '1px solid var(--hair)', borderRadius: 9, padding: 3 }}>
+                  {[['ramo', 'Por ramo'], ['estado', 'Por estado']].map(([v, l]) => (
+                    <button key={v} onClick={() => setSummaryBy(v)} style={{
+                      padding: '4px 10px', borderRadius: 6, fontSize: 12, fontWeight: 600,
+                      color: summaryBy === v ? 'var(--ink)' : 'var(--ink-3)',
+                      background: summaryBy === v ? 'var(--panel)' : 'transparent',
+                    }}>{l}</button>
+                  ))}
+                </div>
+              } />
+            {!summary ? (
+              <span className="skel" style={{ display: 'block', width: '100%', height: 120, borderRadius: 10 }} />
+            ) : summary.data.length === 0 ? (
+              <div style={{ fontSize: 13, color: 'var(--ink-3)' }}>Sin pólizas.</div>
+            ) : (() => {
+              const totPremio = summary.data.reduce((a, r) => a + r.premio, 0);
+              const totCount = summary.data.reduce((a, r) => a + r.count, 0);
+              const max = Math.max(...summary.data.map(r => r.premio), 1);
+              return (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+                  {summary.data.map(r => (
+                    <div key={r.key}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 5 }}>
+                        <span style={{ fontSize: 13, fontWeight: 600, flex: 1 }}>{r.label}</span>
+                        <span className="font-mono tnum" style={{ fontSize: 12, color: 'var(--ink-3)' }}>{r.count.toLocaleString('es-AR')} pól.</span>
+                        <span className="font-mono tnum" style={{ fontSize: 12.5, fontWeight: 600, width: 120, textAlign: 'right' }}>{ars(r.premio)}</span>
+                      </div>
+                      <div style={{ height: 6, borderRadius: 99, background: 'var(--panel-2)', overflow: 'hidden' }}>
+                        <div style={{ height: '100%', width: `${(r.premio / max) * 100}%`, borderRadius: 99, background: 'var(--orange)' }} />
+                      </div>
+                    </div>
+                  ))}
+                  <div style={{ display: 'flex', justifyContent: 'space-between', paddingTop: 10, borderTop: '1px solid var(--hair-2)', fontSize: 12.5 }}>
+                    <span style={{ color: 'var(--ink-3)' }}>Total</span>
+                    <span className="font-mono tnum" style={{ fontWeight: 700 }}>{totCount.toLocaleString('es-AR')} pólizas · {ars(totPremio)}</span>
+                  </div>
+                </div>
+              );
+            })()}
+          </Panel>
+        )}
 
         {/* toolbar */}
+        {!showSummary && (<>
         <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 16, flexWrap: 'wrap' }}>
           <div className="scroll" style={{ display: 'flex', gap: 4, background: 'var(--panel-2)', border: '1px solid var(--hair)', borderRadius: 10, padding: 4, overflowX: 'auto', maxWidth: '100%' }}>
             {segs.map(s => (
@@ -204,6 +263,7 @@ function ScreenPolizas({ go }) {
             </div>
           </div>
         )}
+        </>)}
       </div>
     </div>
   );

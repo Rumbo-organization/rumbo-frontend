@@ -56,6 +56,12 @@ function ScreenContacto({ go, params }) {
             <div className="tick-row" style={{ marginBottom: 8, gap: 8, display: 'flex', alignItems: 'center', flexWrap: 'wrap' }}>
               <Pill tone="neutral">{c.kind}</Pill>
               <Pill tone={statusTone} dot>{c.status}</Pill>
+              {typeof c.quality === 'number' && (
+                <Pill tone={c.quality >= 80 ? 'emerald' : c.quality >= 50 ? 'amber' : 'red'}
+                  title="Calidad de datos: documento + medio de contacto + dirección + observaciones">
+                  Datos {c.quality}%
+                </Pill>
+              )}
             </div>
             <h1 className="font-display" style={{ fontSize: isMobile ? 26 : 32, letterSpacing: '-0.02em', color: 'var(--ink)', lineHeight: 1.05 }}>{c.name}</h1>
             <div style={{ fontSize: 13.5, color: 'var(--ink-2)', marginTop: 5 }}>{c.document}{c.since ? ` · desde ${c.since}` : ''}</div>

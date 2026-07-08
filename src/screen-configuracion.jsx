@@ -133,6 +133,31 @@ function ScreenConfiguracion({ go, dark, setDark }) {
   const [confirmDel, setConfirmDel] = useState(false);
   const [delText, setDelText] = useState('');
 
+  // Datos del PAS (perfil fiscal de la org) — editable solo por el owner.
+  const FISCAL = [['responsable_inscripto', 'Responsable Inscripto'], ['monotributo', 'Monotributo'], ['exento', 'Exento'], ['otro', 'Otro']];
+  const org = window.RUMBO_DATA?.ORG ?? {};
+  const [pas, setPas] = useState({ cuit: org.cuit ?? '', matricula: org.matricula ?? '', fiscal: org.fiscalCondition ?? 'responsable_inscripto' });
+  const [pasBusy, setPasBusy] = useState(false);
+  const savePas = () => {
+    if (pasBusy) return;
+    setPasBusy(true);
+    window.rumboApi.updateOrgProfile({ cuit: pas.cuit, ssnMatricula: pas.matricula, fiscalCondition: pas.fiscal })
+      .then(() => { window.rumboUI?.toast?.('Datos del PAS guardados'); if (window.rumboRefresh) window.rumboRefresh(); })
+      .catch(e => window.rumboUI?.toast?.(e.message))
+      .finally(() => setPasBusy(false));
+  };
+
+  // Borrado de cuenta (Ley 25.326): irreversible; el backend exige owner.
+  const [deleting, setDeleting] = useState(false);
+  const doDeleteAccount = () => {
+    if (deleting || delText !== 'ELIMINAR') return;
+    setDeleting(true);
+    window.rumboApi.deleteAccount()
+      .then(() => rumboAuth.signOut().catch(() => {}))
+      .then(() => { window.location.href = '/'; })
+      .catch(e => { window.rumboUI?.toast?.(e.message); setDeleting(false); });
+  };
+
   const TEMPLATES = {
     renovacion: { label: 'Renovación', body: 'Hola {cliente}, te escribo de Méndez Seguros 👋 Tu póliza de {ramo} ({poliza}) vence el {vencimiento}. ¿Avanzamos con la renovación? Cualquier duda quedo a disposición.' },
     cobranza: { label: 'Cuota vencida', body: 'Hola {cliente}, te recuerdo que la cuota {cuota} de tu póliza {poliza} venció el {fecha} por {monto}. Podés abonarla por transferencia o link de pago. ¡Gracias!' },
@@ -170,12 +195,18 @@ function ScreenConfiguracion({ go, dark, setDark }) {
           <Panel>
             <SectionHead label="Datos del PAS" sub="Aparecen en tus comprobantes y comunicaciones cuando corresponde." />
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
-              <Field label="Razón social"><TextInput value={window.RUMBO_DATA?.ORG?.name ?? ''} onChange={() => {}} /></Field>
-              <Field label="CUIT"><TextInput value={window.RUMBO_DATA?.ORG?.cuit ?? ''} onChange={() => {}} mono /></Field>
-              <Field label="Matrícula SSN"><TextInput value={window.RUMBO_DATA?.ORG?.matricula ?? ''} onChange={() => {}} mono /></Field>
-              <Field label="Condición fiscal"><SelectInput value="Responsable Inscripto" onChange={() => {}} options={['Responsable Inscripto', 'Monotributo', 'Exento']} /></Field>
+              <Field label="Razón social"><div style={{ ...inputStyle, background: 'var(--panel-2)', color: 'var(--ink-2)' }}>{org.name ?? '—'}</div></Field>
+              <Field label="CUIT"><TextInput value={pas.cuit} onChange={v => setPas(s => ({ ...s, cuit: v.replace(/[^0-9]/g, '') }))} mono placeholder="11 dígitos" /></Field>
+              <Field label="Matrícula SSN"><TextInput value={pas.matricula} onChange={v => setPas(s => ({ ...s, matricula: v }))} mono /></Field>
+              <Field label="Condición fiscal">
+                <select value={pas.fiscal} onChange={e => setPas(s => ({ ...s, fiscal: e.target.value }))} style={{ ...inputStyle, appearance: 'none', cursor: 'pointer' }}>
+                  {FISCAL.map(([v, l]) => <option key={v} value={v}>{l}</option>)}
+                </select>
+              </Field>
             </div>
-            <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: 16 }}><Btn variant="primary" size="sm" icon="check">Guardar datos</Btn></div>
+            <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: 16 }}>
+              <Btn variant="primary" size="sm" icon="check" onClick={savePas} style={{ opacity: pasBusy ? 0.5 : 1 }}>Guardar datos</Btn>
+            </div>
           </Panel>
           )}
 
@@ -229,9 +260,9 @@ function ScreenConfiguracion({ go, dark, setDark }) {
           <Panel>
             <SectionHead label="Exportá tus datos" sub="Tu información es tuya. Descargala cuando quieras." />
             <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
-              <Btn variant="soft" icon="fileJson">Descargar todo (JSON)</Btn>
-              <Btn variant="soft" icon="download">Contactos (CSV)</Btn>
-              <Btn variant="soft" icon="download">Pólizas (CSV)</Btn>
+              <Btn variant="soft" icon="fileJson" onClick={() => window.open(window.rumboApi.accountExportUrl(), '_blank')}>Descargar todo (JSON)</Btn>
+              <Btn variant="soft" icon="download" onClick={() => window.open(window.rumboApi.contactsExportUrl(), '_blank')}>Asegurados (CSV)</Btn>
+              <Btn variant="soft" icon="download" onClick={() => window.open(window.rumboApi.policiesExportUrl(), '_blank')}>Pólizas (CSV)</Btn>
             </div>
           </Panel>
 
@@ -258,7 +289,7 @@ function ScreenConfiguracion({ go, dark, setDark }) {
                     <input value={delText} onChange={e => setDelText(e.target.value)} placeholder="ELIMINAR" className="font-mono"
                       style={{ ...inputStyle, flex: 1, borderColor: 'var(--red)' }} />
                     <Btn size="md" variant="ghost" onClick={() => { setConfirmDel(false); setDelText(''); }}>Cancelar</Btn>
-                    <Btn size="md" variant="solid" icon="alert" style={{ background: 'var(--red)', opacity: delText === 'ELIMINAR' ? 1 : 0.45, pointerEvents: delText === 'ELIMINAR' ? 'auto' : 'none' }}>Eliminar definitivamente</Btn>
+                    <Btn size="md" variant="solid" icon="alert" onClick={doDeleteAccount} style={{ background: 'var(--red)', opacity: delText === 'ELIMINAR' ? 1 : 0.45, pointerEvents: delText === 'ELIMINAR' ? 'auto' : 'none' }}>Eliminar definitivamente</Btn>
                   </div>
                 </div>
               )}

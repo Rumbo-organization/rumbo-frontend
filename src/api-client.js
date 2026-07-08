@@ -123,6 +123,28 @@ const rumboApi = {
   },
   // Log de comunicaciones ("marqué que envié" del WhatsApp wa.me).
   logCommunication: (data) => send('POST', '/api/v1/communications', data),
+
+  // ── Slice 5: cotizaciones reales, cuenta, exports, resumen ─────────────────
+  cotizacionesPage: (params = {}) => {
+    const qs = new URLSearchParams();
+    for (const [k, v] of Object.entries(params)) if (v != null && v !== '') qs.set(k, v);
+    const s = qs.toString();
+    return get('/api/v1/cotizaciones' + (s ? '?' + s : ''));
+  },
+  quoteById: (id) => get('/api/v1/quotes/' + id),
+  createQuote: (data) => send('POST', '/api/v1/quotes', data),
+  deleteQuote: (id) => send('DELETE', '/api/v1/quotes/' + id),
+  addQuoteItem: (quoteId, data) => send('POST', `/api/v1/quotes/${quoteId}/items`, data),
+  deleteQuoteItem: (id) => send('DELETE', '/api/v1/quote-items/' + id),
+  insurersPicker: () => get('/api/v1/insurers/picker'),
+  createInsurer: (name) => send('POST', '/api/v1/insurers', { name }),
+
+  updateOrgProfile: (data) => send('PATCH', '/api/v1/org', data),
+  deleteAccount: () => send('DELETE', '/api/v1/account'),
+  accountExportUrl: () => API + '/api/v1/account/export',
+  policiesExportUrl: () => API + '/api/v1/policies/export.csv',
+  contactsExportUrl: () => API + '/api/v1/contacts/export.csv',
+  policiesSummary: (by = 'ramo') => get('/api/v1/policies/summary?by=' + by),
   insurers: () => get('/api/v1/insurers'),
 
   // Calendario (jul-2026): month view (lectura) + CRUD de la agenda (escritura).
