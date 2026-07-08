@@ -102,6 +102,27 @@ const rumboApi = {
     return get('/api/v1/policies?' + qs.toString());
   },
   claims: () => get('/api/v1/claims'),
+  // Siniestros paginado server-side (Slice 2): { q, estado, limit, offset } →
+  // { data, total, counts: { abiertos, enCurso, cerrados, stale }, limit, offset }.
+  claimsPage: (params = {}) => {
+    const qs = new URLSearchParams();
+    for (const [k, v] of Object.entries(params)) if (v != null && v !== '') qs.set(k, v);
+    const s = qs.toString();
+    return get('/api/v1/siniestros' + (s ? '?' + s : ''));
+  },
+  claimsPicker: (q = '') => get('/api/v1/claims/picker' + (q ? '?q=' + encodeURIComponent(q) : '')),
+  // Prospectos server-side (uncapped) + mover de etapa (advanceProspect).
+  prospectos: () => get('/api/v1/prospectos'),
+  advanceProspect: (id, to) => send('PATCH', `/api/v1/contacts/${id}/pipeline`, { to }),
+  // Actividad (audit) paginada server-side.
+  actividadPage: (params = {}) => {
+    const qs = new URLSearchParams();
+    for (const [k, v] of Object.entries(params)) if (v != null && v !== '') qs.set(k, v);
+    const s = qs.toString();
+    return get('/api/v1/actividad' + (s ? '?' + s : ''));
+  },
+  // Log de comunicaciones ("marqué que envié" del WhatsApp wa.me).
+  logCommunication: (data) => send('POST', '/api/v1/communications', data),
   insurers: () => get('/api/v1/insurers'),
 
   // Calendario (jul-2026): month view (lectura) + CRUD de la agenda (escritura).

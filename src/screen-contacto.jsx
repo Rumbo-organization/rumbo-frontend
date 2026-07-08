@@ -12,6 +12,7 @@ function ScreenContacto({ go, params }) {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [editOpen, setEditOpen] = useState(false);
+  const [wspOpen, setWspOpen] = useState(false);
   const [reload, setReload] = useState(0);
 
   useEffect(() => {
@@ -43,7 +44,6 @@ function ScreenContacto({ go, params }) {
 
   const prospecto = c.tags && c.tags.includes('Prospecto');
   const statusTone = c.status === 'Asegurado' ? 'emerald' : c.status === 'Prospecto' ? 'amber' : 'neutral';
-  const waHref = c.phone ? `https://wa.me/${String(c.phone).replace(/[^0-9]/g, '')}` : null;
 
   return (
     <div className="scroll rise" style={{ overflowY: 'auto', height: '100%', padding: isMobile ? '18px 16px 40px' : '30px 34px 60px' }}>
@@ -61,7 +61,7 @@ function ScreenContacto({ go, params }) {
             <div style={{ fontSize: 13.5, color: 'var(--ink-2)', marginTop: 5 }}>{c.document}{c.since ? ` · desde ${c.since}` : ''}</div>
           </div>
           <div style={{ display: 'flex', gap: 9, flexWrap: 'wrap' }}>
-            {waHref && <Btn variant="ghost" icon="whatsapp" onClick={() => window.open(waHref, '_blank')}>WhatsApp</Btn>}
+            <Btn variant="ghost" icon="whatsapp" onClick={() => setWspOpen(true)}>WhatsApp</Btn>
             <Btn variant="ghost" icon="users" onClick={() => go('contactos', { id: c.id })}>En lista</Btn>
             <Btn variant="primary" onClick={() => setEditOpen(true)}>Editar</Btn>
           </div>
@@ -184,6 +184,29 @@ function ScreenContacto({ go, params }) {
                 ))}
               </Panel>
             )}
+
+            {/* comunicaciones (Slice 2): log del "marqué que envié" */}
+            <Panel>
+              <SectionHead label="Comunicaciones" sub={c.comunicaciones && c.comunicaciones.length ? `${c.comunicaciones.length} registradas` : 'Sin comunicaciones'}
+                action={<Btn size="sm" variant="soft" icon="whatsapp" onClick={() => setWspOpen(true)}>Escribir</Btn>} />
+              {(!c.comunicaciones || c.comunicaciones.length === 0) ? (
+                <div style={{ fontSize: 13, color: 'var(--ink-3)' }}>Cuando le escribas por WhatsApp desde acá, queda registrado.</div>
+              ) : (
+                <div style={{ display: 'flex', flexDirection: 'column' }}>
+                  {c.comunicaciones.map((m, i) => (
+                    <div key={m.id} style={{ display: 'flex', gap: 10, padding: '9px 0', borderBottom: i === c.comunicaciones.length - 1 ? 'none' : '1px solid var(--hair-2)' }}>
+                      <span style={{ width: 26, height: 26, borderRadius: 7, flexShrink: 0, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', background: 'var(--emerald-soft)', color: 'var(--emerald-ink)', border: '1px solid var(--hair)' }}>
+                        <Icon name={m.channel === 'whatsapp' ? 'whatsapp' : m.channel === 'llamada' ? 'phone' : 'message'} size={13} stroke={2} />
+                      </span>
+                      <div style={{ flex: 1, minWidth: 0 }}>
+                        <div style={{ fontSize: 12.5, color: 'var(--ink)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{m.body || (m.templateId ? `Plantilla: ${m.templateId}` : m.channel)}</div>
+                        <div className="font-mono" style={{ fontSize: 10.5, color: 'var(--ink-3)', marginTop: 1 }}>{m.who} · {m.when}</div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </Panel>
           </div>
         </div>
       </div>
@@ -194,6 +217,9 @@ function ScreenContacto({ go, params }) {
         contact={{ ...(c.form || {}), id: c.id }}
         onSaved={() => setReload((r) => r + 1)}
       />
+      <WhatsAppDialog open={wspOpen} onClose={() => setWspOpen(false)}
+        contact={{ id: c.id, name: c.name, phone: c.phone }}
+        onLogged={() => setReload((r) => r + 1)} />
     </div>
   );
 }

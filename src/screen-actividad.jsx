@@ -1,9 +1,26 @@
 /* ============================================================
    RUMBO — Actividad (audit log de la organización)
+   Server-side paginado (Slice 2): GET /actividad con "cargar más" real.
+   El productor ve solo lo suyo y el organizador todo (policy RLS de audit_log).
    ============================================================ */
 function ScreenActividad({ go }) {
   const isMobile = useIsMobile();
-  const { AUDIT } = window.RUMBO_DATA;
+  const version = useRumboVersion(); // refetch tras cualquier mutación
+  const [rows, setRows] = useState([]);
+  const [total, setTotal] = useState(0);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+  const PAGE = 50;
+
+  const load = (offset, replace) => {
+    setLoading(true);
+    setError(null);
+    window.rumboApi.actividadPage({ limit: PAGE, offset })
+      .then((d) => { setRows(r => replace ? d.data : [...r, ...d.data]); setTotal(d.total); setLoading(false); })
+      .catch((e) => { setError(e); setLoading(false); });
+  };
+  useEffect(() => { load(0, true); }, [version]);
+
   const kindColor = { event: 'var(--ink-3)', alert: 'var(--red)', note: 'var(--orange)' };
   const kindIcon = { event: 'check', alert: 'alert', note: 'message' };
 
@@ -13,6 +30,8 @@ function ScreenActividad({ go }) {
         <PageHead eyebrow="Sistema" tick={4} title="Actividad"
           sub="Todo lo que pasó en tu cuenta, en orden. Cada acción importante queda registrada automáticamente."
           actions={<Btn variant="ghost" icon="download">Exportar</Btn>} />
+
+        {error && <div style={{ padding: '14px 18px', borderRadius: 'var(--radius)', background: 'var(--red-soft)', border: '1px solid var(--red)', fontSize: 13, color: 'var(--red-ink)', marginBottom: 18 }}>{error.message}</div>}
 
         <Panel pad={false} style={{ overflow: 'hidden' }}>
           <div className="rtable-wrap">
@@ -26,8 +45,11 @@ function ScreenActividad({ go }) {
               </tr>
             </thead>
             <tbody>
-              {AUDIT.map((a, i) => (
-                <tr key={a.id} style={{ borderBottom: i === AUDIT.length - 1 ? 'none' : '1px solid var(--hair-2)', transition: 'background .12s' }}
+              {rows.length === 0 && !loading && (
+                <tr><td colSpan={4} style={{ padding: '28px 18px', textAlign: 'center', fontSize: 13, color: 'var(--ink-3)' }}>Sin actividad registrada.</td></tr>
+              )}
+              {rows.map((a, i) => (
+                <tr key={a.id} style={{ borderBottom: i === rows.length - 1 ? 'none' : '1px solid var(--hair-2)', transition: 'background .12s' }}
                   onMouseEnter={e => e.currentTarget.style.background = 'var(--panel-2)'}
                   onMouseLeave={e => e.currentTarget.style.background = 'transparent'}>
                   <td style={{ padding: '13px 18px' }}><span className="font-mono" style={{ fontSize: 12, color: 'var(--ink-3)' }}>{a.when}</span></td>
@@ -46,13 +68,18 @@ function ScreenActividad({ go }) {
                   <td style={{ padding: '13px 18px', fontSize: 13, color: 'var(--ink-2)' }}>{a.user}</td>
                 </tr>
               ))}
+              {loading && (
+                <tr><td colSpan={4} style={{ padding: '16px 18px' }}><span className="skel" style={{ display: 'block', width: '100%', height: 40, borderRadius: 8 }} /></td></tr>
+              )}
             </tbody>
           </table>
           </div>
         </Panel>
-        <div style={{ display: 'flex', justifyContent: 'center', marginTop: 18 }}>
-          <Btn variant="ghost" size="sm">Cargar más actividad</Btn>
-        </div>
+        {rows.length < total && !loading && (
+          <div style={{ display: 'flex', justifyContent: 'center', marginTop: 18 }}>
+            <Btn variant="ghost" size="sm" onClick={() => load(rows.length, false)}>Cargar más actividad · {rows.length} de {total}</Btn>
+          </div>
+        )}
       </div>
     </div>
   );

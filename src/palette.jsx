@@ -21,8 +21,8 @@ function CommandPalette({ open, onClose, go }) {
     const seq = ++seqRef.current;
     const term = q.trim();
     const t = setTimeout(() => {
-      Promise.all([window.rumboApi.policiesPicker(term), window.rumboApi.contactsPicker(term)])
-        .then(([pr, cr]) => {
+      Promise.all([window.rumboApi.policiesPicker(term), window.rumboApi.contactsPicker(term), window.rumboApi.claimsPicker(term)])
+        .then(([pr, cr, sr]) => {
           if (seq !== seqRef.current) return;
           const its = [];
           (pr.data || []).forEach(p => its.push({
@@ -32,6 +32,10 @@ function CommandPalette({ open, onClose, go }) {
           (cr.data || []).forEach(c => its.push({
             id: 'c-' + c.id, kind: 'Asegurado', label: c.name, meta: `${c.kind} · ${c.city}`,
             initials: c.initials, run: () => go('contacto', { id: c.id }),
+          }));
+          (sr.data || []).forEach(s => its.push({
+            id: 's-' + s.id, kind: 'Siniestro', label: `${s.tipo} · ${s.client}`, meta: `${s.num} · ${s.status}`,
+            icon: 'shield', run: () => window.rumboUI?.openClaim(s.id),
           }));
           setItems(its);
         })
@@ -69,7 +73,7 @@ function CommandPalette({ open, onClose, go }) {
 
   if (!open) return null;
 
-  const kindTone = { 'Acción': 'orange', 'Póliza': 'neutral', 'Asegurado': 'neutral' };
+  const kindTone = { 'Acción': 'orange', 'Póliza': 'neutral', 'Asegurado': 'neutral', 'Siniestro': 'amber' };
 
   return (
     <div onClick={onClose} style={{

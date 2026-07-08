@@ -102,6 +102,7 @@ function ScreenDetail({ go, params }) {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [editOpen, setEditOpen] = useState(false);
+  const [wspOpen, setWspOpen] = useState(false);
 
   useEffect(() => {
     let alive = true;
@@ -151,6 +152,8 @@ function ScreenDetail({ go, params }) {
     <div className="scroll rise" style={{ overflowY: 'auto', height: '100%', padding: isMobile ? '16px 16px 40px' : '26px 34px 60px' }}>
       <div style={{ maxWidth: 1180, margin: '0 auto' }}>
         <PolicyEditDrawer open={editOpen} onClose={() => setEditOpen(false)} policy={p} />
+        <WhatsAppDialog open={wspOpen} onClose={() => setWspOpen(false)} policyId={p.id}
+          contact={data.contact ? { id: data.contact.id, name: data.contact.name, phone: data.contact.phone } : null} />
 
         {/* renewal banner */}
         {days <= 30 && (
@@ -175,7 +178,7 @@ function ScreenDetail({ go, params }) {
             <div style={{ fontSize: 14, color: 'var(--ink-2)', marginTop: 5 }}>{p.detail} · {p.coverage}</div>
           </div>
           <div style={{ display: 'flex', gap: 9, flexWrap: 'wrap' }}>
-            <Btn variant="ghost" icon="whatsapp">WhatsApp</Btn>
+            {data.contact && <Btn variant="ghost" icon="whatsapp" onClick={() => setWspOpen(true)}>WhatsApp</Btn>}
             <Btn variant="ghost" onClick={() => setEditOpen(true)}>Editar</Btn>
           </div>
         </div>
@@ -262,7 +265,7 @@ function ScreenDetail({ go, params }) {
                 <div style={{ display: 'flex', alignItems: 'center', gap: 9 }}><Icon name="mapPin" size={15} style={{ color: 'var(--ink-3)' }} />{contact.city}</div>
               </div>
               <div style={{ display: 'flex', gap: 8, marginTop: 14 }}>
-                <Btn size="sm" variant="soft" icon="whatsapp" style={{ flex: 1 }}>Mensaje</Btn>
+                {data.contact && <Btn size="sm" variant="soft" icon="whatsapp" style={{ flex: 1 }} onClick={() => setWspOpen(true)}>Mensaje</Btn>}
                 <Btn size="sm" variant="soft" icon="users" style={{ flex: 1 }} onClick={() => go('contacto', { id: p.contactId })}>Ver ficha</Btn>
               </div>
             </Panel>

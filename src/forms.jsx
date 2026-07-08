@@ -117,6 +117,78 @@ const FORM_GRID = FORM_GRID_BASE;
 
 const selectStyle = { ...inputStyle, appearance: 'none', cursor: 'pointer' };
 
+/* ---------- WhatsApp: "marqué que envié" (Slice 2 de paridad) ----------
+   No hay API de WhatsApp Business en v0.1: abre wa.me con el texto elegido y
+   registra la comunicación en el backend (POST /communications → audit). */
+const WSP_TEMPLATES = [
+  ['saludo', 'Saludo', 'Hola {nombre}, ¿cómo estás? Soy tu productor/a de seguros. Quedo a disposición por cualquier consulta sobre tus coberturas.'],
+  ['vencimiento', 'Vencimiento', 'Hola {nombre}, te escribo porque se acerca el vencimiento de tu póliza. ¿Coordinamos la renovación?'],
+  ['pago', 'Cobranza', 'Hola {nombre}, te recuerdo que tenés una cuota pendiente de pago. Cualquier duda me avisás por acá.'],
+  ['siniestro', 'Siniestro', 'Hola {nombre}, recibimos tu denuncia de siniestro. Ya iniciamos la gestión con la aseguradora y te mantengo al tanto.'],
+];
+
+function WhatsAppDialog({ open, onClose, contact, policyId, onLogged }) {
+  const [tpl, setTpl] = useState('saludo');
+  const [body, setBody] = useState('');
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState(null);
+  const firstName = (contact?.name || '').split(',').pop()?.trim().split(' ')[0] || contact?.name || '';
+  const phone = contact?.phone ? String(contact.phone).replace(/[^0-9]/g, '') : '';
+
+  useEffect(() => {
+    if (open) { setTpl('saludo'); setBody(WSP_TEMPLATES[0][2].replace('{nombre}', firstName)); setError(null); }
+  }, [open, contact]);
+
+  const pickTpl = (k) => {
+    setTpl(k);
+    const t = WSP_TEMPLATES.find(([id]) => id === k);
+    if (t) setBody(t[2].replace('{nombre}', firstName));
+  };
+
+  const log = (thenOpen) => {
+    if (busy) return;
+    setBusy(true); setError(null);
+    window.rumboApi.logCommunication({ contactId: contact.id, policyId: policyId || undefined, channel: 'whatsapp', templateId: tpl, body })
+      .then(() => {
+        if (thenOpen && phone) window.open(`https://wa.me/${phone}?text=${encodeURIComponent(body)}`, '_blank');
+        window.rumboUI?.toast?.('Comunicación registrada');
+        if (onLogged) onLogged();
+        onClose();
+      })
+      .catch(e => setError(e.message)).finally(() => setBusy(false));
+  };
+
+  if (!contact) return null;
+  return (
+    <Drawer open={open} onClose={onClose} eyebrow="WhatsApp" title={`Escribirle a ${contact.name}`} width={520}
+      footer={<>
+        <Btn variant="ghost" onClick={() => log(false)} style={{ opacity: busy ? 0.5 : 1 }}>Solo registrar</Btn>
+        <Btn variant="primary" icon="whatsapp" onClick={() => log(true)}
+          style={{ opacity: busy || !phone ? 0.5 : 1, pointerEvents: busy || !phone ? 'none' : 'auto' }}>
+          Abrir WhatsApp y registrar
+        </Btn>
+      </>}>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+        {!phone && <div style={{ fontSize: 12.5, color: 'var(--ink-2)', padding: '9px 12px', borderRadius: 9, background: 'var(--panel-2)', border: '1px solid var(--hair)' }}>Este asegurado no tiene teléfono cargado: solo se puede registrar la comunicación.</div>}
+        <div style={{ display: 'flex', gap: 7, flexWrap: 'wrap' }}>
+          {WSP_TEMPLATES.map(([k, label]) => (
+            <button key={k} onClick={() => pickTpl(k)} style={{
+              fontSize: 12, fontWeight: 600, padding: '6px 12px', borderRadius: 99, cursor: 'pointer',
+              border: `1px solid ${tpl === k ? 'var(--orange)' : 'var(--hair)'}`,
+              background: tpl === k ? 'var(--orange-soft)' : 'var(--panel)',
+              color: tpl === k ? 'var(--orange-ink)' : 'var(--ink-2)',
+            }}>{label}</button>
+          ))}
+        </div>
+        <textarea value={body} onChange={e => setBody(e.target.value)} rows={6} maxLength={2000}
+          style={{ ...inputStyle, resize: 'vertical', minHeight: 130 }} />
+        <div style={{ fontSize: 11.5, color: 'var(--ink-3)' }}>Se abre WhatsApp con el texto listo y la comunicación queda registrada en la ficha del asegurado.</div>
+        {error && <div style={{ fontSize: 12.5, color: 'var(--red-ink)' }}>{error}</div>}
+      </div>
+    </Drawer>
+  );
+}
+
 /* ---------- Typeahead server-side (Fase 3 escalabilidad) ----------
    Reemplaza los <select> que iteraban RUMBO_DATA.POLICIES/CONTACTS (capados a
    1000/500 en el bootstrap). Busca contra un picker liviano del backend.
@@ -518,4 +590,4 @@ function EditContactoForm({ open, onClose, contact, onSaved }) {
   );
 }
 
-Object.assign(window, { Drawer, Field, TextInput, SelectInput, SearchPicker, RamoPicker, inputStyle, FORM_GRID, useFormGrid, NuevoSiniestroForm, NuevoContactoForm, EditContactoForm });
+Object.assign(window, { Drawer, Field, TextInput, SelectInput, SearchPicker, RamoPicker, WhatsAppDialog, inputStyle, FORM_GRID, useFormGrid, NuevoSiniestroForm, NuevoContactoForm, EditContactoForm });

@@ -3,39 +3,68 @@
    ============================================================ */
 function ScreenSiniestros({ go }) {
   const isMobile = useIsMobile();
-  useRumboVersion(); // re-render tras crear/gestionar un siniestro
-  const { SINIESTROS } = window.RUMBO_DATA;
-  const { daysFrom } = window.rumboFmt;
+  const version = useRumboVersion(); // refetch tras crear/gestionar un siniestro
 
-  const all = SINIESTROS;
+  // Server-side (Slice 2 de paridad): la lista sale de GET /siniestros paginado
+  // (antes: array SINIESTROS capada a 500 en el bootstrap). Búsqueda con
+  // debounce (nº siniestro / nº póliza / titular, insensible a acentos).
+  const [q, setQ] = useState('');
+  const [data, setData] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+
+  useEffect(() => {
+    let alive = true;
+    setLoading(true);
+    setError(null);
+    const t = setTimeout(() => {
+      window.rumboApi.claimsPage({ q: q.trim(), limit: 200 })
+        .then((d) => { if (alive) { setData(d); setLoading(false); } })
+        .catch((e) => { if (alive) { setError(e); setLoading(false); } });
+    }, q ? 300 : 0);
+    return () => { alive = false; clearTimeout(t); };
+  }, [q, version]);
 
   const cols = [
     { id: 'Abierto', label: 'Abiertos', tone: 'amber', hint: 'Denuncia cargada, sin gestión' },
     { id: 'En curso', label: 'En curso', tone: 'orange', hint: 'En análisis de la aseguradora' },
-    { id: 'Cerrado', label: 'Cerrados', tone: 'emerald', hint: 'Resueltos · últimos 90 días' },
+    { id: 'Cerrado', label: 'Cerrados', tone: 'emerald', hint: 'Resueltos' },
   ];
 
-  const staleCount = all.filter(s => s.stale >= 10).length;
+  const all = data ? data.data : [];
+  const counts = data ? data.counts : { abiertos: 0, enCurso: 0, cerrados: 0, stale: 0 };
+  const activos = counts.abiertos + counts.enCurso;
+  const staleCount = counts.stale;
+  const truncado = data && data.total > all.length;
 
   return (
     <div className="scroll rise" style={{ overflowY: 'auto', height: '100%', padding: isMobile ? '18px 16px 40px' : '30px 34px 60px' }}>
       <div style={{ maxWidth: 1240, margin: '0 auto' }}>
         <PageHead eyebrow="Cartera" tick={4} title="Siniestros"
-          sub={<><strong className="font-mono tnum" style={{ color: 'var(--ink)' }}>{all.filter(s=>s.status!=='Cerrado').length}</strong> activos · {staleCount > 0 ? <strong style={{ color: 'var(--red-ink)' }}>{staleCount} perdiendo rumbo</strong> : 'todos al día'}</>}
+          sub={<><strong className="font-mono tnum" style={{ color: 'var(--ink)' }}>{activos}</strong> activos · {staleCount > 0 ? <strong style={{ color: 'var(--red-ink)' }}>{staleCount} perdiendo rumbo</strong> : 'todos al día'}</>}
           actions={<><Btn variant="ghost" icon="download">Exportar</Btn><Btn variant="primary" icon="plus" onClick={() => window.rumboUI?.newSiniestro()}>Reportar siniestro</Btn></>} />
 
-        {/* stale alert banner */}
+        {/* búsqueda server-side */}
+        <div style={{ position: 'relative', display: 'flex', alignItems: 'center', marginBottom: 18, maxWidth: 420 }}>
+          <Icon name="search" size={15} style={{ position: 'absolute', left: 13, color: 'var(--ink-3)', pointerEvents: 'none' }} />
+          <input value={q} onChange={e => setQ(e.target.value)} placeholder="Buscar nº de siniestro, póliza o asegurado…"
+            style={{ width: '100%', padding: '10px 12px 10px 36px', fontSize: 13.5, color: 'var(--ink)', background: 'var(--panel)', border: '1px solid var(--hair)', borderRadius: 10, outline: 'none' }} />
+        </div>
+
         {staleCount > 0 && (
           <div style={{ display: 'flex', alignItems: 'center', gap: 13, padding: '13px 18px', borderRadius: 'var(--radius)', background: 'var(--red-soft)', border: '1px solid var(--red)', marginBottom: 22 }}>
             <Icon name="alert" size={20} style={{ color: 'var(--red-ink)' }} />
             <div style={{ flex: 1, fontSize: 13.5, color: 'var(--red-ink)' }}>
-              <strong>{staleCount} siniestro{staleCount > 1 ? 's' : ''} sin movimiento hace más de 10 días.</strong> Reactivá la gestión antes de que el asegurado lo note.
+              <strong>{staleCount} siniestro{staleCount > 1 ? 's' : ''} sin movimiento hace más de 14 días.</strong> Reactivá la gestión antes de que el asegurado lo note.
             </div>
-            <Btn size="sm" variant="ghost" style={{ borderColor: 'var(--red)', color: 'var(--red-ink)' }}>Ver atrasados</Btn>
           </div>
         )}
 
-        {/* board */}
+        {error && <div style={{ padding: '14px 18px', borderRadius: 'var(--radius)', background: 'var(--red-soft)', border: '1px solid var(--red)', fontSize: 13, color: 'var(--red-ink)', marginBottom: 18 }}>{error.message}</div>}
+        {truncado && (
+          <div style={{ fontSize: 12.5, color: 'var(--ink-3)', marginBottom: 14 }}>Mostrando {all.length} de {data.total} siniestros. Afiná la búsqueda para ver el resto.</div>
+        )}
+
         <div className="rgrid" style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 20, alignItems: 'start' }}>
           {cols.map(col => {
             const cards = all.filter(s => s.status === col.id);
@@ -44,14 +73,17 @@ function ScreenSiniestros({ go }) {
                 <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4, flexWrap: 'nowrap' }}>
                   <span style={{ width: 8, height: 8, borderRadius: 99, flexShrink: 0, background: `var(--${col.tone === 'emerald' ? 'emerald' : col.tone === 'orange' ? 'orange' : 'amber'})` }} />
                   <span style={{ fontSize: 13.5, fontWeight: 700, color: 'var(--ink)', whiteSpace: 'nowrap' }}>{col.label}</span>
-                  <span className="font-mono tnum" style={{ fontSize: 11, color: 'var(--ink-3)', background: 'var(--panel)', border: '1px solid var(--hair)', padding: '1px 7px', borderRadius: 99 }}>{cards.length}</span>
+                  <span className="font-mono tnum" style={{ fontSize: 11, color: 'var(--ink-3)', background: 'var(--panel)', border: '1px solid var(--hair)', padding: '1px 7px', borderRadius: 99 }}>
+                    {col.id === 'Abierto' ? counts.abiertos : col.id === 'En curso' ? counts.enCurso : counts.cerrados}
+                  </span>
                 </div>
                 <div style={{ fontSize: 11, color: 'var(--ink-3)', marginBottom: 12 }}>{col.hint}</div>
 
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-                  {cards.length === 0 && <div style={{ padding: '20px 8px', textAlign: 'center', fontSize: 12.5, color: 'var(--ink-3)' }}>Sin siniestros.</div>}
-                  {cards.map(s => {
-                    const stale = s.stale >= 10;
+                  {loading && <span className="skel" style={{ display: 'block', width: '100%', height: 110, borderRadius: 10 }} />}
+                  {!loading && cards.length === 0 && <div style={{ padding: '20px 8px', textAlign: 'center', fontSize: 12.5, color: 'var(--ink-3)' }}>Sin siniestros.</div>}
+                  {!loading && cards.map(s => {
+                    const stale = s.stale >= 10 && s.status !== 'Cerrado';
                     return (
                       <div key={s.id} onClick={() => window.rumboUI?.openClaim(s.id)} style={{
                         background: 'var(--panel)', border: `1px solid ${stale ? 'var(--red)' : 'var(--hair)'}`, borderRadius: 10, padding: 13, cursor: 'pointer', boxShadow: 'var(--shadow-sm)', transition: 'transform .14s',
