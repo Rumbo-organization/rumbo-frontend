@@ -80,6 +80,8 @@ const rumboApi = {
     return get('/api/v1/vencimientos?' + qs.toString());
   },
   policies: () => get('/api/v1/policies'),
+  // Detalle 360° de una póliza (Fase 3): { policy, contact, siniestros, crosssell, activity }.
+  policyDetail: (id) => get('/api/v1/policies/' + id + '/detail'),
   // Pólizas paginado server-side (Fase 1 escalabilidad): { q, seg, pay, sort, dir,
   // limit, offset } → { data, total, limit, offset }.
   policiesPage: (params = {}) => {

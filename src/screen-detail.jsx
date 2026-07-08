@@ -68,37 +68,58 @@ function PolicyNotesDrawer({ open, onClose, policy }) {
 }
 
 function ScreenDetail({ go, params }) {
-  const { POLICIES, CONTACTS, SINIESTROS, CROSSSELL, ACTIVITY } = window.RUMBO_DATA;
   const { ars, scheduleFor, daysFrom } = window.rumboFmt;
-  const p = POLICIES.find(x => x.id === params.id) || POLICIES[0];
   const isMobile = useIsMobile();
-  useRumboVersion(); // re-render tras gestionar un siniestro / editar observaciones
+  // Datos en vivo por id vía GET /policies/:id/detail (Fase 3: sin RUMBO_DATA.
+  // POLICIES/CONTACTS, que vienen capados a 1000/500 en el bootstrap). RLS: un
+  // id ajeno devuelve 404. La versión bump-ea tras gestionar un siniestro /
+  // editar observaciones (rumboRefresh) → refetch.
+  const version = useRumboVersion();
+  const id = params && params.id;
+  const [data, setData] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
   const [editOpen, setEditOpen] = useState(false);
-  // Sin pólizas (org vacía o id inexistente y lista vacía): no reventamos.
-  if (!p) {
+
+  useEffect(() => {
+    let alive = true;
+    setLoading(true);
+    setError(null);
+    if (!id) { setError({ status: 400, message: 'Falta la póliza.' }); setLoading(false); return; }
+    window.rumboApi.policyDetail(id)
+      .then((d) => { if (alive) { setData(d); setLoading(false); } })
+      .catch((e) => { if (alive) { setError(e); setLoading(false); } });
+    return () => { alive = false; };
+  }, [id, version]);
+
+  if (loading) return <DetailSkeleton isMobile={isMobile} />;
+  if (error || !data) {
+    const notFound = error && error.status === 404;
     return (
       <div className="scroll rise" style={{ height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 40, color: 'var(--ink-3)' }}>
-        <div style={{ textAlign: 'center' }}>
+        <div style={{ textAlign: 'center', maxWidth: 420 }}>
           <Icon name="scroll" size={26} stroke={1.7} style={{ color: 'var(--ink-3)' }} />
-          <div style={{ fontSize: 14, marginTop: 10 }}>Póliza no encontrada.</div>
+          <div style={{ fontSize: 14, marginTop: 10 }}>
+            {notFound ? 'Póliza no encontrada.' : (error && error.message) || 'No pudimos cargar la póliza.'}
+          </div>
           <Btn size="sm" variant="ghost" onClick={() => go('polizas')} style={{ margin: '12px auto 0' }}>Ver pólizas</Btn>
         </div>
       </div>
     );
   }
-  // El contacto puede no estar en la tanda cargada (o el dato real no matchear):
-  // derivamos un fallback desde el nombre de la póliza en vez de crashear.
-  const contact = CONTACTS.find(c => c.id === p.contactId) || {
+
+  const p = data.policy;
+  // El contacto puede faltar (póliza sin contactId): derivamos un fallback
+  // desde el nombre de la póliza en vez de crashear.
+  const contact = data.contact || {
     initials: (p.client || '—').replace(/,/g, '').split(/\s+/).filter(Boolean).slice(0, 2).map(w => w[0]).join('').toUpperCase() || '—',
     name: p.client || '—', kind: '—', since: '—', phone: '—', city: '—',
   };
   const sched = scheduleFor(p);
   const days = daysFrom(p.renew);
-  const claims = SINIESTROS.filter(s => s.policyId === p.id);
-  const cross = CROSSSELL.filter(x => x.contactId === p.contactId);
-  // ACTIVITY solo tiene clave para pólizas con eventos de siniestro (data real).
-  // Antes caía a ACTIVITY.p1 (solo existe en el demo) → undefined.map() en prod.
-  const acts = ACTIVITY[p.id] || [];
+  const claims = data.siniestros;
+  const cross = data.crosssell;
+  const acts = data.activity;
   const paid = sched.filter(c => c.status === 'Pagada').length;
   const overdue = sched.filter(c => c.status === 'Vencida');
 
@@ -254,6 +275,42 @@ function ScreenDetail({ go, params }) {
               </div>
             </Panel>
           </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/* ---------- Skeleton del detalle (con la forma del contenido real) ---------- */
+function DetailSkeleton({ isMobile }) {
+  const card = (h) => <span className="skel" style={{ display: 'block', width: '100%', height: h, borderRadius: 'var(--radius-lg)' }} />;
+  return (
+    <div className="scroll" style={{ overflowY: 'auto', height: '100%', padding: isMobile ? '16px 16px 40px' : '26px 34px 60px' }}>
+      <div style={{ maxWidth: 1180, margin: '0 auto' }}>
+        {/* header */}
+        <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'flex-start', gap: 18, marginBottom: 20 }}>
+          <span className="skel" style={{ width: 54, height: 54, borderRadius: 14, flexShrink: 0 }} />
+          <div style={{ flex: '1 1 240px', minWidth: 0, display: 'flex', flexDirection: 'column', gap: 10 }}>
+            <div style={{ display: 'flex', gap: 8 }}>
+              <span className="skel" style={{ width: 120, height: 18, borderRadius: 99 }} />
+              <span className="skel" style={{ width: 70, height: 18, borderRadius: 99 }} />
+            </div>
+            <span className="skel" style={{ width: isMobile ? 220 : 320, height: 30 }} />
+            <span className="skel" style={{ width: 240, height: 14 }} />
+          </div>
+          {!isMobile && (
+            <div style={{ display: 'flex', gap: 9 }}>
+              <span className="skel" style={{ width: 110, height: 36, borderRadius: 9 }} />
+              <span className="skel" style={{ width: 160, height: 36, borderRadius: 9 }} />
+            </div>
+          )}
+        </div>
+        {/* stat strip */}
+        {card(86)}
+        {/* body grid */}
+        <div className="rgrid" style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1.5fr 1fr', gap: 24, alignItems: 'start', marginTop: 24 }}>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 24 }}>{card(280)}{card(140)}</div>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 24 }}>{card(200)}{card(160)}</div>
         </div>
       </div>
     </div>
