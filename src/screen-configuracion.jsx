@@ -25,9 +25,108 @@ function Toggle({ on, onClick }) {
   );
 }
 
+/* 2FA TOTP real (Slice 3): activar (password → secret/URI + backup codes →
+   verificar primer código) y desactivar (password). Better Auth twoFactor. */
+function TwoFactorDrawer({ open, onClose, enabled, onChanged }) {
+  const [step, setStep] = useState('password'); // password | setup
+  const [password, setPassword] = useState('');
+  const [code, setCode] = useState('');
+  const [setup, setSetup] = useState(null); // { totpURI, backupCodes }
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState(null);
+  useEffect(() => {
+    if (open) { setStep('password'); setPassword(''); setCode(''); setSetup(null); setError(null); }
+  }, [open]);
+
+  const start = () => {
+    if (!password || busy) return;
+    setBusy(true); setError(null);
+    const p = enabled ? rumboAuth.twoFactorDisable(password) : rumboAuth.twoFactorEnable(password);
+    p.then((d) => {
+      if (enabled) {
+        window.rumboUI?.toast?.('Verificación en dos pasos desactivada');
+        onChanged(false); onClose();
+      } else {
+        setSetup(d); setStep('setup');
+      }
+    }).catch(e => setError(e.message || 'Contraseña incorrecta.')).finally(() => setBusy(false));
+  };
+
+  const confirm = () => {
+    if (!code.trim() || busy) return;
+    setBusy(true); setError(null);
+    rumboAuth.twoFactorVerifyTotp(code.trim(), true)
+      .then(() => { window.rumboUI?.toast?.('Verificación en dos pasos activada'); onChanged(true); onClose(); })
+      .catch(() => setError('Código inválido. Probá de nuevo.'))
+      .finally(() => setBusy(false));
+  };
+
+  const secret = setup?.totpURI ? (new URLSearchParams(setup.totpURI.split('?')[1] || '').get('secret') || '') : '';
+
+  return (
+    <Drawer open={open} onClose={onClose} eyebrow="Seguridad" width={500}
+      title={enabled ? 'Desactivar verificación en dos pasos' : 'Activar verificación en dos pasos'}
+      footer={step === 'password' ? (
+        <>
+          <Btn variant="ghost" onClick={onClose}>Cancelar</Btn>
+          <Btn variant="primary" icon="check" onClick={start} style={{ opacity: password && !busy ? 1 : 0.5, pointerEvents: password && !busy ? 'auto' : 'none' }}>
+            {enabled ? 'Desactivar' : 'Continuar'}
+          </Btn>
+        </>
+      ) : (
+        <>
+          <Btn variant="ghost" onClick={onClose}>Cancelar</Btn>
+          <Btn variant="primary" icon="check" onClick={confirm} style={{ opacity: code.trim() && !busy ? 1 : 0.5, pointerEvents: code.trim() && !busy ? 'auto' : 'none' }}>Verificar y activar</Btn>
+        </>
+      )}>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+        {step === 'password' && (
+          <>
+            <div style={{ fontSize: 13, color: 'var(--ink-2)', lineHeight: 1.5 }}>
+              {enabled
+                ? 'Confirmá tu contraseña para desactivar el segundo factor.'
+                : 'Confirmá tu contraseña para generar el secreto TOTP de tu app de autenticación (Google Authenticator, 1Password, Aegis…).'}
+            </div>
+            <Field label="Contraseña" required>
+              <input type="password" value={password} onChange={e => setPassword(e.target.value)} style={inputStyle} autoFocus />
+            </Field>
+          </>
+        )}
+        {step === 'setup' && setup && (
+          <>
+            <div style={{ fontSize: 13, color: 'var(--ink-2)', lineHeight: 1.5 }}>
+              Cargá esta clave en tu app de autenticación (o abrí el link desde el teléfono) y después ingresá el código de 6 dígitos.
+            </div>
+            <Field label="Clave secreta (carga manual)">
+              <div className="font-mono" style={{ ...inputStyle, userSelect: 'all', wordBreak: 'break-all', fontSize: 13 }}>{secret || '—'}</div>
+            </Field>
+            {setup.totpURI && (
+              <a href={setup.totpURI} style={{ fontSize: 12.5, color: 'var(--orange-ink)', fontWeight: 600 }}>Abrir en la app de autenticación</a>
+            )}
+            {Array.isArray(setup.backupCodes) && setup.backupCodes.length > 0 && (
+              <Field label="Códigos de respaldo · guardalos en un lugar seguro">
+                <div className="font-mono" style={{ ...inputStyle, userSelect: 'all', fontSize: 12, lineHeight: 1.8 }}>
+                  {setup.backupCodes.join('  ')}
+                </div>
+              </Field>
+            )}
+            <Field label="Código de 6 dígitos" required>
+              <input value={code} onChange={e => setCode(e.target.value)} inputMode="numeric" placeholder="123456"
+                className="font-mono" style={{ ...inputStyle, letterSpacing: '0.15em' }} />
+            </Field>
+          </>
+        )}
+        {error && <div style={{ fontSize: 12.5, color: 'var(--red-ink)' }}>{error}</div>}
+      </div>
+    </Drawer>
+  );
+}
+
 function ScreenConfiguracion({ go, dark, setDark }) {
   const isMobile = useIsMobile();
-  const [twofa, setTwofa] = useState(true);
+  // Estado real del 2FA: viene del user de la sesión (Better Auth).
+  const [twofa, setTwofa] = useState(() => Boolean(window.RUMBO_USER?.twoFactorEnabled));
+  const [twofaOpen, setTwofaOpen] = useState(false);
   const [alerts, setAlerts] = useState(true);
   const [wsp, setWsp] = useState(true);
   const [tpl, setTpl] = useState('renovacion');
@@ -46,6 +145,9 @@ function ScreenConfiguracion({ go, dark, setDark }) {
       <div style={{ maxWidth: 760, margin: '0 auto' }}>
         <PageHead eyebrow="Sistema" tick={5} title="Configuración"
           sub="Los ajustes de tu cuenta, tu organización y tus datos." />
+
+        <TwoFactorDrawer open={twofaOpen} onClose={() => setTwofaOpen(false)} enabled={twofa}
+          onChanged={(on) => { setTwofa(on); if (window.RUMBO_USER) window.RUMBO_USER.twoFactorEnabled = on; }} />
 
         <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
 
@@ -80,7 +182,8 @@ function ScreenConfiguracion({ go, dark, setDark }) {
           {/* seguridad y preferencias */}
           <Panel>
             <SectionHead label="Seguridad y preferencias" />
-            <SettingRow label="Verificación en dos pasos" sub="Protegé el acceso con un código TOTP." control={<Toggle on={twofa} onClick={() => setTwofa(!twofa)} />} />
+            <SettingRow label="Verificación en dos pasos" sub={twofa ? 'Activada. Se pide un código TOTP al ingresar.' : 'Protegé el acceso con un código TOTP.'}
+              control={<Toggle on={twofa} onClick={() => setTwofaOpen(true)} />} />
             <SettingRow label="Alertas de vencimientos y siniestros" sub="Avisos cuando una póliza o un caso pierde el rumbo." control={<Toggle on={alerts} onClick={() => setAlerts(!alerts)} />} />
             <SettingRow label="Plantillas de WhatsApp" sub="Mensajes prearmados para renovaciones y cobranzas." control={<Toggle on={wsp} onClick={() => setWsp(!wsp)} />} />
             <SettingRow label="Tema oscuro" sub="Cambia la apariencia de toda la app." control={<Toggle on={dark} onClick={() => setDark(!dark)} />} last />

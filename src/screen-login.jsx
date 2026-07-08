@@ -29,13 +29,26 @@ function BrandWhite({ size = 30 }) {
 
 function ScreenLogin({ onAuthed }) {
   const isMobile = useIsMobile();
-  const [mode, setMode] = useState('login'); // login | signup
+  const [mode, setMode] = useState('login'); // login | signup | forgot | reset | twofactor
   const [f, setF] = useState({ name: '', email: '', password: '' });
   const [terms, setTerms] = useState(false); // aceptación de legales (solo signup)
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState(null);
-  const [note, setNote] = useState(null); // hint neutral (ej: reset asistido)
+  const [note, setNote] = useState(null); // hint neutral (ej: email de reset enviado)
+  const [code, setCode] = useState(''); // TOTP / backup code (modo twofactor)
+  const [useBackup, setUseBackup] = useState(false);
+  const [resetToken, setResetToken] = useState(null);
   const set = (k, v) => setF(s => ({ ...s, [k]: v }));
+
+  // El link del email de reset vuelve con ?mode=reset&token=… (Slice 3).
+  // También ?error=… (rechazo del allowlist en el callback OAuth).
+  useEffect(() => {
+    const qs = new URLSearchParams(window.location.search);
+    const token = qs.get('token');
+    if (qs.get('mode') === 'reset' && token) { setMode('reset'); setResetToken(token); }
+    if (qs.get('error')) setErr(qs.get('error').replace(/_/g, ' '));
+    if (token || qs.get('error')) window.history.replaceState({}, '', window.location.pathname);
+  }, []);
 
   const doGoogle = async () => {
     setErr(null); setNote(null); setBusy(true);
@@ -51,7 +64,9 @@ function ScreenLogin({ onAuthed }) {
         if (!terms) { setErr('Para crear la cuenta tenés que aceptar los Términos y la Política de privacidad.'); setBusy(false); return; }
         await rumboAuth.signUpEmail(f.name, f.email, f.password);
       } else {
-        await rumboAuth.signInEmail(f.email, f.password);
+        const d = await rumboAuth.signInEmail(f.email, f.password);
+        // Cuenta con 2FA: Better Auth no crea sesión todavía, pide el código.
+        if (d && d.twoFactorRedirect) { setMode('twofactor'); setCode(''); setBusy(false); return; }
       }
       const s = await rumboAuth.getSession();
       if (!s) throw new Error('No se pudo crear la sesión');
@@ -60,6 +75,39 @@ function ScreenLogin({ onAuthed }) {
       if (mode === 'signup') { try { await window.rumboApi.acceptTerms(); } catch { /* modal fallback */ } }
       onAuthed(s);
     } catch (e2) { setErr(e2.message); setBusy(false); }
+  };
+
+  const doForgot = async (e) => {
+    e.preventDefault();
+    setErr(null); setBusy(true);
+    try {
+      await rumboAuth.forgotPassword(f.email);
+      setNote('Si el email existe, te mandamos un link para crear una contraseña nueva. Revisá tu casilla.');
+    } catch (e2) { setErr(e2.message); }
+    setBusy(false);
+  };
+
+  const doReset = async (e) => {
+    e.preventDefault();
+    setErr(null); setBusy(true);
+    try {
+      await rumboAuth.resetPassword(f.password, resetToken);
+      setMode('login'); setF(s => ({ ...s, password: '' }));
+      setNote('Contraseña actualizada. Ingresá con la nueva.');
+    } catch (e2) { setErr(e2.message); }
+    setBusy(false);
+  };
+
+  const doTotp = async (e) => {
+    e.preventDefault();
+    setErr(null); setBusy(true);
+    try {
+      if (useBackup) await rumboAuth.twoFactorVerifyBackup(code.trim());
+      else await rumboAuth.twoFactorVerifyTotp(code.trim(), true);
+      const s = await rumboAuth.getSession();
+      if (!s) throw new Error('No se pudo crear la sesión');
+      onAuthed(s);
+    } catch (e2) { setErr('Código inválido o vencido.'); setBusy(false); }
   };
 
   const label = { fontSize: 12.5, fontWeight: 600, color: 'var(--ink)', marginBottom: 7, display: 'block' };
@@ -123,12 +171,71 @@ function ScreenLogin({ onAuthed }) {
           )}
 
           <h2 className="font-display" style={{ fontSize: 30, letterSpacing: '-0.02em', color: 'var(--ink)' }}>
-            {signup ? 'Crear cuenta' : 'Ingresar'}
+            {mode === 'forgot' ? 'Recuperar contraseña'
+              : mode === 'reset' ? 'Contraseña nueva'
+              : mode === 'twofactor' ? 'Verificación en dos pasos'
+              : signup ? 'Crear cuenta' : 'Ingresar'}
           </h2>
           <p style={{ fontSize: 14, color: 'var(--ink-3)', marginTop: 6, marginBottom: 26 }}>
-            {signup ? 'Empezá con Rumbo en un minuto.' : 'Accedé a tu cartera.'}
+            {mode === 'forgot' ? 'Te mandamos un link por email para crear una nueva.'
+              : mode === 'reset' ? 'Elegí tu contraseña nueva.'
+              : mode === 'twofactor' ? (useBackup ? 'Ingresá uno de tus códigos de respaldo.' : 'Ingresá el código de tu app de autenticación.')
+              : signup ? 'Empezá con Rumbo en un minuto.' : 'Accedé a tu cartera.'}
           </p>
 
+          {/* modos especiales (Slice 3): forgot / reset / twofactor */}
+          {mode === 'forgot' && (
+            <form onSubmit={doForgot} style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+              <div>
+                <label style={label}>Email</label>
+                <input type="email" value={f.email} onChange={e => set('email', e.target.value)} required
+                  placeholder="vos@tuestudio.com.ar" style={inputStyle} />
+              </div>
+              {err && <div style={{ padding: '10px 13px', borderRadius: 9, background: 'var(--red-soft)', border: '1px solid var(--red)', fontSize: 12.5, color: 'var(--red-ink)' }}>{err}</div>}
+              {note && <div style={{ padding: '10px 13px', borderRadius: 9, background: 'var(--panel-2)', border: '1px solid var(--hair)', fontSize: 12.5, color: 'var(--ink-2)', lineHeight: 1.45 }}>{note}</div>}
+              <Btn variant="primary" size="md" style={{ width: '100%', justifyContent: 'center', opacity: busy ? 0.6 : 1, pointerEvents: busy ? 'none' : 'auto' }}>
+                {busy ? 'Un momento…' : 'Enviar link'}
+              </Btn>
+              <div style={{ fontSize: 13, textAlign: 'center' }}>
+                <a href="#" onClick={e => { e.preventDefault(); setErr(null); setNote(null); setMode('login'); }} style={{ color: 'var(--orange-ink)', fontWeight: 600, textDecoration: 'none' }}>Volver a ingresar</a>
+              </div>
+            </form>
+          )}
+          {mode === 'reset' && (
+            <form onSubmit={doReset} style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+              <div>
+                <label style={label}>Contraseña nueva</label>
+                <input type="password" value={f.password} onChange={e => set('password', e.target.value)} required
+                  minLength={8} placeholder="Mínimo 8 caracteres" style={inputStyle} />
+              </div>
+              {err && <div style={{ padding: '10px 13px', borderRadius: 9, background: 'var(--red-soft)', border: '1px solid var(--red)', fontSize: 12.5, color: 'var(--red-ink)' }}>{err}</div>}
+              <Btn variant="primary" size="md" style={{ width: '100%', justifyContent: 'center', opacity: busy ? 0.6 : 1, pointerEvents: busy ? 'none' : 'auto' }}>
+                {busy ? 'Un momento…' : 'Guardar contraseña'}
+              </Btn>
+            </form>
+          )}
+          {mode === 'twofactor' && (
+            <form onSubmit={doTotp} style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+              <div>
+                <label style={label}>{useBackup ? 'Código de respaldo' : 'Código de 6 dígitos'}</label>
+                <input value={code} onChange={e => setCode(e.target.value)} required autoFocus
+                  inputMode={useBackup ? 'text' : 'numeric'} placeholder={useBackup ? 'xxxxx-xxxxx' : '123456'}
+                  className="font-mono" style={{ ...inputStyle, letterSpacing: '0.15em' }} />
+              </div>
+              {err && <div style={{ padding: '10px 13px', borderRadius: 9, background: 'var(--red-soft)', border: '1px solid var(--red)', fontSize: 12.5, color: 'var(--red-ink)' }}>{err}</div>}
+              <Btn variant="primary" size="md" style={{ width: '100%', justifyContent: 'center', opacity: busy ? 0.6 : 1, pointerEvents: busy ? 'none' : 'auto' }}>
+                {busy ? 'Verificando…' : 'Verificar'}
+              </Btn>
+              <div style={{ fontSize: 13, textAlign: 'center', display: 'flex', flexDirection: 'column', gap: 8 }}>
+                <a href="#" onClick={e => { e.preventDefault(); setErr(null); setUseBackup(b => !b); setCode(''); }} style={{ color: 'var(--orange-ink)', fontWeight: 600, textDecoration: 'none' }}>
+                  {useBackup ? 'Usar el código de la app' : 'Usar un código de respaldo'}
+                </a>
+                <a href="#" onClick={e => { e.preventDefault(); setErr(null); setMode('login'); }} style={{ color: 'var(--ink-3)', textDecoration: 'none' }}>Cancelar</a>
+              </div>
+            </form>
+          )}
+
+          {(mode === 'login' || mode === 'signup') && (
           <form onSubmit={doEmail} style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
             {signup && (
               <div>
@@ -148,7 +255,7 @@ function ScreenLogin({ onAuthed }) {
                 minLength={8} placeholder={signup ? 'Mínimo 8 caracteres' : '••••••••'} style={inputStyle} />
               {!signup && (
                 <div style={{ textAlign: 'right', marginTop: 8 }}>
-                  <a href="#" onClick={e => { e.preventDefault(); setErr(null); setNote('Por ahora el reset es asistido: escribinos a hola@rumbo.app y te la restablecemos.'); }}
+                  <a href="#" onClick={e => { e.preventDefault(); setErr(null); setNote(null); setMode('forgot'); }}
                     style={{ fontSize: 12.5, color: 'var(--orange-ink)', fontWeight: 600, textDecoration: 'none' }}>¿La olvidaste?</a>
                 </div>
               )}
@@ -184,7 +291,9 @@ function ScreenLogin({ onAuthed }) {
               {busy ? 'Un momento…' : signup ? 'Crear cuenta' : 'Ingresar'}
             </Btn>
           </form>
+          )}
 
+          {(mode === 'login' || mode === 'signup') && (<>
           <div style={{ display: 'flex', alignItems: 'center', gap: 12, margin: '22px 0' }}>
             <span style={{ flex: 1, height: 1, background: 'var(--hair-2)' }} />
             <span style={{ fontSize: 12, color: 'var(--ink-3)' }}>o</span>
@@ -211,6 +320,7 @@ function ScreenLogin({ onAuthed }) {
                 <a href="#" onClick={e => { e.preventDefault(); setErr(null); setNote(null); setMode('signup'); }} style={{ color: 'var(--orange-ink)', fontWeight: 600, textDecoration: 'none' }}>Registrate</a></>
             )}
           </div>
+          </>)}
         </div>
       </div>
     </div>

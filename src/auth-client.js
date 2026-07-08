@@ -48,6 +48,36 @@ const rumboAuth = {
   }),
 
   signOut: () => req('/api/auth/sign-out', { method: 'POST', body: '{}' }),
+
+  // ── Slice 3: reset de contraseña + 2FA TOTP (Better Auth) ──────────────────
+  // El link del email vuelve a la SPA con ?mode=reset&token=… (ScreenLogin lo
+  // detecta y muestra el form de contraseña nueva).
+  forgotPassword: (email) => req('/api/auth/request-password-reset', {
+    method: 'POST',
+    body: JSON.stringify({ email, redirectTo: window.location.origin + '/?mode=reset' }),
+  }),
+  resetPassword: (newPassword, token) => req('/api/auth/reset-password', {
+    method: 'POST',
+    body: JSON.stringify({ newPassword, token }),
+  }),
+  // enable devuelve { totpURI, backupCodes }; el 2FA queda ACTIVO recién al
+  // verificar el primer código (verify-totp).
+  twoFactorEnable: (password) => req('/api/auth/two-factor/enable', {
+    method: 'POST',
+    body: JSON.stringify({ password }),
+  }),
+  twoFactorDisable: (password) => req('/api/auth/two-factor/disable', {
+    method: 'POST',
+    body: JSON.stringify({ password }),
+  }),
+  twoFactorVerifyTotp: (code, trustDevice = false) => req('/api/auth/two-factor/verify-totp', {
+    method: 'POST',
+    body: JSON.stringify({ code, trustDevice }),
+  }),
+  twoFactorVerifyBackup: (code) => req('/api/auth/two-factor/verify-backup-code', {
+    method: 'POST',
+    body: JSON.stringify({ code }),
+  }),
 };
 
 Object.assign(window, { rumboAuth });
