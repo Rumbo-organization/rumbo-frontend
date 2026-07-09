@@ -20,26 +20,16 @@ function ScreenPolizas({ go }) {
   const [producer, setProducer] = useState(''); // '' = todos (visible si la org tiene >1)
   const PRODUCTORES_LIST = (window.RUMBO_DATA?.PRODUCTORES ?? []);
   // Vista Resumen (Slice 5): agrupado por ramo/estado con subtotales de premio.
+  // TanStack Query: solo consulta con el panel abierto (enabled).
   const [showSummary, setShowSummary] = useState(false);
   const [summaryBy, setSummaryBy] = useState('ramo');
-  const [summary, setSummary] = useState(null);
-  useEffect(() => {
-    if (!showSummary) return;
-    let alive = true;
-    setSummary(null);
-    window.rumboApi.policiesSummary(summaryBy).then(d => { if (alive) setSummary(d); }).catch(() => {});
-    return () => { alive = false; };
-  }, [showSummary, summaryBy]);
+  const summaryQ = useApiQuery(['policies-summary', summaryBy],
+    () => window.rumboApi.policiesSummary(summaryBy), { enabled: showSummary });
+  const summary = summaryQ.data ?? null;
   const [sort, setSort] = useState({ key: 'renew', dir: 'asc' });
   const [q, setQ] = useState('');
   const [qDebounced, setQDebounced] = useState('');
   const [offset, setOffset] = useState(0);
-
-  const [data, setData] = useState([]);
-  const [total, setTotal] = useState(0);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
-  const [reload, setReload] = useState(0);
 
   // Debounce de la búsqueda (evita un request por tecla) + vuelve a la pág. 1.
   useEffect(() => {
@@ -47,18 +37,20 @@ function ScreenPolizas({ go }) {
     return () => clearTimeout(t);
   }, [q]);
 
-  // Fetch de la página actual. Refetch ante cualquier cambio de filtro/orden/pág.
-  useEffect(() => {
-    let alive = true;
-    setLoading(true); setError(null);
-    window.rumboApi.policiesPage({
+  // Página actual server-side vía TanStack Query: cache por combinación de
+  // filtros, keepPrevious sin flash al paginar. rumboRefresh() invalida.
+  const listQ = useApiQuery(
+    ['policies', { q: qDebounced, seg, pay, producer, sort: sort.key, dir: sort.dir, offset }],
+    () => window.rumboApi.policiesPage({
       q: qDebounced, seg: seg === 'todas' ? '' : seg, pay, producer,
       sort: sort.key, dir: sort.dir, limit: POLIZAS_LIMIT, offset,
-    })
-      .then(r => { if (alive) { setData(r.data || []); setTotal(r.total || 0); setLoading(false); } })
-      .catch(e => { if (alive) { setError(e); setLoading(false); } });
-    return () => { alive = false; };
-  }, [qDebounced, seg, pay, producer, sort.key, sort.dir, offset, reload]);
+    }),
+    { keepPrevious: true },
+  );
+  const data = listQ.data?.data ?? [];
+  const total = listQ.data?.total ?? 0;
+  const loading = listQ.isPending;
+  const error = listQ.error;
 
   const setFilter = (fn) => { fn(); setOffset(0); };
   const changeSort = (k) => setFilter(() => setSort(s => ({ key: k, dir: s.key === k && s.dir === 'asc' ? 'desc' : 'asc' })));
@@ -254,7 +246,7 @@ function ScreenPolizas({ go }) {
           </div>
           {!loading && error && (
             <div style={{ padding: '40px', textAlign: 'center', color: 'var(--red-ink)', fontSize: 13.5 }}>
-              No pudimos cargar las pólizas. <button onClick={() => setReload(x => x + 1)} style={{ color: 'var(--orange-ink)', fontWeight: 600 }}>Reintentar</button>
+              No pudimos cargar las pólizas. <button onClick={() => listQ.refetch()} style={{ color: 'var(--orange-ink)', fontWeight: 600 }}>Reintentar</button>
             </div>
           )}
           {!loading && !error && data.length === 0 && (

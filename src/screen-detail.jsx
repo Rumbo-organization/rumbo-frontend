@@ -94,28 +94,17 @@ function ScreenDetail({ go, params }) {
   const isMobile = useIsMobile();
   // Datos en vivo por id vía GET /policies/:id/detail (Fase 3: sin RUMBO_DATA.
   // POLICIES/CONTACTS, que vienen capados a 1000/500 en el bootstrap). RLS: un
-  // id ajeno devuelve 404. La versión bump-ea tras gestionar un siniestro /
-  // editar observaciones (rumboRefresh) → refetch.
-  const version = useRumboVersion();
+  // id ajeno devuelve 404. TanStack Query: rumboRefresh() invalida tras
+  // gestionar un siniestro / editar observaciones; los paneles usan refetch().
   const id = params && params.id;
-  const [data, setData] = useState(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
   const [editOpen, setEditOpen] = useState(false);
   const [wspOpen, setWspOpen] = useState(false);
-  const [reload, setReload] = useState(0);
-  const refetch = () => setReload(r => r + 1);
 
-  useEffect(() => {
-    let alive = true;
-    setLoading(true);
-    setError(null);
-    if (!id) { setError({ status: 400, message: 'Falta la póliza.' }); setLoading(false); return; }
-    window.rumboApi.policyDetail(id)
-      .then((d) => { if (alive) { setData(d); setLoading(false); } })
-      .catch((e) => { if (alive) { setError(e); setLoading(false); } });
-    return () => { alive = false; };
-  }, [id, version, reload]);
+  const detailQ = useApiQuery(['policy-detail', id], () => window.rumboApi.policyDetail(id), { enabled: Boolean(id) });
+  const data = detailQ.data ?? null;
+  const loading = detailQ.isLoading;
+  const error = detailQ.error || (!id ? { status: 400, message: 'Falta la póliza.' } : null);
+  const refetch = () => detailQ.refetch();
 
   if (loading) return <DetailSkeleton isMobile={isMobile} />;
   if (error || !data) {

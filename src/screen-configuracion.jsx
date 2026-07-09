@@ -126,16 +126,13 @@ function TwoFactorDrawer({ open, onClose, enabled, onChanged }) {
    /message-templates. Las 4 built-in (saludo/vencimiento/cobranza/siniestro)
    viven en el diálogo de WhatsApp y no se editan acá. */
 function TemplatesEditor() {
-  const [rows, setRows] = useState([]);
   const [editing, setEditing] = useState(null); // null | 'new' | {id,name,body}
   const [f, setF] = useState({ name: '', body: '' });
   const [busy, setBusy] = useState(false);
-  const [reload, setReload] = useState(0);
-  useEffect(() => {
-    let alive = true;
-    window.rumboApi.messageTemplates().then(d => { if (alive) setRows(d.data || []); }).catch(() => {});
-    return () => { alive = false; };
-  }, [reload]);
+  // Misma key ['message-templates'] que el diálogo de WhatsApp → cache compartida.
+  const templatesQ = useApiQuery(['message-templates'], () => window.rumboApi.messageTemplates());
+  const rows = templatesQ.data?.data ?? [];
+  const invalidate = () => window.queryClient.invalidateQueries({ queryKey: ['message-templates'] });
 
   const startNew = () => { setEditing('new'); setF({ name: '', body: '' }); };
   const startEdit = (t) => { setEditing(t); setF({ name: t.name, body: t.body }); };
@@ -145,12 +142,12 @@ function TemplatesEditor() {
     const p = editing === 'new'
       ? window.rumboApi.createMessageTemplate(f)
       : window.rumboApi.updateMessageTemplate(editing.id, f);
-    p.then(() => { window.rumboUI?.toast?.('Plantilla guardada'); setEditing(null); setReload(r => r + 1); })
+    p.then(() => { window.rumboUI?.toast?.('Plantilla guardada'); setEditing(null); invalidate(); })
       .catch(e => window.rumboUI?.toast?.(e.message)).finally(() => setBusy(false));
   };
   const del = (t) => {
     window.rumboApi.deleteMessageTemplate(t.id)
-      .then(() => { window.rumboUI?.toast?.('Plantilla eliminada'); setReload(r => r + 1); })
+      .then(() => { window.rumboUI?.toast?.('Plantilla eliminada'); invalidate(); })
       .catch(e => window.rumboUI?.toast?.(e.message));
   };
 

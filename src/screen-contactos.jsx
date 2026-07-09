@@ -9,28 +9,17 @@ const CONTACTOS_LIMIT = 50;
 
 function ScreenContactos({ go, params }) {
   const isMobile = useIsMobile();
-  const version = useRumboVersion(); // refetch tras crear un contacto
   const { ars, arsShort, daysFrom } = window.rumboFmt;
 
   const [seg, setSeg] = useState('todos');
   const [importOpen, setImportOpen] = useState(false);
-  const [reloadTick, setReloadTick] = useState(0);
   const [q, setQ] = useState('');
   const [qDebounced, setQDebounced] = useState('');
   const [offset, setOffset] = useState(0);
 
-  const [rows, setRows] = useState([]);
-  const [total, setTotal] = useState(0);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
-  const [reload, setReload] = useState(0);
-
   const pid = params && params.id;
   const [sel, setSel] = useState(pid || null);
   const [drawerOpen, setDrawerOpen] = useState(false);
-
-  const [detail, setDetail] = useState(null);
-  const [detailLoading, setDetailLoading] = useState(false);
 
   useEffect(() => { if (pid) { setSel(pid); if (isMobile) setDrawerOpen(true); } }, [pid]);
 
@@ -40,30 +29,27 @@ function ScreenContactos({ go, params }) {
     return () => clearTimeout(t);
   }, [q]);
 
-  // Lista paginada. Refetch ante filtro/búsqueda/página o mutación (version).
-  useEffect(() => {
-    let alive = true;
-    setLoading(true); setError(null);
-    window.rumboApi.contactsPage({ q: qDebounced, seg: seg === 'todos' ? '' : seg, limit: CONTACTOS_LIMIT, offset })
-      .then(r => {
-        if (!alive) return;
-        setRows(r.data || []); setTotal(r.total || 0); setLoading(false);
-        setSel(s => s || (r.data && r.data[0] && r.data[0].id) || null);
-      })
-      .catch(e => { if (alive) { setError(e); setLoading(false); } });
-    return () => { alive = false; };
-  }, [qDebounced, seg, offset, version, reload, reloadTick]);
+  // Lista paginada vía TanStack Query (rumboRefresh invalida tras mutaciones).
+  const listQ = useApiQuery(
+    ['contacts', { q: qDebounced, seg, offset }],
+    () => window.rumboApi.contactsPage({ q: qDebounced, seg: seg === 'todos' ? '' : seg, limit: CONTACTOS_LIMIT, offset }),
+    { keepPrevious: true },
+  );
+  const rows = listQ.data?.data ?? [];
+  const total = listQ.data?.total ?? 0;
+  const loading = listQ.isPending;
+  const error = listQ.error;
 
-  // Detalle del contacto seleccionado (resumen/ficha corta).
+  // Selección default: primera fila de la página cuando no hay elegido.
   useEffect(() => {
-    if (!sel) { setDetail(null); return; }
-    let alive = true;
-    setDetailLoading(true);
-    window.rumboApi.contactById(sel)
-      .then(d => { if (alive) { setDetail(d); setDetailLoading(false); } })
-      .catch(() => { if (alive) { setDetail(null); setDetailLoading(false); } });
-    return () => { alive = false; };
-  }, [sel, version]);
+    if (rows.length) setSel(s => s || rows[0].id);
+  }, [rows]);
+
+  // Detalle del contacto seleccionado (misma key ['contact', id] que la ficha
+  // completa → cache compartida entre lista y ScreenContacto).
+  const detailQ = useApiQuery(['contact', sel], () => window.rumboApi.contactById(sel), { enabled: Boolean(sel) });
+  const detail = detailQ.data ?? null;
+  const detailLoading = detailQ.isLoading;
 
   const setFilter = (fn) => { fn(); setOffset(0); };
   const selectContact = (id) => { setSel(id); if (isMobile) setDrawerOpen(true); };
@@ -142,7 +128,7 @@ function ScreenContactos({ go, params }) {
           sub={<><strong className="font-mono tnum" style={{ color: 'var(--ink)' }}>{total.toLocaleString('es-AR')}</strong> {seg === 'todos' && !qDebounced ? 'en tu cartera' : 'en el filtro actual'}</>}
           actions={<><Btn variant="ghost" icon="download" onClick={() => setImportOpen(true)}>Importar</Btn><Btn variant="ghost" icon="external" onClick={() => window.open(window.rumboApi.contactsExportUrl(), '_blank')}>Exportar</Btn><Btn variant="primary" icon="plus" onClick={() => window.rumboUI?.newContacto()}>Nuevo contacto</Btn></>} />
 
-        <ImportContactsDrawer open={importOpen} onClose={() => setImportOpen(false)} onDone={() => setReloadTick(t => t + 1)} />
+        <ImportContactsDrawer open={importOpen} onClose={() => setImportOpen(false)} onDone={() => window.queryClient.invalidateQueries({ queryKey: ['contacts'] })} />
 
         <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 16, flexWrap: 'wrap' }}>
           <Segmented segs={segs} value={seg} onChange={(v) => setFilter(() => setSeg(v))} />
@@ -165,7 +151,7 @@ function ScreenContactos({ go, params }) {
               ))
             ) : error ? (
               <div style={{ padding: 50, textAlign: 'center', color: 'var(--red-ink)', fontSize: 13.5 }}>
-                No pudimos cargar los asegurados. <button onClick={() => setReload(x => x + 1)} style={{ color: 'var(--orange-ink)', fontWeight: 600 }}>Reintentar</button>
+                No pudimos cargar los asegurados. <button onClick={() => listQ.refetch()} style={{ color: 'var(--orange-ink)', fontWeight: 600 }}>Reintentar</button>
               </div>
             ) : rows.length === 0 ? (
               <div style={{ padding: 50, textAlign: 'center', color: 'var(--ink-3)', fontSize: 14 }}>Sin asegurados que coincidan.</div>

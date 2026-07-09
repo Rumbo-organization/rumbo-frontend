@@ -470,4 +470,8 @@ function TermsGate() {
 // renderiza después de que este módulo cargó, así que el global ya existe).
 Object.assign(window, { LegalDrawer, LEGAL_CONTENT });
 
-ReactDOM.createRoot(document.getElementById('root')).render(<Root />);
+ReactDOM.createRoot(document.getElementById('root')).render(
+  <QueryClientProvider client={window.queryClient}>
+    <Root />
+  </QueryClientProvider>,
+);

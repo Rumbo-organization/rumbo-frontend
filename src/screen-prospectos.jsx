@@ -5,21 +5,13 @@
    ============================================================ */
 function ScreenProspectos({ go }) {
   const isMobile = useIsMobile();
-  const version = useRumboVersion();
-  const [rows, setRows] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
-  const [reload, setReload] = useState(0);
   const [busyId, setBusyId] = useState(null);
 
-  useEffect(() => {
-    let alive = true;
-    setLoading(true);
-    window.rumboApi.prospectos()
-      .then((d) => { if (alive) { setRows(d.data); setLoading(false); } })
-      .catch((e) => { if (alive) { setError(e); setLoading(false); } });
-    return () => { alive = false; };
-  }, [version, reload]);
+  // Pipeline vía TanStack Query (rumboRefresh y move() invalidan).
+  const listQ = useApiQuery(['prospectos'], () => window.rumboApi.prospectos());
+  const rows = listQ.data?.data ?? [];
+  const loading = listQ.isPending;
+  const error = listQ.error;
 
   const stages = [
     { id: 'nuevo', label: 'Nuevo', tone: 'neutral' },
@@ -37,7 +29,12 @@ function ScreenProspectos({ go }) {
     if (busyId) return;
     setBusyId(p.id);
     window.rumboApi.advanceProspect(p.id, to)
-      .then(() => { window.rumboUI?.toast?.(msg); setReload(r => r + 1); })
+      .then(() => {
+        window.rumboUI?.toast?.(msg);
+        // El cambio de etapa/estado afecta el pipeline y la lista de contactos.
+        window.queryClient.invalidateQueries({ queryKey: ['prospectos'] });
+        window.queryClient.invalidateQueries({ queryKey: ['contacts'] });
+      })
       .catch((e) => window.rumboUI?.toast?.(e.message))
       .finally(() => setBusyId(null));
   };

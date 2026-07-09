@@ -7,21 +7,11 @@ function ScreenCrossselling({ go }) {
   const { arsShort } = window.rumboFmt;
   // Server-side (Fase 3): ops + matriz de cobertura salen de GET /crosssell
   // (agregados por contacto en SQL, uncapped) — no de las arrays capadas del
-  // bootstrap. Refetch tras mutaciones (rumboRefresh → version).
-  const version = useRumboVersion();
-  const [data, setData] = useState(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
-
-  useEffect(() => {
-    let alive = true;
-    setLoading(true);
-    setError(null);
-    window.rumboApi.crosssell({ limit: 100 })
-      .then((d) => { if (alive) { setData(d); setLoading(false); } })
-      .catch((e) => { if (alive) { setError(e); setLoading(false); } });
-    return () => { alive = false; };
-  }, [version]);
+  // bootstrap. TanStack Query: rumboRefresh() invalida tras mutaciones.
+  const crossQ = useApiQuery(['crosssell'], () => window.rumboApi.crosssell({ limit: 100 }));
+  const data = crossQ.data ?? null;
+  const loading = crossQ.isPending;
+  const error = crossQ.error;
 
   // estimate premium for each suggested ramo
   const ESTIM = { Hogar: 720000, Vida: 540000, Integral: 1850000, Automotor: 2100000, ART: 9600000, Comercio: 4200000 };

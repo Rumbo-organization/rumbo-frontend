@@ -8,23 +8,16 @@ function ScreenContacto({ go, params }) {
   const isMobile = useIsMobile();
   const { ars, arsShort, daysFrom } = window.rumboFmt;
   const id = params && params.id;
-  const [c, setC] = useState(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
   const [editOpen, setEditOpen] = useState(false);
   const [wspOpen, setWspOpen] = useState(false);
-  const [reload, setReload] = useState(0);
 
-  useEffect(() => {
-    let alive = true;
-    setLoading(true);
-    setError(null);
-    if (!id) { setError({ status: 400, message: 'Falta el asegurado.' }); setLoading(false); return; }
-    window.rumboApi.contactById(id)
-      .then((d) => { if (alive) { setC(d); setLoading(false); } })
-      .catch((e) => { if (alive) { setError(e); setLoading(false); } });
-    return () => { alive = false; };
-  }, [id, reload]);
+  // Ficha vía TanStack Query — misma key ['contact', id] que el resumen de la
+  // lista de contactos (cache compartida). Los paneles refetchean con refetch().
+  const ficha = useApiQuery(['contact', id], () => window.rumboApi.contactById(id), { enabled: Boolean(id) });
+  const c = ficha.data ?? null;
+  const loading = ficha.isLoading;
+  const error = ficha.error || (!id ? { status: 400, message: 'Falta el asegurado.' } : null);
+  const refetch = () => ficha.refetch();
 
   if (loading) return <ContactoSkeleton isMobile={isMobile} />;
   if (error || !c) {
@@ -192,10 +185,10 @@ function ScreenContacto({ go, params }) {
             )}
 
             {/* relaciones + direcciones + responsables + documentos (Slice 4) */}
-            <RelacionesPanel relaciones={c.relaciones || []} contactId={c.id} onChanged={() => setReload(r => r + 1)} go={go} />
-            <DireccionesPanel direcciones={c.direcciones || []} contactId={c.id} onChanged={() => setReload(r => r + 1)} />
-            <ResponsablesPanel responsables={c.responsables || []} contactId={c.id} onChanged={() => setReload(r => r + 1)} />
-            <DocumentsPanel docs={c.documentos || []} target={{ contactId: c.id }} onChanged={() => setReload(r => r + 1)} />
+            <RelacionesPanel relaciones={c.relaciones || []} contactId={c.id} onChanged={refetch} go={go} />
+            <DireccionesPanel direcciones={c.direcciones || []} contactId={c.id} onChanged={refetch} />
+            <ResponsablesPanel responsables={c.responsables || []} contactId={c.id} onChanged={refetch} />
+            <DocumentsPanel docs={c.documentos || []} target={{ contactId: c.id }} onChanged={refetch} />
 
             {/* comunicaciones (Slice 2): log del "marqué que envié" */}
             <Panel>
@@ -227,11 +220,11 @@ function ScreenContacto({ go, params }) {
         open={editOpen}
         onClose={() => setEditOpen(false)}
         contact={{ ...(c.form || {}), id: c.id }}
-        onSaved={() => setReload((r) => r + 1)}
+        onSaved={refetch}
       />
       <WhatsAppDialog open={wspOpen} onClose={() => setWspOpen(false)}
         contact={{ id: c.id, name: c.name, phone: c.phone }}
-        onLogged={() => setReload((r) => r + 1)} />
+        onLogged={refetch} />
     </div>
   );
 }

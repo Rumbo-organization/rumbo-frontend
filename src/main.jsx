@@ -1,6 +1,7 @@
 // Orden de carga = orden de los <script> en el Rumbo.html original.
 // Cada módulo publica sus símbolos en window (ver globals.js); app.jsx monta la app.
 import './globals.js';
+import './query.js';
 import './styles.css';
 import './data.jsx';
 import './icons.jsx';

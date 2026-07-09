@@ -3,27 +3,23 @@
    ============================================================ */
 function ScreenSiniestros({ go }) {
   const isMobile = useIsMobile();
-  const version = useRumboVersion(); // refetch tras crear/gestionar un siniestro
 
   // Server-side (Slice 2 de paridad): la lista sale de GET /siniestros paginado
   // (antes: array SINIESTROS capada a 500 en el bootstrap). Búsqueda con
   // debounce (nº siniestro / nº póliza / titular, insensible a acentos).
+  // TanStack Query: rumboRefresh() invalida tras crear/gestionar un siniestro.
   const [q, setQ] = useState('');
-  const [data, setData] = useState(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
-
+  const [qDebounced, setQDebounced] = useState('');
   useEffect(() => {
-    let alive = true;
-    setLoading(true);
-    setError(null);
-    const t = setTimeout(() => {
-      window.rumboApi.claimsPage({ q: q.trim(), limit: 200 })
-        .then((d) => { if (alive) { setData(d); setLoading(false); } })
-        .catch((e) => { if (alive) { setError(e); setLoading(false); } });
-    }, q ? 300 : 0);
-    return () => { alive = false; clearTimeout(t); };
-  }, [q, version]);
+    const t = setTimeout(() => setQDebounced(q.trim()), q ? 300 : 0);
+    return () => clearTimeout(t);
+  }, [q]);
+
+  const listQ = useApiQuery(['claims', { q: qDebounced }],
+    () => window.rumboApi.claimsPage({ q: qDebounced, limit: 200 }), { keepPrevious: true });
+  const data = listQ.data ?? null;
+  const loading = listQ.isPending;
+  const error = listQ.error;
 
   const cols = [
     { id: 'Abierto', label: 'Abiertos', tone: 'amber', hint: 'Denuncia cargada, sin gestión' },

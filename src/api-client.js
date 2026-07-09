@@ -241,6 +241,9 @@ async function rumboRefresh() {
   } catch (e) {
     console.error('[rumbo] refresh falló:', e.message);
   }
+  // Server state de TanStack Query: invalida todo lo montado (las pantallas
+  // migradas a useApiQuery re-fetchean solas; ya no dependen del evento).
+  if (window.queryClient) window.queryClient.invalidateQueries();
   window.dispatchEvent(new Event('rumbo-data'));
 }
 

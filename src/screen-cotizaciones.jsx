@@ -70,29 +70,23 @@ function NuevaCotizacionDrawer({ open, onClose, onCreated }) {
 /* Detalle: titular + opciones (Lista/Matriz) + agregar/quitar opciones. */
 function QuoteDetailDrawer({ open, onClose, quoteId, onChanged }) {
   const { ars } = window.rumboFmt;
-  const [q, setQ] = useState(null);
   const [view, setView] = useState('lista'); // lista | matriz
   const [adding, setAdding] = useState(false);
-  const [insurersList, setInsurersList] = useState([]);
   const [item, setItem] = useState({ insurerId: '', coverage: 'terceros_completo', cuota: '', sumaAsegurada: '' });
   const [busy, setBusy] = useState(false);
-  const [reload, setReload] = useState(0);
 
-  useEffect(() => {
-    if (!open || !quoteId) return;
-    let alive = true;
-    window.rumboApi.quoteById(quoteId).then(d => { if (alive) setQ(d); }).catch(() => {});
-    return () => { alive = false; };
-  }, [open, quoteId, reload]);
-  useEffect(() => {
-    if (!adding) return;
-    window.rumboApi.insurersPicker().then(d => {
-      setInsurersList(d.data);
-      if (d.data[0]) setItem(s => ({ ...s, insurerId: s.insurerId || d.data[0].id }));
-    }).catch(() => {});
-  }, [adding]);
+  // Detalle + picker de aseguradoras vía TanStack Query (gated por enabled).
+  const quoteQ = useApiQuery(['quote', quoteId], () => window.rumboApi.quoteById(quoteId),
+    { enabled: Boolean(open && quoteId) });
+  const q = quoteQ.data ?? null;
 
-  const refetch = () => { setReload(r => r + 1); onChanged(); };
+  const insurersQ = useApiQuery(['insurers-picker'], () => window.rumboApi.insurersPicker(), { enabled: adding });
+  const insurersList = insurersQ.data?.data ?? [];
+  useEffect(() => {
+    if (insurersList[0]) setItem(s => (s.insurerId ? s : { ...s, insurerId: insurersList[0].id }));
+  }, [insurersList]);
+
+  const refetch = () => { quoteQ.refetch(); onChanged(); };
   const addItem = () => {
     if (busy || !item.insurerId || (!item.cuota && !item.sumaAsegurada)) return;
     setBusy(true);
@@ -214,23 +208,15 @@ function QuoteDetailDrawer({ open, onClose, quoteId, onChanged }) {
 function ScreenCotizaciones({ go }) {
   const isMobile = useIsMobile();
   const { ars } = window.rumboFmt;
-  const version = useRumboVersion();
-  const [rows, setRows] = useState([]);
-  const [total, setTotal] = useState(0);
-  const [loading, setLoading] = useState(true);
-  const [reload, setReload] = useState(0);
   const [seg, setSeg] = useState('todas');
   const [openId, setOpenId] = useState(null);
   const [newOpen, setNewOpen] = useState(false);
 
-  useEffect(() => {
-    let alive = true;
-    setLoading(true);
-    window.rumboApi.cotizacionesPage({ limit: 100 })
-      .then(d => { if (alive) { setRows(d.data); setTotal(d.total); setLoading(false); } })
-      .catch(() => { if (alive) setLoading(false); });
-    return () => { alive = false; };
-  }, [version, reload]);
+  // Historial vía TanStack Query (rumboRefresh y los drawers invalidan).
+  const listQ = useApiQuery(['cotizaciones'], () => window.rumboApi.cotizacionesPage({ limit: 100 }));
+  const rows = listQ.data?.data ?? [];
+  const total = listQ.data?.total ?? 0;
+  const loading = listQ.isPending;
 
   const statusTone = { Borrador: 'neutral', Enviada: 'amber', Aceptada: 'emerald', Vencida: 'red' };
   const segs = [
@@ -249,9 +235,9 @@ function ScreenCotizaciones({ go }) {
           actions={<><Btn variant="ghost" icon="calc" onClick={() => go('cotizador')}>Estimador</Btn><Btn variant="primary" icon="plus" onClick={() => setNewOpen(true)}>Nueva cotización</Btn></>} />
 
         <NuevaCotizacionDrawer open={newOpen} onClose={() => setNewOpen(false)}
-          onCreated={(id) => { setReload(r => r + 1); setOpenId(id); }} />
+          onCreated={(id) => { window.queryClient.invalidateQueries({ queryKey: ['cotizaciones'] }); setOpenId(id); }} />
         <QuoteDetailDrawer open={Boolean(openId)} onClose={() => setOpenId(null)} quoteId={openId}
-          onChanged={() => setReload(r => r + 1)} />
+          onChanged={() => window.queryClient.invalidateQueries({ queryKey: ['cotizaciones'] })} />
 
         <div style={{ marginBottom: 16 }}><Segmented segs={segs} value={seg} onChange={setSeg} /></div>
 

@@ -132,15 +132,16 @@ function WhatsAppDialog({ open, onClose, contact, policyId, onLogged }) {
   const [body, setBody] = useState('');
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState(null);
-  // Plantillas propias del PAS (Slice 6): se suman a las built-in.
-  const [custom, setCustom] = useState([]);
+  // Plantillas propias del PAS (Slice 6): se suman a las built-in. Misma key
+  // ['message-templates'] que el editor de Configuración → cache compartida.
+  const templatesQ = useApiQuery(['message-templates'], () => window.rumboApi.messageTemplates(), { enabled: open });
+  const custom = templatesQ.data?.data ?? [];
   const firstName = (contact?.name || '').split(',').pop()?.trim().split(' ')[0] || contact?.name || '';
   const phone = contact?.phone ? String(contact.phone).replace(/[^0-9]/g, '') : '';
 
   useEffect(() => {
     if (open) {
       setTpl('saludo'); setBody(WSP_TEMPLATES[0][2].replace('{nombre}', firstName)); setError(null);
-      window.rumboApi.messageTemplates().then(d => setCustom(d.data || [])).catch(() => setCustom([]));
     }
   }, [open, contact]);
 

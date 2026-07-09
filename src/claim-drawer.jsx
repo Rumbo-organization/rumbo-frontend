@@ -14,26 +14,20 @@ function ClaimMeta({ label, value, mono }) {
 }
 
 function ClaimDrawer({ id, onClose }) {
-  const [c, setC] = useState(null);
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState(null);
   const [comment, setComment] = useState('');
   const [busy, setBusy] = useState(false);
 
   const flash = (m) => window.rumboUI && window.rumboUI.toast && window.rumboUI.toast(m);
 
-  const load = () => {
-    if (!id) return;
-    setLoading(true); setError(null);
-    window.rumboApi.claimById(id)
-      .then((d) => setC(d))
-      .catch((e) => setError(e))
-      .finally(() => setLoading(false));
-  };
-  useEffect(() => { setC(null); setComment(''); setError(null); if (id) load(); }, [id]);
+  // Ficha vía TanStack Query (key por siniestro: reabrir el mismo id sale de cache).
+  const claimQ = useApiQuery(['claim', id], () => window.rumboApi.claimById(id), { enabled: Boolean(id) });
+  const c = claimQ.data ?? null;
+  const loading = claimQ.isLoading;
+  const error = claimQ.error;
+  useEffect(() => { setComment(''); }, [id]);
 
   // Refresca la ficha (para el timeline/estado) y el cockpit (board/detalle).
-  const after = () => { load(); if (window.rumboRefresh) window.rumboRefresh(); };
+  const after = () => { claimQ.refetch(); if (window.rumboRefresh) window.rumboRefresh(); };
 
   const setStatus = (status) => {
     setBusy(true);

@@ -5,21 +5,23 @@
    ============================================================ */
 function ScreenActividad({ go }) {
   const isMobile = useIsMobile();
-  const version = useRumboVersion(); // refetch tras cualquier mutación
-  const [rows, setRows] = useState([]);
-  const [total, setTotal] = useState(0);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
   const PAGE = 50;
 
-  const load = (offset, replace) => {
-    setLoading(true);
-    setError(null);
-    window.rumboApi.actividadPage({ limit: PAGE, offset })
-      .then((d) => { setRows(r => replace ? d.data : [...r, ...d.data]); setTotal(d.total); setLoading(false); })
-      .catch((e) => { setError(e); setLoading(false); });
-  };
-  useEffect(() => { load(0, true); }, [version]);
+  // "Cargar más" acumulativo vía useInfiniteQuery (offset como pageParam).
+  // rumboRefresh() invalida tras cualquier mutación → recarga desde la pág. 1.
+  const actQ = useInfiniteQuery({
+    queryKey: ['actividad'],
+    queryFn: ({ pageParam }) => window.rumboApi.actividadPage({ limit: PAGE, offset: pageParam }),
+    initialPageParam: 0,
+    getNextPageParam: (last, pages) => {
+      const loaded = pages.reduce((a, p) => a + p.data.length, 0);
+      return loaded < last.total ? loaded : undefined;
+    },
+  });
+  const rows = (actQ.data?.pages ?? []).flatMap(p => p.data);
+  const total = actQ.data?.pages?.[0]?.total ?? 0;
+  const loading = actQ.isPending || actQ.isFetchingNextPage;
+  const error = actQ.error;
 
   const kindColor = { event: 'var(--ink-3)', alert: 'var(--red)', note: 'var(--orange)' };
   const kindIcon = { event: 'check', alert: 'alert', note: 'message' };
@@ -77,7 +79,7 @@ function ScreenActividad({ go }) {
         </Panel>
         {rows.length < total && !loading && (
           <div style={{ display: 'flex', justifyContent: 'center', marginTop: 18 }}>
-            <Btn variant="ghost" size="sm" onClick={() => load(rows.length, false)}>Cargar más actividad · {rows.length} de {total}</Btn>
+            <Btn variant="ghost" size="sm" onClick={() => actQ.fetchNextPage()}>Cargar más actividad · {rows.length} de {total}</Btn>
           </div>
         )}
       </div>

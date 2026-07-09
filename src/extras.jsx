@@ -338,14 +338,15 @@ const ASSIGNEE_ROLES = [['responsable', 'Responsable'], ['comercial', 'Comercial
 
 function ResponsablesPanel({ responsables, contactId, onChanged }) {
   const [adding, setAdding] = useState(false);
-  const [users, setUsers] = useState([]);
   const [userId, setUserId] = useState('');
   const [role, setRole] = useState('responsable');
   const [busy, setBusy] = useState(false);
+  // Usuarios de la org vía TanStack Query (solo con el form abierto).
+  const usersQ = useApiQuery(['org-users'], () => window.rumboApi.orgUsers(), { enabled: adding });
+  const users = usersQ.data?.data ?? [];
   useEffect(() => {
-    if (!adding) return;
-    window.rumboApi.orgUsers().then(d => { setUsers(d.data); if (d.data[0]) setUserId(d.data[0].id); }).catch(() => setUsers([]));
-  }, [adding]);
+    if (users[0]) setUserId(id => id || users[0].id);
+  }, [users]);
   const submit = () => {
     if (!userId || busy) return;
     setBusy(true);

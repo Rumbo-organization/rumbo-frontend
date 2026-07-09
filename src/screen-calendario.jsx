@@ -265,26 +265,17 @@ function ScreenCalendario({ go }) {
   const [viewChoice, setViewChoice] = useState(null);
   const view = viewChoice || (isMobile ? 'agenda' : 'mes');
 
-  const [data, setData] = useState(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
-  const [reload, setReload] = useState(0);
-
   const [eventOpen, setEventOpen] = useState(false);
   const [editing, setEditing] = useState(null);
 
-  // Datos en vivo del mes (4 fuentes). Refetch al navegar de mes o tras mutar.
-  useEffect(() => {
-    let alive = true;
-    setLoading(true);
-    setError(null);
-    window.rumboApi.calendarMonth(year, month)
-      .then((d) => { if (alive) { setData(d); setLoading(false); } })
-      .catch((e) => { if (alive) { setError(e); setLoading(false); } });
-    return () => { alive = false; };
-  }, [year, month, reload]);
-
-  const refetch = () => setReload((n) => n + 1);
+  // Datos en vivo del mes (4 fuentes) vía TanStack Query: cache por mes
+  // (navegar y volver no re-pide dentro del staleTime); mutar → refetch().
+  const monthQ = useApiQuery(['calendar', year, month],
+    () => window.rumboApi.calendarMonth(year, month), { keepPrevious: true });
+  const data = monthQ.data ?? null;
+  const loading = monthQ.isPending;
+  const error = monthQ.error;
+  const refetch = () => monthQ.refetch();
 
   const byDay = useMemo(() => {
     const map = new Map();

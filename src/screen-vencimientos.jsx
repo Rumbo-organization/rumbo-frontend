@@ -18,31 +18,25 @@ function ScreenVencimientos({ go }) {
   const PRODUCTORES_LIST = (window.RUMBO_DATA?.PRODUCTORES ?? []);
   const [offset, setOffset] = useState(0);
 
-  const [data, setData] = useState([]);
-  const [total, setTotal] = useState(0);
-  const [totalPrima, setTotalPrima] = useState(0);
-  const [counts, setCounts] = useState({ d30: 0, d90: 0, all: 0 });
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
-  const [reload, setReload] = useState(0);
-
   const MES = ['ene', 'feb', 'mar', 'abr', 'may', 'jun', 'jul', 'ago', 'sep', 'oct', 'nov', 'dic'];
   const MESL = ['Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio', 'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'];
 
-  useEffect(() => {
-    let alive = true;
-    setLoading(true); setError(null);
-    const win = seg === 'todos' ? '' : seg;
-    const payParam = pay === 'Todas las formas' ? '' : (VENC_PAY_ENUM[pay] || '');
-    window.rumboApi.vencimientosPage({ window: win, pay: payParam, producer, limit: VENC_LIMIT, offset })
-      .then(r => {
-        if (!alive) return;
-        setData(r.data || []); setTotal(r.total || 0); setTotalPrima(r.totalPrima || 0);
-        setCounts(r.counts || { d30: 0, d90: 0, all: 0 }); setLoading(false);
-      })
-      .catch(e => { if (alive) { setError(e); setLoading(false); } });
-    return () => { alive = false; };
-  }, [seg, pay, producer, offset, version, reload]);
+  // Lista paginada vía TanStack Query (rumboRefresh invalida tras mutaciones).
+  const listQ = useApiQuery(
+    ['vencimientos', { seg, pay, producer, offset }],
+    () => window.rumboApi.vencimientosPage({
+      window: seg === 'todos' ? '' : seg,
+      pay: pay === 'Todas las formas' ? '' : (VENC_PAY_ENUM[pay] || ''),
+      producer, limit: VENC_LIMIT, offset,
+    }),
+    { keepPrevious: true },
+  );
+  const data = listQ.data?.data ?? [];
+  const total = listQ.data?.total ?? 0;
+  const totalPrima = listQ.data?.totalPrima ?? 0;
+  const counts = listQ.data?.counts ?? { d30: 0, d90: 0, all: 0 };
+  const loading = listQ.isPending;
+  const error = listQ.error;
 
   const setFilter = (fn) => { fn(); setOffset(0); };
 
@@ -92,7 +86,7 @@ function ScreenVencimientos({ go }) {
           </div>
         ) : error ? (
           <div style={{ padding: 50, textAlign: 'center', color: 'var(--red-ink)', fontSize: 13.5 }}>
-            No pudimos cargar los vencimientos. <button onClick={() => setReload(x => x + 1)} style={{ color: 'var(--orange-ink)', fontWeight: 600 }}>Reintentar</button>
+            No pudimos cargar los vencimientos. <button onClick={() => listQ.refetch()} style={{ color: 'var(--orange-ink)', fontWeight: 600 }}>Reintentar</button>
           </div>
         ) : total === 0 ? (
           <div style={{ padding: 60, textAlign: 'center', color: 'var(--ink-3)', fontSize: 14 }}>Sin vencimientos en este filtro. Horizonte despejado.</div>
