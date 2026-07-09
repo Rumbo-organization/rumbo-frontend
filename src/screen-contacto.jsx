@@ -29,13 +29,12 @@ function ScreenContacto({ go, params }) {
           <div style={{ fontSize: 14, color: 'var(--ink-2)', marginTop: 10 }}>
             {notFound ? 'Asegurado no encontrado en tu cartera.' : (error && error.message) || 'No pudimos cargar la ficha.'}
           </div>
-          <Btn size="sm" variant="ghost" onClick={() => go('contactos')} style={{ margin: '14px auto 0' }}>Ver contactos</Btn>
+          <Btn size="sm" variant="ghost" onClick={() => go('contactos')} style={{ margin: '14px auto 0' }}>Ver asegurados</Btn>
         </div>
       </div>
     );
   }
 
-  const prospecto = c.tags && c.tags.includes('Prospecto');
   const statusTone = c.status === 'Asegurado' ? 'emerald' : c.status === 'Prospecto' ? 'amber' : 'neutral';
 
   return (
@@ -44,7 +43,7 @@ function ScreenContacto({ go, params }) {
 
         {/* header */}
         <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'flex-start', gap: 16, marginBottom: 22 }}>
-          <Avatar initials={c.initials} size={54} tone={prospecto ? 'neutral' : 'orange'} />
+          <Avatar initials={c.initials} size={54} tone={c.status === 'Asegurado' ? 'orange' : 'neutral'} />
           <div style={{ flex: '1 1 240px', minWidth: 0 }}>
             <div className="tick-row" style={{ marginBottom: 8, gap: 8, display: 'flex', alignItems: 'center', flexWrap: 'wrap' }}>
               <Pill tone="neutral">{c.kind}</Pill>

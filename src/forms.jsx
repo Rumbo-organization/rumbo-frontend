@@ -383,7 +383,7 @@ function NuevoSiniestroForm({ open, onClose }) {
 }
 
 /* ============================================================
-   NUEVO CONTACTO — alta real (POST /api/v1/contacts). Regla de negocio:
+   NUEVO ASEGURADO — alta real (POST /api/v1/contacts). Regla de negocio:
    nace SIEMPRE como prospecto (sin selector de estado). Pasa a asegurado cuando
    se importa su primera póliza.
    ============================================================ */
@@ -406,12 +406,12 @@ function NuevoContactoForm({ open, onClose }) {
     if (juridica) data.legalName = f.legalName;
     else { data.firstName = f.firstName; data.lastName = f.lastName; data.dni = f.dni; }
     window.rumboApi.createContact(data)
-      .then(() => { window.rumboUI?.toast?.('Contacto creado como prospecto'); if (window.rumboRefresh) window.rumboRefresh(); onClose(); })
+      .then(() => { window.rumboUI?.toast?.('Prospecto creado'); if (window.rumboRefresh) window.rumboRefresh(); onClose(); })
       .catch(e => setError(e.message)).finally(() => setSaving(false));
   };
 
   return (
-    <Drawer open={open} onClose={onClose} eyebrow="Cartera · alta" title="Nuevo contacto" width={540}
+    <Drawer open={open} onClose={onClose} eyebrow="Cartera · alta" title="Nuevo asegurado" width={540}
       footer={<>
         <Btn variant="ghost" onClick={onClose}>Cancelar</Btn>
         <Btn variant="primary" icon="check" onClick={submit} style={{ opacity: valid && !saving ? 1 : 0.5, pointerEvents: valid && !saving ? 'auto' : 'none' }}>Crear prospecto</Btn>

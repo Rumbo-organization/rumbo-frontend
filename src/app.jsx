@@ -98,10 +98,10 @@ function App() {
     bar = <InstrumentBar crumbs={[{ label: 'Pólizas', onClick: () => go('polizas') }, { label: 'Detalle' }]} openPalette={openP} isMobile={isMobile} onMenu={() => setMoreOpen(true)} right={<HeadingRight go={go} isMobile={isMobile} />} />;
     content = <ScreenDetail go={go} params={route.params} />;
   } else if (route.name === 'contactos') {
-    bar = <InstrumentBar crumbs={[{ label: 'Cartera' }, { label: 'Contactos' }]} openPalette={openP} isMobile={isMobile} onMenu={() => setMoreOpen(true)} right={<HeadingRight go={go} isMobile={isMobile} />} />;
+    bar = <InstrumentBar crumbs={[{ label: 'Cartera' }, { label: 'Asegurados' }]} openPalette={openP} isMobile={isMobile} onMenu={() => setMoreOpen(true)} right={<HeadingRight go={go} isMobile={isMobile} />} />;
     content = <ScreenContactos go={go} params={route.params} />;
   } else if (route.name === 'contacto') {
-    bar = <InstrumentBar crumbs={[{ label: 'Contactos', onClick: () => go('contactos') }, { label: 'Ficha' }]} openPalette={openP} isMobile={isMobile} onMenu={() => setMoreOpen(true)} right={<HeadingRight go={go} isMobile={isMobile} />} />;
+    bar = <InstrumentBar crumbs={[{ label: 'Asegurados', onClick: () => go('contactos') }, { label: 'Ficha' }]} openPalette={openP} isMobile={isMobile} onMenu={() => setMoreOpen(true)} right={<HeadingRight go={go} isMobile={isMobile} />} />;
     content = <ScreenContacto go={go} params={route.params} />;
   } else if (route.name === 'vencimientos') {
     bar = <InstrumentBar crumbs={[{ label: 'Cartera' }, { label: 'Vencimientos' }]} openPalette={openP} isMobile={isMobile} onMenu={() => setMoreOpen(true)} right={<HeadingRight go={go} isMobile={isMobile} />} />;

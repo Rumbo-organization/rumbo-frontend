@@ -58,6 +58,7 @@ function ScreenContactos({ go, params }) {
     { id: 'todos', label: 'Todos' },
     { id: 'clientes', label: 'Asegurados' },
     { id: 'prospectos', label: 'Prospectos' },
+    { id: 'exasegurados', label: 'Ex asegurados' },
     { id: 'empresas', label: 'Empresas' },
   ];
 
@@ -83,7 +84,7 @@ function ScreenContactos({ go, params }) {
     <>
       <Panel>
         <div style={{ display: 'flex', alignItems: 'center', gap: 13, marginBottom: 16 }}>
-          <Avatar initials={detail.initials} size={50} tone={detail.tags && detail.tags.includes('Prospecto') ? 'neutral' : 'orange'} />
+          <Avatar initials={detail.initials} size={50} tone={detail.tags && (detail.tags.includes('Prospecto') || detail.tags.includes('Ex asegurado')) ? 'neutral' : 'orange'} />
           <div style={{ flex: 1, minWidth: 0 }}>
             <h2 className="font-display" style={{ fontSize: 21, letterSpacing: '-0.02em', lineHeight: 1.1 }}>{detail.name}</h2>
             <div style={{ fontSize: 12.5, color: 'var(--ink-3)', marginTop: 3 }}>{detail.kind} · desde {detail.since}</div>
@@ -103,7 +104,7 @@ function ScreenContactos({ go, params }) {
       </Panel>
 
       <Panel>
-        <SectionHead label="Pólizas del contacto" action={<Btn size="sm" variant="bare" iconRight="arrowRight" onClick={() => go('polizas')}>Cartera</Btn>} />
+        <SectionHead label="Pólizas del asegurado" action={<Btn size="sm" variant="bare" iconRight="arrowRight" onClick={() => go('polizas')}>Cartera</Btn>} />
         {(!detail.polizas || detail.polizas.length === 0) ? (
           <div style={{ padding: '6px 0', fontSize: 13, color: 'var(--ink-3)' }}>Sin pólizas. Oportunidad de primera venta.</div>
         ) : detail.polizas.map((p, i) => (
@@ -126,7 +127,7 @@ function ScreenContactos({ go, params }) {
       <div style={{ maxWidth: 1240, margin: '0 auto' }}>
         <PageHead eyebrow="Cartera" tick={1} title="Asegurados"
           sub={<><strong className="font-mono tnum" style={{ color: 'var(--ink)' }}>{total.toLocaleString('es-AR')}</strong> {seg === 'todos' && !qDebounced ? 'en tu cartera' : 'en el filtro actual'}</>}
-          actions={<><Btn variant="ghost" icon="download" onClick={() => setImportOpen(true)}>Importar</Btn><Btn variant="ghost" icon="external" onClick={() => window.open(window.rumboApi.contactsExportUrl(), '_blank')}>Exportar</Btn><Btn variant="primary" icon="plus" onClick={() => window.rumboUI?.newContacto()}>Nuevo contacto</Btn></>} />
+          actions={<><Btn variant="ghost" icon="download" onClick={() => setImportOpen(true)}>Importar</Btn><Btn variant="ghost" icon="external" onClick={() => window.open(window.rumboApi.contactsExportUrl(), '_blank')}>Exportar</Btn><Btn variant="primary" icon="plus" onClick={() => window.rumboUI?.newContacto()}>Nuevo asegurado</Btn></>} />
 
         <ImportContactsDrawer open={importOpen} onClose={() => setImportOpen(false)} onDone={() => window.queryClient.invalidateQueries({ queryKey: ['contacts'] })} />
 
@@ -158,6 +159,7 @@ function ScreenContactos({ go, params }) {
             ) : rows.map((c, i) => {
               const active = c.id === sel && !isMobile;
               const prospecto = c.tags && c.tags.includes('Prospecto');
+              const exasegurado = c.tags && c.tags.includes('Ex asegurado');
               return (
                 <div key={c.id} onClick={() => selectContact(c.id)} style={{
                   display: 'flex', alignItems: 'center', gap: 13, padding: '13px 16px',
@@ -167,11 +169,12 @@ function ScreenContactos({ go, params }) {
                 }}
                   onMouseEnter={e => { if (!active) e.currentTarget.style.background = 'var(--panel-2)'; }}
                   onMouseLeave={e => { if (!active) e.currentTarget.style.background = 'transparent'; }}>
-                  <Avatar initials={c.initials} size={38} tone={prospecto ? 'neutral' : 'orange'} />
+                  <Avatar initials={c.initials} size={38} tone={prospecto || exasegurado ? 'neutral' : 'orange'} />
                   <div style={{ flex: 1, minWidth: 0 }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                       <span style={{ fontSize: 14, fontWeight: 600, color: 'var(--ink)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{c.name}</span>
                       {prospecto && <Pill tone="amber" style={{ fontSize: 9.5, padding: '1px 6px', flexShrink: 0 }}>Prospecto</Pill>}
+                      {exasegurado && <Pill tone="neutral" style={{ fontSize: 9.5, padding: '1px 6px', flexShrink: 0 }}>Ex asegurado</Pill>}
                     </div>
                     <div style={{ fontSize: 11.5, color: 'var(--ink-3)', marginTop: 2, display: 'flex', alignItems: 'center', gap: 6, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
                       <Icon name="mapPin" size={12} style={{ flexShrink: 0 }} />{c.city} · {c.kind}

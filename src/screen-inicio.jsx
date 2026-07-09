@@ -11,6 +11,51 @@ function todayLabel() {
   }).replace(/^\w/, (c) => c.toUpperCase());
 }
 
+/* --- aviso del día → Calendario ---
+   Resume lo de HOY (agenda pendiente + vencimientos + cuotas + siniestros) y
+   redirige al calendario. Pide el mismo mes que ScreenCalendario con la MISMA
+   query key: entrar a Inicio deja el calendario precargado (y viceversa).
+   Sin nada para hoy no se muestra — el cockpit queda limpio. */
+function todayArYmd() {
+  // 'YYYY-MM-DD' en huso AR (en-CA da ese formato) — igual que ScreenCalendario.
+  return new Date().toLocaleDateString('en-CA', { timeZone: 'America/Argentina/Cordoba' });
+}
+
+function CalendarioHoyBanner({ go }) {
+  const hoy = todayArYmd();
+  const year = Number(hoy.slice(0, 4));
+  const month = Number(hoy.slice(5, 7));
+  const monthQ = useApiQuery(['calendar', year, month], () => window.rumboApi.calendarMonth(year, month));
+  const d = monthQ.data;
+  if (!d) return null; // cargando o sin datos: el banner es un extra, no bloquea
+
+  const eventos = (d.eventos || []).filter(e => e.date === hoy && !e.completedAt);
+  const vencimientos = (d.vencimientos || []).filter(v => v.date === hoy);
+  const cuotas = (d.cuotas || []).filter(c => c.date === hoy);
+  const siniestros = (d.siniestros || []).filter(s => s.date === hoy);
+  const total = eventos.length + vencimientos.length + cuotas.length + siniestros.length;
+  if (total === 0) return null;
+
+  const parte = (n, sing, plur) => (n > 0 ? `${n} ${n === 1 ? sing : plur}` : null);
+  const partes = [
+    parte(eventos.length, 'evento en tu agenda', 'eventos en tu agenda'),
+    parte(vencimientos.length, 'vencimiento', 'vencimientos'),
+    parte(cuotas.length, 'cuota', 'cuotas'),
+    parte(siniestros.length, 'siniestro', 'siniestros'),
+  ].filter(Boolean);
+
+  return (
+    <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: 14, padding: '14px 18px', borderRadius: 'var(--radius)', background: 'var(--orange-soft)', border: '1px solid var(--orange-soft2)', marginBottom: 20 }}>
+      <Icon name="clock" size={22} style={{ color: 'var(--orange-ink)' }} />
+      <div style={{ flex: '1 1 200px' }}>
+        <div style={{ fontSize: 13.5, fontWeight: 600, color: 'var(--orange-ink)' }}>Hoy en tu calendario</div>
+        <div style={{ fontSize: 12.5, color: 'var(--orange-ink)', opacity: 0.85 }}>{partes.join(' · ')}.</div>
+      </div>
+      <Btn size="sm" variant="primary" iconRight="arrowRight" onClick={() => go('calendario')}>Ver calendario</Btn>
+    </div>
+  );
+}
+
 /* --- radial book-health gauge --- */
 function HealthGauge({ value = 82, size = 64 }) {
   const r = size / 2 - 6;
@@ -108,7 +153,7 @@ function CourseRow({ v, go, idx, isNext, isMobile }) {
           <Pill tone={tone} dot>Vence en {v.days} d</Pill>
           <div className="font-mono tnum" style={{ fontSize: 12, color: 'var(--ink-2)', marginTop: 6 }}>{rumboFmt.ars(v.prima)}</div>
         </div>
-        <Btn size="sm" variant="ghost" iconRight="refresh" onClick={(e) => { e.stopPropagation(); go('detail', { id: v.policyId }); }}>Renovar</Btn>
+        <Btn size="sm" variant="ghost" iconRight="arrowRight" onClick={(e) => { e.stopPropagation(); go('detail', { id: v.policyId }); }}>Ver póliza</Btn>
       </div>
     </div>
   );
@@ -143,6 +188,9 @@ function ScreenInicio({ go }) {
   return (
     <div className="scroll rise" style={{ overflowY: 'auto', height: '100%', padding: isMobile ? '18px 16px 40px' : '30px 34px 60px' }}>
       <div style={{ maxWidth: 1240, margin: '0 auto' }}>
+
+        {/* aviso del día → Calendario */}
+        <CalendarioHoyBanner go={go} />
 
         {/* hero */}
         <div style={{ display: 'flex', flexDirection: isMobile ? 'column' : 'row', alignItems: isMobile ? 'stretch' : 'flex-start', justifyContent: 'space-between', gap: isMobile ? 16 : 24, marginBottom: isMobile ? 18 : 24 }}>

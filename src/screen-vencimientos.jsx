@@ -153,7 +153,8 @@ function ScreenVencimientos({ go }) {
                         <div className="font-mono tnum" style={{ fontSize: 11, color: 'var(--ink-3)', marginTop: 2 }}>{ars(p.prima)}</div>
                       </div>
                       <Pill tone={tone} dot style={{ width: 96, justifyContent: 'center' }}>{p.days <= 0 ? 'Vencida' : `en ${p.days} d`}</Pill>
-                      <Btn size="sm" variant="ghost" iconRight="refresh" onClick={(e) => { e.stopPropagation(); go('detail', { id: p.id }); }}>Renovar</Btn>
+                      {/* La renovación se gestiona en el portal de cada compañía: acá solo se navega a la póliza. */}
+                      <Btn size="sm" variant="ghost" iconRight="arrowRight" onClick={(e) => { e.stopPropagation(); go('detail', { id: p.id }); }}>Ver póliza</Btn>
                     </div>
                   );
                 })}
