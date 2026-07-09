@@ -178,8 +178,8 @@ function ScreenContactos({ go, params }) {
                     </div>
                   </div>
                   <div style={{ textAlign: 'right', flexShrink: 0 }}>
-                    <div className="font-mono tnum" style={{ fontSize: 12.5, fontWeight: 600, color: 'var(--ink)', whiteSpace: 'nowrap' }}>{c.polCount} pól.</div>
-                    {c.nextRenewDays != null && c.nextRenewDays <= 30 && <Pill tone={urgencyTone(c.nextRenewDays)} style={{ fontSize: 9.5, marginTop: 4, whiteSpace: 'nowrap' }}>Vence {c.nextRenewDays}d</Pill>}
+                    {c.phone && <div className="font-mono tnum" style={{ fontSize: 12, color: 'var(--ink-2)', whiteSpace: 'nowrap' }}>{c.phone}</div>}
+                    {c.document && <div className="font-mono" style={{ fontSize: 11, color: 'var(--ink-3)', marginTop: c.phone ? 2 : 0, whiteSpace: 'nowrap' }}>{c.document}</div>}
                   </div>
                   {isMobile && <Icon name="chevronRight" size={16} style={{ color: 'var(--ink-3)', flexShrink: 0 }} />}
                 </div>
