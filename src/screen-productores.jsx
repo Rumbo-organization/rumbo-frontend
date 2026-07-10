@@ -28,10 +28,8 @@ function ScreenProductores({ go }) {
   const maxPrima = Math.max(...ranked.map(p => p.prima), 1);
   const totalPrima = ranked.reduce((a, p) => a + p.prima, 0);
   const totalPol = ranked.reduce((a, p) => a + p.polizas, 0);
-  const avgConv = Math.round(
-    ranked.filter(p => p.conversion > 0).reduce((a, p) => a + p.conversion, 0) /
-      ranked.filter(p => p.conversion > 0).length,
-  );
+  const withConv = ranked.filter(p => p.conversion > 0);
+  const avgConv = withConv.length ? Math.round(withConv.reduce((a, p) => a + p.conversion, 0) / withConv.length) : 0;
 
   // monthly production sparkline data
   const months = ['Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun'];
