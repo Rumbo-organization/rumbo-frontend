@@ -97,28 +97,15 @@ function HealthGauge({ value = 82, size = 64 }) {
     <svg width={size} height={size} viewBox={`0 0 ${size} ${size}`} style={{ display: 'block' }}>
       <path d={arcPath(start, start + sweep)} fill="none" stroke="var(--hair)" strokeWidth="5" strokeLinecap="round" />
       <path d={arcPath(start, valDeg)} fill="none" stroke={tone} strokeWidth="5" strokeLinecap="round" />
+      {/* Solo el número: la etiqueta la pone el eyebrow "Salud de cartera" de al lado. */}
       <text
         x={c}
-        y={c + 2}
+        y={c + 1}
         textAnchor="middle"
         dominantBaseline="middle"
-        style={{ fontFamily: 'var(--font-display)', fontWeight: 800, fontSize: size * 0.34, fill: 'var(--ink)' }}
+        style={{ fontFamily: 'var(--font-display)', fontWeight: 800, fontSize: size * 0.3, fill: 'var(--ink)' }}
       >
         {value}
-      </text>
-      <text
-        x={c}
-        y={c + size * 0.27}
-        textAnchor="middle"
-        style={{
-          fontFamily: 'var(--font-sans)',
-          fontWeight: 600,
-          fontSize: 8.5,
-          fill: 'var(--ink-3)',
-          letterSpacing: '0.08em',
-        }}
-      >
-        SALUD
       </text>
     </svg>
   );

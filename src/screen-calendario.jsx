@@ -412,7 +412,8 @@ function ScreenCalendario({ go }) {
   const [month, setMonth] = useState(Number(hoy.slice(5, 7)));
   const [selected, setSelected] = useState(hoy);
   const [viewChoice, setViewChoice] = useState(null);
-  const view = viewChoice || (isMobile ? 'agenda' : 'mes');
+  // En mobile la vista es siempre Agenda (la grilla mensual no entra en el viewport).
+  const view = isMobile ? 'agenda' : viewChoice || 'mes';
 
   const [eventOpen, setEventOpen] = useState(false);
   const [editing, setEditing] = useState(null);
@@ -528,7 +529,7 @@ function ScreenCalendario({ go }) {
           >
             {monthTitle(year, month)}
           </h2>
-          <Segmented segs={segs} value={view} onChange={setViewChoice} />
+          {!isMobile && <Segmented segs={segs} value={view} onChange={setViewChoice} />}
         </div>
 
         {/* Leyenda + conteos */}

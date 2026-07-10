@@ -96,7 +96,7 @@ function App() {
         openPalette={openP}
         isMobile={isMobile}
         onMenu={() => setMoreOpen(true)}
-        right={<HeadingRight go={go} isMobile={isMobile} />}
+        right={<HeadingRight go={go} isMobile={isMobile} dark={dark} setDark={setDark} />}
       />
     );
     content = <ScreenInicio go={go} />;
@@ -107,7 +107,7 @@ function App() {
         openPalette={openP}
         isMobile={isMobile}
         onMenu={() => setMoreOpen(true)}
-        right={<HeadingRight go={go} isMobile={isMobile} />}
+        right={<HeadingRight go={go} isMobile={isMobile} dark={dark} setDark={setDark} />}
       />
     );
     content = <ScreenPolizas go={go} />;
@@ -120,7 +120,7 @@ function App() {
         openPalette={openP}
         isMobile={isMobile}
         onMenu={() => setMoreOpen(true)}
-        right={<HeadingRight go={go} isMobile={isMobile} />}
+        right={<HeadingRight go={go} isMobile={isMobile} dark={dark} setDark={setDark} />}
       />
     );
     content = <ScreenDetail go={go} params={route.params} />;
@@ -131,7 +131,7 @@ function App() {
         openPalette={openP}
         isMobile={isMobile}
         onMenu={() => setMoreOpen(true)}
-        right={<HeadingRight go={go} isMobile={isMobile} />}
+        right={<HeadingRight go={go} isMobile={isMobile} dark={dark} setDark={setDark} />}
       />
     );
     content = <ScreenContactos go={go} params={route.params} />;
@@ -142,7 +142,7 @@ function App() {
         openPalette={openP}
         isMobile={isMobile}
         onMenu={() => setMoreOpen(true)}
-        right={<HeadingRight go={go} isMobile={isMobile} />}
+        right={<HeadingRight go={go} isMobile={isMobile} dark={dark} setDark={setDark} />}
       />
     );
     content = <ScreenContacto go={go} params={route.params} />;
@@ -153,7 +153,7 @@ function App() {
         openPalette={openP}
         isMobile={isMobile}
         onMenu={() => setMoreOpen(true)}
-        right={<HeadingRight go={go} isMobile={isMobile} />}
+        right={<HeadingRight go={go} isMobile={isMobile} dark={dark} setDark={setDark} />}
       />
     );
     content = <ScreenVencimientos go={go} />;
@@ -164,7 +164,7 @@ function App() {
         openPalette={openP}
         isMobile={isMobile}
         onMenu={() => setMoreOpen(true)}
-        right={<HeadingRight go={go} isMobile={isMobile} />}
+        right={<HeadingRight go={go} isMobile={isMobile} dark={dark} setDark={setDark} />}
       />
     );
     content = <ScreenSiniestros go={go} />;
@@ -175,7 +175,7 @@ function App() {
         openPalette={openP}
         isMobile={isMobile}
         onMenu={() => setMoreOpen(true)}
-        right={<HeadingRight go={go} isMobile={isMobile} />}
+        right={<HeadingRight go={go} isMobile={isMobile} dark={dark} setDark={setDark} />}
       />
     );
     content = <ScreenCrossselling go={go} />;
@@ -186,7 +186,7 @@ function App() {
         openPalette={openP}
         isMobile={isMobile}
         onMenu={() => setMoreOpen(true)}
-        right={<HeadingRight go={go} isMobile={isMobile} />}
+        right={<HeadingRight go={go} isMobile={isMobile} dark={dark} setDark={setDark} />}
       />
     );
     content = <ScreenProspectos go={go} />;
@@ -197,7 +197,7 @@ function App() {
         openPalette={openP}
         isMobile={isMobile}
         onMenu={() => setMoreOpen(true)}
-        right={<HeadingRight go={go} isMobile={isMobile} />}
+        right={<HeadingRight go={go} isMobile={isMobile} dark={dark} setDark={setDark} />}
       />
     );
     content = <ScreenCotizaciones go={go} />;
@@ -208,7 +208,7 @@ function App() {
         openPalette={openP}
         isMobile={isMobile}
         onMenu={() => setMoreOpen(true)}
-        right={<HeadingRight go={go} isMobile={isMobile} />}
+        right={<HeadingRight go={go} isMobile={isMobile} dark={dark} setDark={setDark} />}
       />
     );
     content = <ScreenProductores go={go} />;
@@ -219,7 +219,7 @@ function App() {
         openPalette={openP}
         isMobile={isMobile}
         onMenu={() => setMoreOpen(true)}
-        right={<HeadingRight go={go} isMobile={isMobile} />}
+        right={<HeadingRight go={go} isMobile={isMobile} dark={dark} setDark={setDark} />}
       />
     );
     content = <ScreenActividad go={go} />;
@@ -230,7 +230,7 @@ function App() {
         openPalette={openP}
         isMobile={isMobile}
         onMenu={() => setMoreOpen(true)}
-        right={<HeadingRight go={go} isMobile={isMobile} />}
+        right={<HeadingRight go={go} isMobile={isMobile} dark={dark} setDark={setDark} />}
       />
     );
     content = <ScreenConfiguracion go={go} dark={dark} setDark={setDark} />;
@@ -241,7 +241,7 @@ function App() {
         openPalette={openP}
         isMobile={isMobile}
         onMenu={() => setMoreOpen(true)}
-        right={<HeadingRight go={go} isMobile={isMobile} />}
+        right={<HeadingRight go={go} isMobile={isMobile} dark={dark} setDark={setDark} />}
       />
     );
     content = (
@@ -254,7 +254,7 @@ function App() {
         openPalette={openP}
         isMobile={isMobile}
         onMenu={() => setMoreOpen(true)}
-        right={<HeadingRight go={go} isMobile={isMobile} />}
+        right={<HeadingRight go={go} isMobile={isMobile} dark={dark} setDark={setDark} />}
       />
     );
     content = <ScreenCalendario go={go} />;
@@ -266,7 +266,7 @@ function App() {
         openPalette={openP}
         isMobile={isMobile}
         onMenu={() => setMoreOpen(true)}
-        right={<HeadingRight go={go} isMobile={isMobile} />}
+        right={<HeadingRight go={go} isMobile={isMobile} dark={dark} setDark={setDark} />}
       />
     );
     content = <ModulePlaceholder route={route} go={go} />;
@@ -331,13 +331,15 @@ function App() {
   );
 }
 
-/* top-bar right cluster: notifications + quick actions */
-function HeadingRight({ go, isMobile }) {
+/* top-bar right cluster: theme toggle + quick actions */
+function HeadingRight({ go, isMobile, dark, setDark }) {
   if (isMobile) {
     return (
       <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
         <button
-          title="Notificaciones"
+          title={dark ? 'Tema claro' : 'Tema oscuro'}
+          aria-label={dark ? 'Cambiar a tema claro' : 'Cambiar a tema oscuro'}
+          onClick={() => setDark(!dark)}
           style={{
             width: 34,
             height: 34,
@@ -347,23 +349,10 @@ function HeadingRight({ go, isMobile }) {
             alignItems: 'center',
             justifyContent: 'center',
             color: 'var(--ink-2)',
-            position: 'relative',
             background: 'var(--panel)',
           }}
         >
-          <Icon name="bell" size={16} stroke={1.9} />
-          <span
-            style={{
-              position: 'absolute',
-              top: 7,
-              right: 8,
-              width: 6,
-              height: 6,
-              borderRadius: 99,
-              background: 'var(--orange)',
-              border: '1.5px solid var(--panel)',
-            }}
-          />
+          <Icon name={dark ? 'sun' : 'moon'} size={16} stroke={1.9} />
         </button>
         <button
           title="Cotizar"
@@ -387,7 +376,9 @@ function HeadingRight({ go, isMobile }) {
   return (
     <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
       <button
-        title="Notificaciones"
+        title={dark ? 'Tema claro' : 'Tema oscuro'}
+        aria-label={dark ? 'Cambiar a tema claro' : 'Cambiar a tema oscuro'}
+        onClick={() => setDark(!dark)}
         style={{
           width: 38,
           height: 38,
@@ -397,23 +388,10 @@ function HeadingRight({ go, isMobile }) {
           alignItems: 'center',
           justifyContent: 'center',
           color: 'var(--ink-2)',
-          position: 'relative',
           background: 'var(--panel)',
         }}
       >
-        <Icon name="bell" size={17} stroke={1.9} />
-        <span
-          style={{
-            position: 'absolute',
-            top: 8,
-            right: 9,
-            width: 7,
-            height: 7,
-            borderRadius: 99,
-            background: 'var(--orange)',
-            border: '1.5px solid var(--panel)',
-          }}
-        />
+        <Icon name={dark ? 'sun' : 'moon'} size={17} stroke={1.9} />
       </button>
       <Btn variant="primary" size="md" icon="calc" onClick={() => go('cotizador')}>
         Cotizar

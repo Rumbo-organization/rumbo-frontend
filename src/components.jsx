@@ -621,29 +621,6 @@ function Rail({ route, go, dark, setDark }) {
       </nav>
 
       <div style={{ marginTop: 12, display: 'flex', flexDirection: 'column', gap: 10 }}>
-        {/* heading mini-status */}
-        <div
-          style={{
-            padding: '11px 12px',
-            borderRadius: 10,
-            border: '1px solid var(--hair)',
-            background: 'var(--panel)',
-            display: 'flex',
-            alignItems: 'center',
-            gap: 10,
-          }}
-        >
-          <div style={{ position: 'relative', color: 'var(--emerald)' }}>
-            <Icon name="compass" size={22} stroke={1.9} />
-          </div>
-          <div style={{ lineHeight: 1.25 }}>
-            <div style={{ fontSize: 12.5, fontWeight: 600, color: 'var(--ink)' }}>Rumbo despejado</div>
-            <div style={{ fontSize: 11, color: 'var(--ink-3)' }}>
-              Salud de cartera {window.RUMBO_DATA?.BOOK?.health ?? 82}
-            </div>
-          </div>
-        </div>
-
         <button
           onClick={() => setDark(!dark)}
           style={{

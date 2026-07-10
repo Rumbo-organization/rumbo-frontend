@@ -268,7 +268,7 @@ function ScreenDetail({ go, params }) {
   return (
     <div
       className="scroll rise"
-      style={{ overflowY: 'auto', height: '100%', padding: isMobile ? '16px 16px 40px' : '26px 34px 60px' }}
+      style={{ overflowY: 'auto', height: '100%', padding: isMobile ? '18px 16px 40px' : '30px 34px 60px' }}
     >
       <div style={{ maxWidth: 1180, margin: '0 auto' }}>
         <PolicyEditDrawer open={editOpen} onClose={() => setEditOpen(false)} policy={p} />
@@ -320,7 +320,7 @@ function ScreenDetail({ go, params }) {
             </div>
             <h1
               className="font-display"
-              style={{ fontSize: 30, letterSpacing: '-0.02em', color: 'var(--ink)', lineHeight: 1.05 }}
+              style={{ fontSize: isMobile ? 26 : 30, letterSpacing: '-0.02em', color: 'var(--ink)', lineHeight: 1.05 }}
             >
               {p.client}
             </h1>
@@ -643,7 +643,7 @@ function DetailSkeleton({ isMobile }) {
   return (
     <div
       className="scroll"
-      style={{ overflowY: 'auto', height: '100%', padding: isMobile ? '16px 16px 40px' : '26px 34px 60px' }}
+      style={{ overflowY: 'auto', height: '100%', padding: isMobile ? '18px 16px 40px' : '30px 34px 60px' }}
     >
       <div style={{ maxWidth: 1180, margin: '0 auto' }}>
         {/* header */}
