@@ -304,7 +304,7 @@ html[data-mobile='true'] main {
   overflow: visible;
 }
 
-/* ---- login brand pulse: zoom in/out suave del logo ---- */
+/* ---- brand pulse: zoom in/out suave del logo (splash de carga) ---- */
 @keyframes rumbo-logo-pulse {
   0%,
   100% {
@@ -316,11 +316,8 @@ html[data-mobile='true'] main {
 }
 .logo-pulse {
   animation: rumbo-logo-pulse 2.6s ease-in-out infinite;
-  transform-origin: left center;
+  transform-origin: center;
   will-change: transform;
-}
-.logo-pulse.busy {
-  animation-duration: 1.1s;
 }
 @media (prefers-reduced-motion: reduce) {
   .logo-pulse {

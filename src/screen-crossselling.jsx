@@ -108,16 +108,17 @@ function ScreenCrossselling({ go }) {
           }
         />
 
-        {/* potential strip */}
+        {/* potential strip — en mobile sin divisores: las celdas envuelven 2×2
+            y el borderRight quedaba pegado al texto */}
         <Panel pad={false} style={{ marginBottom: 24 }}>
-          <div style={{ display: 'flex', flexWrap: 'wrap', padding: '18px 0' }}>
+          <div style={{ display: 'flex', flexWrap: 'wrap', padding: isMobile ? '14px 0' : '18px 0' }}>
             <div
               style={{
                 display: 'flex',
                 alignItems: 'center',
                 gap: 14,
-                padding: '0 22px 12px',
-                borderRight: '1px solid var(--hair)',
+                padding: isMobile ? '8px 18px' : '0 22px 12px',
+                borderRight: isMobile ? 'none' : '1px solid var(--hair)',
                 flex: '1 1 45%',
                 minWidth: 160,
               }}
@@ -357,8 +358,16 @@ function ScreenCrossselling({ go }) {
 }
 
 function InfoCell({ label, value, tone }) {
+  const isMobile = useIsMobile();
   return (
-    <div style={{ flex: '1 1 45%', minWidth: 130, padding: '0 22px 12px', borderRight: '1px solid var(--hair)' }}>
+    <div
+      style={{
+        flex: '1 1 45%',
+        minWidth: 130,
+        padding: isMobile ? '8px 18px' : '0 22px 12px',
+        borderRight: isMobile ? 'none' : '1px solid var(--hair)',
+      }}
+    >
       <div className="eyebrow" style={{ marginBottom: 7 }}>
         {label}
       </div>
