@@ -1,12 +1,12 @@
 /* ============================================================
    RUMBO — app shell, routing, theme + tweaks
    ============================================================ */
-const TWEAK_DEFAULTS = /*EDITMODE-BEGIN*/{
-  "theme": "light",
-  "density": "regular",
-  "accent": "#d4622f",
-  "monoFigures": true
-}/*EDITMODE-END*/;
+const TWEAK_DEFAULTS = /*EDITMODE-BEGIN*/ {
+  theme: 'light',
+  density: 'regular',
+  accent: '#d4622f',
+  monoFigures: true,
+}; /*EDITMODE-END*/
 
 function App() {
   const [t, setTweak] = useTweaks(TWEAK_DEFAULTS);
@@ -20,7 +20,10 @@ function App() {
   const [moreOpen, setMoreOpen] = useState(false);
   const isMobile = useIsMobile();
 
-  const flash = (msg) => { setToast(msg); setTimeout(() => setToast(null), 3200); };
+  const flash = msg => {
+    setToast(msg);
+    setTimeout(() => setToast(null), 3200);
+  };
 
   const dark = t.theme === 'dark';
 
@@ -44,7 +47,7 @@ function App() {
 
   // ⌘K
   useEffect(() => {
-    const onKey = (e) => {
+    const onKey = e => {
       if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'k') {
         e.preventDefault();
         setPaletteOpen(o => !o);
@@ -66,14 +69,14 @@ function App() {
       // Pólizas: no se crean a mano (se importan de las aseguradoras). Solo edición.
       newSiniestro: () => setSiniestroOpen(true),
       newContacto: () => setContactoOpen(true),
-      openClaim: (id) => setClaimId(id),
+      openClaim: id => setClaimId(id),
       cotizar: () => go('cotizador'),
-      legal: (k) => setLegal(k),
-      toast: (msg) => flash(msg),
+      legal: k => setLegal(k),
+      toast: msg => flash(msg),
     };
   }, []);
 
-  const setDark = (v) => {
+  const setDark = v => {
     // Anima el cruce de colores solo durante la conmutación (clase temporal).
     const el = document.documentElement;
     el.classList.add('theme-anim');
@@ -87,72 +90,218 @@ function App() {
   const openP = () => setPaletteOpen(true);
 
   if (route.name === 'inicio') {
-    bar = <InstrumentBar title="Inicio" openPalette={openP} isMobile={isMobile} onMenu={() => setMoreOpen(true)} right={<HeadingRight go={go} isMobile={isMobile} />} />;
+    bar = (
+      <InstrumentBar
+        title="Inicio"
+        openPalette={openP}
+        isMobile={isMobile}
+        onMenu={() => setMoreOpen(true)}
+        right={<HeadingRight go={go} isMobile={isMobile} />}
+      />
+    );
     content = <ScreenInicio go={go} />;
   } else if (route.name === 'polizas') {
-    bar = <InstrumentBar crumbs={[{ label: 'Cartera' }, { label: 'Pólizas' }]} openPalette={openP} isMobile={isMobile} onMenu={() => setMoreOpen(true)} right={<HeadingRight go={go} isMobile={isMobile} />} />;
+    bar = (
+      <InstrumentBar
+        crumbs={[{ label: 'Cartera' }, { label: 'Pólizas' }]}
+        openPalette={openP}
+        isMobile={isMobile}
+        onMenu={() => setMoreOpen(true)}
+        right={<HeadingRight go={go} isMobile={isMobile} />}
+      />
+    );
     content = <ScreenPolizas go={go} />;
   } else if (route.name === 'detail') {
     // Crumb sin depender de la array de pólizas del bootstrap (Fase 3): el nº de
     // póliza lo muestra el header de ScreenDetail, que la trae por su id.
-    bar = <InstrumentBar crumbs={[{ label: 'Pólizas', onClick: () => go('polizas') }, { label: 'Detalle' }]} openPalette={openP} isMobile={isMobile} onMenu={() => setMoreOpen(true)} right={<HeadingRight go={go} isMobile={isMobile} />} />;
+    bar = (
+      <InstrumentBar
+        crumbs={[{ label: 'Pólizas', onClick: () => go('polizas') }, { label: 'Detalle' }]}
+        openPalette={openP}
+        isMobile={isMobile}
+        onMenu={() => setMoreOpen(true)}
+        right={<HeadingRight go={go} isMobile={isMobile} />}
+      />
+    );
     content = <ScreenDetail go={go} params={route.params} />;
   } else if (route.name === 'contactos') {
-    bar = <InstrumentBar crumbs={[{ label: 'Cartera' }, { label: 'Asegurados' }]} openPalette={openP} isMobile={isMobile} onMenu={() => setMoreOpen(true)} right={<HeadingRight go={go} isMobile={isMobile} />} />;
+    bar = (
+      <InstrumentBar
+        crumbs={[{ label: 'Cartera' }, { label: 'Asegurados' }]}
+        openPalette={openP}
+        isMobile={isMobile}
+        onMenu={() => setMoreOpen(true)}
+        right={<HeadingRight go={go} isMobile={isMobile} />}
+      />
+    );
     content = <ScreenContactos go={go} params={route.params} />;
   } else if (route.name === 'contacto') {
-    bar = <InstrumentBar crumbs={[{ label: 'Asegurados', onClick: () => go('contactos') }, { label: 'Ficha' }]} openPalette={openP} isMobile={isMobile} onMenu={() => setMoreOpen(true)} right={<HeadingRight go={go} isMobile={isMobile} />} />;
+    bar = (
+      <InstrumentBar
+        crumbs={[{ label: 'Asegurados', onClick: () => go('contactos') }, { label: 'Ficha' }]}
+        openPalette={openP}
+        isMobile={isMobile}
+        onMenu={() => setMoreOpen(true)}
+        right={<HeadingRight go={go} isMobile={isMobile} />}
+      />
+    );
     content = <ScreenContacto go={go} params={route.params} />;
   } else if (route.name === 'vencimientos') {
-    bar = <InstrumentBar crumbs={[{ label: 'Cartera' }, { label: 'Vencimientos' }]} openPalette={openP} isMobile={isMobile} onMenu={() => setMoreOpen(true)} right={<HeadingRight go={go} isMobile={isMobile} />} />;
+    bar = (
+      <InstrumentBar
+        crumbs={[{ label: 'Cartera' }, { label: 'Vencimientos' }]}
+        openPalette={openP}
+        isMobile={isMobile}
+        onMenu={() => setMoreOpen(true)}
+        right={<HeadingRight go={go} isMobile={isMobile} />}
+      />
+    );
     content = <ScreenVencimientos go={go} />;
   } else if (route.name === 'siniestros') {
-    bar = <InstrumentBar crumbs={[{ label: 'Cartera' }, { label: 'Siniestros' }]} openPalette={openP} isMobile={isMobile} onMenu={() => setMoreOpen(true)} right={<HeadingRight go={go} isMobile={isMobile} />} />;
+    bar = (
+      <InstrumentBar
+        crumbs={[{ label: 'Cartera' }, { label: 'Siniestros' }]}
+        openPalette={openP}
+        isMobile={isMobile}
+        onMenu={() => setMoreOpen(true)}
+        right={<HeadingRight go={go} isMobile={isMobile} />}
+      />
+    );
     content = <ScreenSiniestros go={go} />;
   } else if (route.name === 'crossselling') {
-    bar = <InstrumentBar crumbs={[{ label: 'Análisis' }, { label: 'Cross-selling' }]} openPalette={openP} isMobile={isMobile} onMenu={() => setMoreOpen(true)} right={<HeadingRight go={go} isMobile={isMobile} />} />;
+    bar = (
+      <InstrumentBar
+        crumbs={[{ label: 'Análisis' }, { label: 'Cross-selling' }]}
+        openPalette={openP}
+        isMobile={isMobile}
+        onMenu={() => setMoreOpen(true)}
+        right={<HeadingRight go={go} isMobile={isMobile} />}
+      />
+    );
     content = <ScreenCrossselling go={go} />;
   } else if (route.name === 'prospectos') {
-    bar = <InstrumentBar crumbs={[{ label: 'Cartera' }, { label: 'Prospectos' }]} openPalette={openP} isMobile={isMobile} onMenu={() => setMoreOpen(true)} right={<HeadingRight go={go} isMobile={isMobile} />} />;
+    bar = (
+      <InstrumentBar
+        crumbs={[{ label: 'Cartera' }, { label: 'Prospectos' }]}
+        openPalette={openP}
+        isMobile={isMobile}
+        onMenu={() => setMoreOpen(true)}
+        right={<HeadingRight go={go} isMobile={isMobile} />}
+      />
+    );
     content = <ScreenProspectos go={go} />;
   } else if (route.name === 'cotizaciones') {
-    bar = <InstrumentBar crumbs={[{ label: 'Cartera' }, { label: 'Cotizaciones' }]} openPalette={openP} isMobile={isMobile} onMenu={() => setMoreOpen(true)} right={<HeadingRight go={go} isMobile={isMobile} />} />;
+    bar = (
+      <InstrumentBar
+        crumbs={[{ label: 'Cartera' }, { label: 'Cotizaciones' }]}
+        openPalette={openP}
+        isMobile={isMobile}
+        onMenu={() => setMoreOpen(true)}
+        right={<HeadingRight go={go} isMobile={isMobile} />}
+      />
+    );
     content = <ScreenCotizaciones go={go} />;
   } else if (route.name === 'productores') {
-    bar = <InstrumentBar crumbs={[{ label: 'Análisis' }, { label: 'Productores' }]} openPalette={openP} isMobile={isMobile} onMenu={() => setMoreOpen(true)} right={<HeadingRight go={go} isMobile={isMobile} />} />;
+    bar = (
+      <InstrumentBar
+        crumbs={[{ label: 'Análisis' }, { label: 'Productores' }]}
+        openPalette={openP}
+        isMobile={isMobile}
+        onMenu={() => setMoreOpen(true)}
+        right={<HeadingRight go={go} isMobile={isMobile} />}
+      />
+    );
     content = <ScreenProductores go={go} />;
   } else if (route.name === 'actividad') {
-    bar = <InstrumentBar crumbs={[{ label: 'Sistema' }, { label: 'Actividad' }]} openPalette={openP} isMobile={isMobile} onMenu={() => setMoreOpen(true)} right={<HeadingRight go={go} isMobile={isMobile} />} />;
+    bar = (
+      <InstrumentBar
+        crumbs={[{ label: 'Sistema' }, { label: 'Actividad' }]}
+        openPalette={openP}
+        isMobile={isMobile}
+        onMenu={() => setMoreOpen(true)}
+        right={<HeadingRight go={go} isMobile={isMobile} />}
+      />
+    );
     content = <ScreenActividad go={go} />;
   } else if (route.name === 'configuracion') {
-    bar = <InstrumentBar crumbs={[{ label: 'Sistema' }, { label: 'Configuración' }]} openPalette={openP} isMobile={isMobile} onMenu={() => setMoreOpen(true)} right={<HeadingRight go={go} isMobile={isMobile} />} />;
+    bar = (
+      <InstrumentBar
+        crumbs={[{ label: 'Sistema' }, { label: 'Configuración' }]}
+        openPalette={openP}
+        isMobile={isMobile}
+        onMenu={() => setMoreOpen(true)}
+        right={<HeadingRight go={go} isMobile={isMobile} />}
+      />
+    );
     content = <ScreenConfiguracion go={go} dark={dark} setDark={setDark} />;
   } else if (route.name === 'cotizador') {
-    bar = <InstrumentBar crumbs={[{ label: 'Herramientas' }, { label: 'Cotizador' }]} openPalette={openP} isMobile={isMobile} onMenu={() => setMoreOpen(true)} right={<HeadingRight go={go} isMobile={isMobile} />} />;
-    content = <ScreenCotizador go={go} onEmit={(d) => flash(`Póliza emitida en ${d.insurer} · ${rumboFmt.ars(d.monthly)}/mes`)} />;
+    bar = (
+      <InstrumentBar
+        crumbs={[{ label: 'Herramientas' }, { label: 'Cotizador' }]}
+        openPalette={openP}
+        isMobile={isMobile}
+        onMenu={() => setMoreOpen(true)}
+        right={<HeadingRight go={go} isMobile={isMobile} />}
+      />
+    );
+    content = (
+      <ScreenCotizador go={go} onEmit={d => flash(`Póliza emitida en ${d.insurer} · ${rumboFmt.ars(d.monthly)}/mes`)} />
+    );
   } else if (route.name === 'calendario') {
-    bar = <InstrumentBar crumbs={[{ label: 'Operación' }, { label: 'Calendario' }]} openPalette={openP} isMobile={isMobile} onMenu={() => setMoreOpen(true)} right={<HeadingRight go={go} isMobile={isMobile} />} />;
+    bar = (
+      <InstrumentBar
+        crumbs={[{ label: 'Operación' }, { label: 'Calendario' }]}
+        openPalette={openP}
+        isMobile={isMobile}
+        onMenu={() => setMoreOpen(true)}
+        right={<HeadingRight go={go} isMobile={isMobile} />}
+      />
+    );
     content = <ScreenCalendario go={go} />;
   } else {
     // fallback placeholder
-    bar = <InstrumentBar crumbs={[{ label: NAV.find(n => n.id === route.name)?.label || 'Módulo' }]} openPalette={openP} isMobile={isMobile} onMenu={() => setMoreOpen(true)} right={<HeadingRight go={go} isMobile={isMobile} />} />;
+    bar = (
+      <InstrumentBar
+        crumbs={[{ label: NAV.find(n => n.id === route.name)?.label || 'Módulo' }]}
+        openPalette={openP}
+        isMobile={isMobile}
+        onMenu={() => setMoreOpen(true)}
+        right={<HeadingRight go={go} isMobile={isMobile} />}
+      />
+    );
     content = <ModulePlaceholder route={route} go={go} />;
   }
 
   return (
     <div style={{ display: 'flex', height: '100vh', overflow: 'hidden' }}>
       {!isMobile && <Rail route={route} go={go} dark={dark} setDark={setDark} />}
-      <main style={{
-        flex: 1, display: 'flex', flexDirection: 'column', minWidth: 0, background: 'var(--paper)',
-        paddingBottom: isMobile ? 'var(--tabbar-h)' : 0, boxSizing: 'border-box',
-      }}>
+      <main
+        style={{
+          flex: 1,
+          display: 'flex',
+          flexDirection: 'column',
+          minWidth: 0,
+          background: 'var(--paper)',
+          paddingBottom: isMobile ? 'var(--tabbar-h)' : 0,
+          boxSizing: 'border-box',
+        }}
+      >
         {bar}
         <div style={{ flex: 1, minHeight: 0 }}>{content}</div>
         <AppFooter go={go} isMobile={isMobile} />
       </main>
 
       {isMobile && <MobileTabBar route={route} go={go} onMore={() => setMoreOpen(true)} />}
-      {isMobile && <MobileMoreSheet open={moreOpen} onClose={() => setMoreOpen(false)} route={route} go={go} dark={dark} setDark={setDark} />}
+      {isMobile && (
+        <MobileMoreSheet
+          open={moreOpen}
+          onClose={() => setMoreOpen(false)}
+          route={route}
+          go={go}
+          dark={dark}
+          setDark={setDark}
+        />
+      )}
 
       <CommandPalette open={paletteOpen} onClose={() => setPaletteOpen(false)} go={go} />
       <NuevoSiniestroForm open={siniestroOpen} onClose={() => setSiniestroOpen(false)} />
@@ -164,11 +313,19 @@ function App() {
       <TweaksPanel title="Tweaks">
         <TweakSection label="Tema" />
         <TweakRadio label="Modo" value={t.theme} options={['light', 'dark']} onChange={v => setTweak('theme', v)} />
-        <TweakColor label="Acento" value={t.accent}
+        <TweakColor
+          label="Acento"
+          value={t.accent}
           options={['#d4622f', '#c2410c', '#b45309', '#0e7490', '#4338ca', '#15803d']}
-          onChange={v => setTweak('accent', v)} />
+          onChange={v => setTweak('accent', v)}
+        />
         <TweakSection label="Densidad" />
-        <TweakRadio label="Filas" value={t.density} options={['compact', 'regular']} onChange={v => setTweak('density', v)} />
+        <TweakRadio
+          label="Filas"
+          value={t.density}
+          options={['compact', 'regular']}
+          onChange={v => setTweak('density', v)}
+        />
       </TweaksPanel>
     </div>
   );
@@ -179,11 +336,49 @@ function HeadingRight({ go, isMobile }) {
   if (isMobile) {
     return (
       <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-        <button title="Notificaciones" style={{ width: 34, height: 34, borderRadius: 9, border: '1px solid var(--hair)', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', color: 'var(--ink-2)', position: 'relative', background: 'var(--panel)' }}>
+        <button
+          title="Notificaciones"
+          style={{
+            width: 34,
+            height: 34,
+            borderRadius: 9,
+            border: '1px solid var(--hair)',
+            display: 'inline-flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            color: 'var(--ink-2)',
+            position: 'relative',
+            background: 'var(--panel)',
+          }}
+        >
           <Icon name="bell" size={16} stroke={1.9} />
-          <span style={{ position: 'absolute', top: 7, right: 8, width: 6, height: 6, borderRadius: 99, background: 'var(--orange)', border: '1.5px solid var(--panel)' }} />
+          <span
+            style={{
+              position: 'absolute',
+              top: 7,
+              right: 8,
+              width: 6,
+              height: 6,
+              borderRadius: 99,
+              background: 'var(--orange)',
+              border: '1.5px solid var(--panel)',
+            }}
+          />
         </button>
-        <button title="Cotizar" onClick={() => go('cotizador')} style={{ width: 34, height: 34, borderRadius: 9, background: 'var(--orange)', color: 'var(--paper)', display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}>
+        <button
+          title="Cotizar"
+          onClick={() => go('cotizador')}
+          style={{
+            width: 34,
+            height: 34,
+            borderRadius: 9,
+            background: 'var(--orange)',
+            color: 'var(--paper)',
+            display: 'inline-flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+          }}
+        >
           <Icon name="calc" size={17} stroke={2.2} />
         </button>
       </div>
@@ -191,11 +386,38 @@ function HeadingRight({ go, isMobile }) {
   }
   return (
     <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-      <button title="Notificaciones" style={{ width: 38, height: 38, borderRadius: 9, border: '1px solid var(--hair)', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', color: 'var(--ink-2)', position: 'relative', background: 'var(--panel)' }}>
+      <button
+        title="Notificaciones"
+        style={{
+          width: 38,
+          height: 38,
+          borderRadius: 9,
+          border: '1px solid var(--hair)',
+          display: 'inline-flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          color: 'var(--ink-2)',
+          position: 'relative',
+          background: 'var(--panel)',
+        }}
+      >
         <Icon name="bell" size={17} stroke={1.9} />
-        <span style={{ position: 'absolute', top: 8, right: 9, width: 7, height: 7, borderRadius: 99, background: 'var(--orange)', border: '1.5px solid var(--panel)' }} />
+        <span
+          style={{
+            position: 'absolute',
+            top: 8,
+            right: 9,
+            width: 7,
+            height: 7,
+            borderRadius: 99,
+            background: 'var(--orange)',
+            border: '1.5px solid var(--panel)',
+          }}
+        />
       </button>
-      <Btn variant="primary" size="md" icon="calc" onClick={() => go('cotizador')}>Cotizar</Btn>
+      <Btn variant="primary" size="md" icon="calc" onClick={() => go('cotizador')}>
+        Cotizar
+      </Btn>
     </div>
   );
 }
@@ -206,40 +428,83 @@ function HeadingRight({ go, isMobile }) {
    superficie pública (D-027) publique los documentos definitivos, estos textos
    se sincronizan desde ahí. */
 const LEGAL_CONTENT = {
-    terminos: {
-      title: 'Términos y Condiciones', eyebrow: 'Legal · última actualización 06/2026',
-      body: [
-        ['1. Aceptación', 'Al utilizar Rumbo, el usuario acepta estos Términos y Condiciones. Rumbo es una herramienta de gestión para Productores Asesores de Seguros (PAS) matriculados ante la Superintendencia de Seguros de la Nación.'],
-        ['2. Alcance del servicio', 'Rumbo provee software de organización de cartera, vencimientos, siniestros y cotizaciones. No emite pólizas ni opera como aseguradora; la relación contractual del riesgo se mantiene entre el asegurado y la compañía.'],
-        ['3. Responsabilidad del PAS', 'El productor es responsable del asesoramiento, la veracidad de los datos cargados y el cumplimiento de la normativa vigente (Ley 22.400 y Res. SSN aplicables).'],
-        ['4. Disponibilidad', 'El servicio se ofrece "tal cual", en beta privada. Procuramos disponibilidad continua pero no garantizamos la ausencia de interrupciones.'],
-        ['5. Modificaciones', 'Podemos actualizar estos términos notificando con razonable antelación dentro de la aplicación.'],
+  terminos: {
+    title: 'Términos y Condiciones',
+    eyebrow: 'Legal · última actualización 06/2026',
+    body: [
+      [
+        '1. Aceptación',
+        'Al utilizar Rumbo, el usuario acepta estos Términos y Condiciones. Rumbo es una herramienta de gestión para Productores Asesores de Seguros (PAS) matriculados ante la Superintendencia de Seguros de la Nación.',
       ],
-    },
-    privacidad: {
-      title: 'Política de Privacidad', eyebrow: 'Legal · Ley 25.326 de Protección de Datos',
-      body: [
-        ['Datos que tratamos', 'Datos de contacto del PAS y de su cartera (asegurados, pólizas, siniestros) cargados por el usuario, con la única finalidad de prestar el servicio.'],
-        ['Titularidad', 'Los datos son propiedad del PAS. Rumbo actúa como encargado del tratamiento y no los comercializa ni cede a terceros.'],
-        ['Derechos', 'El titular puede acceder, rectificar y suprimir sus datos en cualquier momento desde Configuración → Exportá tus datos, o solicitando la baja de la cuenta.'],
-        ['Seguridad', 'Aplicamos cifrado en tránsito y en reposo, y controles de acceso por organización.'],
+      [
+        '2. Alcance del servicio',
+        'Rumbo provee software de organización de cartera, vencimientos, siniestros y cotizaciones. No emite pólizas ni opera como aseguradora; la relación contractual del riesgo se mantiene entre el asegurado y la compañía.',
       ],
-    },
-    defensa: {
-      title: 'Defensa del Asegurado', eyebrow: 'Superintendencia de Seguros de la Nación',
-      body: [
-        ['Tus derechos', 'Ante un conflicto con una aseguradora, el asegurado puede recurrir al Departamento de Orientación y Asistencia del Asegurado (DOAA) de la SSN.'],
-        ['Canales', 'Teléfono gratuito 0800-666-8400 · www.argentina.gob.ar/ssn · Av. Julio A. Roca 721, CABA.'],
-        ['Rol de Rumbo', 'Rumbo facilita la gestión documental del reclamo pero no sustituye los canales oficiales de defensa del consumidor de seguros.'],
+      [
+        '3. Responsabilidad del PAS',
+        'El productor es responsable del asesoramiento, la veracidad de los datos cargados y el cumplimiento de la normativa vigente (Ley 22.400 y Res. SSN aplicables).',
       ],
-    },
+      [
+        '4. Disponibilidad',
+        'El servicio se ofrece "tal cual", en beta privada. Procuramos disponibilidad continua pero no garantizamos la ausencia de interrupciones.',
+      ],
+      [
+        '5. Modificaciones',
+        'Podemos actualizar estos términos notificando con razonable antelación dentro de la aplicación.',
+      ],
+    ],
+  },
+  privacidad: {
+    title: 'Política de Privacidad',
+    eyebrow: 'Legal · Ley 25.326 de Protección de Datos',
+    body: [
+      [
+        'Datos que tratamos',
+        'Datos de contacto del PAS y de su cartera (asegurados, pólizas, siniestros) cargados por el usuario, con la única finalidad de prestar el servicio.',
+      ],
+      [
+        'Titularidad',
+        'Los datos son propiedad del PAS. Rumbo actúa como encargado del tratamiento y no los comercializa ni cede a terceros.',
+      ],
+      [
+        'Derechos',
+        'El titular puede acceder, rectificar y suprimir sus datos en cualquier momento desde Configuración → Exportá tus datos, o solicitando la baja de la cuenta.',
+      ],
+      ['Seguridad', 'Aplicamos cifrado en tránsito y en reposo, y controles de acceso por organización.'],
+    ],
+  },
+  defensa: {
+    title: 'Defensa del Asegurado',
+    eyebrow: 'Superintendencia de Seguros de la Nación',
+    body: [
+      [
+        'Tus derechos',
+        'Ante un conflicto con una aseguradora, el asegurado puede recurrir al Departamento de Orientación y Asistencia del Asegurado (DOAA) de la SSN.',
+      ],
+      ['Canales', 'Teléfono gratuito 0800-666-8400 · www.argentina.gob.ar/ssn · Av. Julio A. Roca 721, CABA.'],
+      [
+        'Rol de Rumbo',
+        'Rumbo facilita la gestión documental del reclamo pero no sustituye los canales oficiales de defensa del consumidor de seguros.',
+      ],
+    ],
+  },
 };
 
 function LegalDrawer({ which, onClose }) {
   const c = LEGAL_CONTENT[which];
   return (
-    <Drawer open={!!which} onClose={onClose} eyebrow={c?.eyebrow} title={c?.title || ''} width={560}
-      footer={<Btn variant="primary" icon="check" onClick={onClose}>Entendido</Btn>}>
+    <Drawer
+      open={!!which}
+      onClose={onClose}
+      eyebrow={c?.eyebrow}
+      title={c?.title || ''}
+      width={560}
+      footer={
+        <Btn variant="primary" icon="check" onClick={onClose}>
+          Entendido
+        </Btn>
+      }
+    >
       {c && (
         <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
           {c.body.map(([h, p], i) => (
@@ -265,24 +530,60 @@ function AppFooter({ go, isMobile }) {
     { label: 'Defensa del Asegurado', k: 'defensa' },
   ];
   return (
-    <footer style={{
-      flexShrink: 0, borderTop: '1px solid var(--hair)', background: 'var(--paper)',
-      padding: isMobile ? '10px 14px' : '12px 26px', display: 'flex',
-      flexDirection: isMobile ? 'column' : 'row', alignItems: isMobile ? 'flex-start' : 'center',
-      gap: isMobile ? 8 : 16, flexWrap: 'wrap',
-    }}>
+    <footer
+      style={{
+        flexShrink: 0,
+        borderTop: '1px solid var(--hair)',
+        background: 'var(--paper)',
+        padding: isMobile ? '10px 14px' : '12px 26px',
+        display: 'flex',
+        flexDirection: isMobile ? 'column' : 'row',
+        alignItems: isMobile ? 'flex-start' : 'center',
+        gap: isMobile ? 8 : 16,
+        flexWrap: 'wrap',
+      }}
+    >
       <div style={{ display: 'flex', alignItems: 'center', gap: 9, fontSize: 11, color: 'var(--ink-3)' }}>
-        <img src="assets/symbol-ondark.png" width={16} height={16} alt="" style={{ objectFit: 'contain', opacity: 0.8 }} />
-        <span>© 2026 Rumbo{isMobile ? '' : ` · ${window.RUMBO_DATA?.ORG?.name ?? 'Rumbo'} · Productora Asesora de Seguros`}</span>
+        <img
+          src="assets/symbol-ondark.png"
+          width={16}
+          height={16}
+          alt=""
+          style={{ objectFit: 'contain', opacity: 0.8 }}
+        />
+        <span>
+          © 2026 Rumbo{isMobile ? '' : ` · ${window.RUMBO_DATA?.ORG?.name ?? 'Rumbo'} · Productora Asesora de Seguros`}
+        </span>
       </div>
-      <nav style={{ marginLeft: isMobile ? 0 : 'auto', display: 'flex', alignItems: 'center', gap: isMobile ? 12 : 18, flexWrap: 'wrap' }}>
+      <nav
+        style={{
+          marginLeft: isMobile ? 0 : 'auto',
+          display: 'flex',
+          alignItems: 'center',
+          gap: isMobile ? 12 : 18,
+          flexWrap: 'wrap',
+        }}
+      >
         {links.map(l => (
-          <a key={l.k} href="#" onClick={(e) => { e.preventDefault(); window.rumboUI?.legal(l.k); }}
+          <a
+            key={l.k}
+            href="#"
+            onClick={e => {
+              e.preventDefault();
+              window.rumboUI?.legal(l.k);
+            }}
             style={{ fontSize: 11, color: 'var(--ink-3)', textDecoration: 'none', transition: 'color .14s' }}
-            onMouseEnter={e => e.currentTarget.style.color = 'var(--ink)'}
-            onMouseLeave={e => e.currentTarget.style.color = 'var(--ink-3)'}>{l.label}</a>
+            onMouseEnter={e => (e.currentTarget.style.color = 'var(--ink)')}
+            onMouseLeave={e => (e.currentTarget.style.color = 'var(--ink-3)')}
+          >
+            {l.label}
+          </a>
         ))}
-        {!isMobile && window.RUMBO_DATA?.ORG?.matricula && <span className="font-mono" style={{ fontSize: 11, color: 'var(--ink-3)', opacity: 0.7 }}>Matrícula SSN {window.RUMBO_DATA.ORG.matricula}</span>}
+        {!isMobile && window.RUMBO_DATA?.ORG?.matricula && (
+          <span className="font-mono" style={{ fontSize: 11, color: 'var(--ink-3)', opacity: 0.7 }}>
+            Matrícula SSN {window.RUMBO_DATA.ORG.matricula}
+          </span>
+        )}
       </nav>
     </footer>
   );
@@ -292,9 +593,44 @@ function AppFooter({ go, isMobile }) {
 function Toast({ msg }) {
   if (!msg) return null;
   return (
-    <div style={{ position: 'fixed', bottom: 24, left: '50%', transform: 'translateX(-50%)', zIndex: 90, animation: 'rumbo-rise .3s cubic-bezier(0.16,1,0.3,1)' }}>
-      <div style={{ display: 'flex', alignItems: 'center', gap: 11, padding: '12px 18px', borderRadius: 12, background: 'var(--ink)', color: 'var(--paper)', boxShadow: 'var(--shadow-pop)', fontSize: 13.5, fontWeight: 500 }}>
-        <span style={{ width: 22, height: 22, borderRadius: 99, background: 'var(--emerald)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}><Icon name="check" size={14} stroke={3} style={{ color: '#fff' }} /></span>
+    <div
+      style={{
+        position: 'fixed',
+        bottom: 24,
+        left: '50%',
+        transform: 'translateX(-50%)',
+        zIndex: 90,
+        animation: 'rumbo-rise .3s cubic-bezier(0.16,1,0.3,1)',
+      }}
+    >
+      <div
+        style={{
+          display: 'flex',
+          alignItems: 'center',
+          gap: 11,
+          padding: '12px 18px',
+          borderRadius: 12,
+          background: 'var(--ink)',
+          color: 'var(--paper)',
+          boxShadow: 'var(--shadow-pop)',
+          fontSize: 13.5,
+          fontWeight: 500,
+        }}
+      >
+        <span
+          style={{
+            width: 22,
+            height: 22,
+            borderRadius: 99,
+            background: 'var(--emerald)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            flexShrink: 0,
+          }}
+        >
+          <Icon name="check" size={14} stroke={3} style={{ color: '#fff' }} />
+        </span>
         {msg}
       </div>
     </div>
@@ -304,21 +640,59 @@ function Toast({ msg }) {
 /* placeholder for not-yet-built modules — keeps the tool feeling whole */
 function ModulePlaceholder({ route, go }) {
   const meta = {
-    contactos: { title: 'Asegurados', body: 'Tu base de asegurados y prospectos, con historial y pólizas vinculadas.', icon: 'users' },
-    vencimientos: { title: 'Vencimientos', body: 'El calendario completo de renovaciones — cada waypoint de tu cartera en una sola vista.', icon: 'calendar' },
-    siniestros: { title: 'Siniestros', body: 'Seguimiento de denuncias activas, con alertas cuando un caso pierde el rumbo.', icon: 'shield' },
-    crossselling: { title: 'Cross-selling', body: 'Oportunidades detectadas en tu cartera para sumar coberturas.', icon: 'sparkles' },
+    contactos: {
+      title: 'Asegurados',
+      body: 'Tu base de asegurados y prospectos, con historial y pólizas vinculadas.',
+      icon: 'users',
+    },
+    vencimientos: {
+      title: 'Vencimientos',
+      body: 'El calendario completo de renovaciones — cada waypoint de tu cartera en una sola vista.',
+      icon: 'calendar',
+    },
+    siniestros: {
+      title: 'Siniestros',
+      body: 'Seguimiento de denuncias activas, con alertas cuando un caso pierde el rumbo.',
+      icon: 'shield',
+    },
+    crossselling: {
+      title: 'Cross-selling',
+      body: 'Oportunidades detectadas en tu cartera para sumar coberturas.',
+      icon: 'sparkles',
+    },
   }[route.name] || { title: 'Módulo', body: '', icon: 'compass' };
   return (
-    <div className="rise" style={{ height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 40 }}>
+    <div
+      className="rise"
+      style={{ height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 40 }}
+    >
       <div style={{ textAlign: 'center', maxWidth: 440 }}>
-        <div style={{ width: 64, height: 64, borderRadius: 16, margin: '0 auto 20px', display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'var(--panel)', border: '1px solid var(--hair)', color: 'var(--orange)' }}>
+        <div
+          style={{
+            width: 64,
+            height: 64,
+            borderRadius: 16,
+            margin: '0 auto 20px',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            background: 'var(--panel)',
+            border: '1px solid var(--hair)',
+            color: 'var(--orange)',
+          }}
+        >
           <Icon name={meta.icon} size={28} stroke={1.8} />
         </div>
-        <div className="tick-row" style={{ justifyContent: 'center', marginBottom: 12 }}><Ticks n={7} active={3} /></div>
-        <h2 className="font-display" style={{ fontSize: 26, letterSpacing: '-0.02em', marginBottom: 8 }}>{meta.title}</h2>
+        <div className="tick-row" style={{ justifyContent: 'center', marginBottom: 12 }}>
+          <Ticks n={7} active={3} />
+        </div>
+        <h2 className="font-display" style={{ fontSize: 26, letterSpacing: '-0.02em', marginBottom: 8 }}>
+          {meta.title}
+        </h2>
         <p style={{ fontSize: 14, color: 'var(--ink-2)', lineHeight: 1.5, marginBottom: 22 }}>{meta.body}</p>
-        <Btn variant="ghost" iconRight="arrowRight" onClick={() => go('inicio')} style={{ margin: '0 auto' }}>Volver al inicio</Btn>
+        <Btn variant="ghost" iconRight="arrowRight" onClick={() => go('inicio')} style={{ margin: '0 auto' }}>
+          Volver al inicio
+        </Btn>
       </div>
     </div>
   );
@@ -327,8 +701,18 @@ function ModulePlaceholder({ route, go }) {
 /* splash mientras se resuelve la sesión */
 function BootSplash() {
   return (
-    <div style={{ height: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'var(--paper)' }}>
-      <div style={{ animation: 'rumbo-pop .3s ease' }}><BrandMark size={36} /></div>
+    <div
+      style={{
+        height: '100vh',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        background: 'var(--paper)',
+      }}
+    >
+      <div style={{ animation: 'rumbo-pop .3s ease' }}>
+        <BrandMark size={36} />
+      </div>
     </div>
   );
 }
@@ -338,13 +722,28 @@ function BootSplash() {
    reintentar. `demo` deja entrar con los datos estáticos a propósito. */
 function DataLoadError({ message, onRetry }) {
   return (
-    <div style={{ height: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'var(--paper)', padding: 24 }}>
+    <div
+      style={{
+        height: '100vh',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        background: 'var(--paper)',
+        padding: 24,
+      }}
+    >
       <div style={{ maxWidth: 460, textAlign: 'center' }}>
-        <div style={{ marginBottom: 18 }}><BrandMark size={32} /></div>
-        <h2 className="font-display" style={{ fontSize: 22, letterSpacing: '-0.02em', marginBottom: 10 }}>No pudimos cargar tu cartera</h2>
+        <div style={{ marginBottom: 18 }}>
+          <BrandMark size={32} />
+        </div>
+        <h2 className="font-display" style={{ fontSize: 22, letterSpacing: '-0.02em', marginBottom: 10 }}>
+          No pudimos cargar tu cartera
+        </h2>
         <p style={{ fontSize: 13.5, color: 'var(--ink-2)', lineHeight: 1.5, marginBottom: 20 }}>{message}</p>
         <div style={{ display: 'flex', gap: 10, justifyContent: 'center' }}>
-          <Btn variant="primary" icon="refresh" onClick={onRetry}>Reintentar</Btn>
+          <Btn variant="primary" icon="refresh" onClick={onRetry}>
+            Reintentar
+          </Btn>
         </div>
       </div>
     </div>
@@ -354,12 +753,15 @@ function DataLoadError({ message, onRetry }) {
 /* gate de sesión: splash → login → (carga de datos) → cockpit */
 function Root() {
   const [session, setSession] = useState(undefined); // undefined=cargando, null=sin sesión
-  const [phase, setPhase] = useState('loading');      // loading | ready | error | demo
+  const [phase, setPhase] = useState('loading'); // loading | ready | error | demo
   const [error, setError] = useState(null);
   const [attempt, setAttempt] = useState(0);
 
   useEffect(() => {
-    rumboAuth.getSession().then(s => setSession(s ?? null)).catch(() => setSession(null));
+    rumboAuth
+      .getSession()
+      .then(s => setSession(s ?? null))
+      .catch(() => setSession(null));
   }, []);
 
   // Con sesión, hidratar window.RUMBO_DATA desde el BFF antes de montar el
@@ -373,27 +775,30 @@ function Root() {
     // Exponer el usuario de la sesión para el chrome (rail, sheet, footer).
     window.RUMBO_USER = session.user ?? session;
     hydrateRumboData()
-      .then(() => { if (alive) setPhase('ready'); })
+      .then(() => {
+        if (alive) setPhase('ready');
+      })
       .catch(err => {
         console.error('[rumbo] no se pudo hidratar el BFF:', err.message);
-        if (alive) { setError(err); setPhase('error'); }
+        if (alive) {
+          setError(err);
+          setPhase('error');
+        }
       });
-    return () => { alive = false; };
+    return () => {
+      alive = false;
+    };
   }, [session, attempt]);
 
   if (session === undefined) return <BootSplash />;
   if (!session) return <ScreenLogin onAuthed={setSession} />;
   if (phase === 'loading') return <BootSplash />;
   if (phase === 'error') {
-    const msg = error?.status === 401 || error?.status === 403
-      ? 'Tu sesión no es válida para esta cuenta (suele ser una cookie vieja de antes de la migración). Cerrá sesión / borrá las cookies de localhost y volvé a entrar.'
-      : (error?.message || 'Error desconocido al contactar la API.');
-    return (
-      <DataLoadError
-        message={msg}
-        onRetry={() => setAttempt(a => a + 1)}
-      />
-    );
+    const msg =
+      error?.status === 401 || error?.status === 403
+        ? 'Tu sesión no es válida para esta cuenta (suele ser una cookie vieja de antes de la migración). Cerrá sesión / borrá las cookies de localhost y volvé a entrar.'
+        : error?.message || 'Error desconocido al contactar la API.';
+    return <DataLoadError message={msg} onRetry={() => setAttempt(a => a + 1)} />;
   }
   return (
     <>
@@ -417,40 +822,103 @@ function TermsGate() {
   if (accepted) return null;
   const accept = () => {
     if (busy) return;
-    setBusy(true); setErr(null);
-    window.rumboApi.acceptTerms()
+    setBusy(true);
+    setErr(null);
+    window.rumboApi
+      .acceptTerms()
       .then(() => {
         if (window.RUMBO_DATA?.ME) window.RUMBO_DATA.ME.termsAcceptedAt = new Date().toISOString();
         setAccepted(true);
       })
-      .catch(e => { setErr(e.message); setBusy(false); });
+      .catch(e => {
+        setErr(e.message);
+        setBusy(false);
+      });
   };
   const link = { color: 'var(--orange-ink)', fontWeight: 600, cursor: 'pointer', textDecoration: 'underline' };
   const doc = showDoc ? LEGAL_CONTENT[showDoc] : null;
   return (
-    <div style={{ position: 'fixed', inset: 0, zIndex: 200, background: 'oklch(0.2 0.01 50 / 0.5)', backdropFilter: 'blur(4px)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 20 }}>
-      <div style={{ width: doc ? 560 : 480, maxWidth: '94vw', maxHeight: '88vh', display: 'flex', flexDirection: 'column', background: 'var(--panel)', border: '1px solid var(--hair)', borderRadius: 16, boxShadow: 'var(--shadow-pop)', padding: '28px 30px' }}>
+    <div
+      style={{
+        position: 'fixed',
+        inset: 0,
+        zIndex: 200,
+        background: 'oklch(0.2 0.01 50 / 0.5)',
+        backdropFilter: 'blur(4px)',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        padding: 20,
+      }}
+    >
+      <div
+        style={{
+          width: doc ? 560 : 480,
+          maxWidth: '94vw',
+          maxHeight: '88vh',
+          display: 'flex',
+          flexDirection: 'column',
+          background: 'var(--panel)',
+          border: '1px solid var(--hair)',
+          borderRadius: 16,
+          boxShadow: 'var(--shadow-pop)',
+          padding: '28px 30px',
+        }}
+      >
         {!doc ? (
           <>
-            <div className="eyebrow" style={{ marginBottom: 8 }}>Antes de seguir</div>
-            <h2 className="font-display" style={{ fontSize: 22, letterSpacing: '-0.02em', marginBottom: 10 }}>Términos y privacidad</h2>
+            <div className="eyebrow" style={{ marginBottom: 8 }}>
+              Antes de seguir
+            </div>
+            <h2 className="font-display" style={{ fontSize: 22, letterSpacing: '-0.02em', marginBottom: 10 }}>
+              Términos y privacidad
+            </h2>
             <p style={{ fontSize: 13.5, color: 'var(--ink-2)', lineHeight: 1.55, marginBottom: 18 }}>
               Para seguir usando la app necesitamos que aceptes los{' '}
-              <a onClick={() => setShowDoc('terminos')} style={link}>Términos y condiciones</a>
-              {' '}y la{' '}
-              <a onClick={() => setShowDoc('privacidad')} style={link}>Política de privacidad</a>
-              {' '}(Ley 25.326). Es una sola vez.
+              <a onClick={() => setShowDoc('terminos')} style={link}>
+                Términos y condiciones
+              </a>{' '}
+              y la{' '}
+              <a onClick={() => setShowDoc('privacidad')} style={link}>
+                Política de privacidad
+              </a>{' '}
+              (Ley 25.326). Es una sola vez.
             </p>
             {err && <div style={{ fontSize: 12.5, color: 'var(--red-ink)', marginBottom: 12 }}>{err}</div>}
-            <Btn variant="primary" icon="check" onClick={accept} style={{ width: '100%', justifyContent: 'center', opacity: busy ? 0.6 : 1, pointerEvents: busy ? 'none' : 'auto' }}>
+            <Btn
+              variant="primary"
+              icon="check"
+              onClick={accept}
+              style={{
+                width: '100%',
+                justifyContent: 'center',
+                opacity: busy ? 0.6 : 1,
+                pointerEvents: busy ? 'none' : 'auto',
+              }}
+            >
               {busy ? 'Un momento…' : 'Acepto y continuar'}
             </Btn>
           </>
         ) : (
           <>
-            <div className="eyebrow" style={{ marginBottom: 6 }}>{doc.eyebrow}</div>
-            <h2 className="font-display" style={{ fontSize: 20, letterSpacing: '-0.02em', marginBottom: 12 }}>{doc.title}</h2>
-            <div className="scroll" style={{ flex: 1, overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: 16, paddingRight: 6, marginBottom: 16 }}>
+            <div className="eyebrow" style={{ marginBottom: 6 }}>
+              {doc.eyebrow}
+            </div>
+            <h2 className="font-display" style={{ fontSize: 20, letterSpacing: '-0.02em', marginBottom: 12 }}>
+              {doc.title}
+            </h2>
+            <div
+              className="scroll"
+              style={{
+                flex: 1,
+                overflowY: 'auto',
+                display: 'flex',
+                flexDirection: 'column',
+                gap: 16,
+                paddingRight: 6,
+                marginBottom: 16,
+              }}
+            >
               {doc.body.map(([h, p], i) => (
                 <div key={i}>
                   <div style={{ fontSize: 13.5, fontWeight: 600, color: 'var(--ink)', marginBottom: 4 }}>{h}</div>
@@ -458,7 +926,9 @@ function TermsGate() {
                 </div>
               ))}
             </div>
-            <Btn variant="ghost" onClick={() => setShowDoc(null)} style={{ width: '100%', justifyContent: 'center' }}>Volver</Btn>
+            <Btn variant="ghost" onClick={() => setShowDoc(null)} style={{ width: '100%', justifyContent: 'center' }}>
+              Volver
+            </Btn>
           </>
         )}
       </div>
