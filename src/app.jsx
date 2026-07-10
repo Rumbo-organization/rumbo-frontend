@@ -292,16 +292,7 @@ function App() {
       </main>
 
       {isMobile && <MobileTabBar route={route} go={go} onMore={() => setMoreOpen(true)} />}
-      {isMobile && (
-        <MobileMoreSheet
-          open={moreOpen}
-          onClose={() => setMoreOpen(false)}
-          route={route}
-          go={go}
-          dark={dark}
-          setDark={setDark}
-        />
-      )}
+      {isMobile && <MobileMoreSheet open={moreOpen} onClose={() => setMoreOpen(false)} route={route} go={go} />}
 
       <CommandPalette open={paletteOpen} onClose={() => setPaletteOpen(false)} go={go} />
       <NuevoSiniestroForm open={siniestroOpen} onClose={() => setSiniestroOpen(false)} />
@@ -688,8 +679,8 @@ function BootSplash() {
         background: 'var(--paper)',
       }}
     >
-      <div style={{ animation: 'rumbo-pop .3s ease' }}>
-        <BrandMark size={36} />
+      <div className="logo-pulse">
+        <BrandMark size={56} wordSize={33} />
       </div>
     </div>
   );

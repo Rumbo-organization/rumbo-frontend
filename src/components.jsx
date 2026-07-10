@@ -73,7 +73,7 @@ function rumboIdentity() {
 /* ---------- Brand mark ---------- */
 /* Con onClick, el logo lleva al inicio (index). Se renderiza como <button> para
    que sea accesible (teclado + foco). */
-function BrandMark({ size = 30, onClick }) {
+function BrandMark({ size = 30, wordSize = 21, onClick }) {
   const inner = (
     <>
       <img
@@ -85,7 +85,7 @@ function BrandMark({ size = 30, onClick }) {
       />
       <span
         className="font-display"
-        style={{ fontSize: 21, fontWeight: 800, letterSpacing: '-0.03em', color: 'var(--ink)' }}
+        style={{ fontSize: wordSize, fontWeight: 800, letterSpacing: '-0.03em', color: 'var(--ink)' }}
       >
         Rumbo
       </span>
@@ -912,7 +912,7 @@ function MobileTabBar({ route, go, onMore }) {
 }
 
 /* ---------- Mobile "more" sheet — full grouped nav ---------- */
-function MobileMoreSheet({ open, onClose, route, go, dark, setDark }) {
+function MobileMoreSheet({ open, onClose, route, go }) {
   useEffect(() => {
     if (!open) return;
     const onKey = e => {
@@ -1093,23 +1093,6 @@ function MobileMoreSheet({ open, onClose, route, go, dark, setDark }) {
             gap: 8,
           }}
         >
-          <button
-            onClick={() => setDark(!dark)}
-            style={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: 11,
-              padding: '10px 11px',
-              borderRadius: 9,
-              fontSize: 13.5,
-              fontWeight: 500,
-              color: 'var(--ink-2)',
-              background: 'var(--panel-2)',
-            }}
-          >
-            <Icon name={dark ? 'sun' : 'moon'} size={18} stroke={1.9} />
-            {dark ? 'Modo claro' : 'Modo oscuro'}
-          </button>
           {(() => {
             const me = rumboIdentity();
             return (

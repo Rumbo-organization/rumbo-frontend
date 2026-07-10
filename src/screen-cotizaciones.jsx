@@ -529,115 +529,116 @@ function ScreenCotizaciones({ go }) {
         </div>
 
         <Panel pad={false} style={{ overflow: 'hidden' }}>
-          <div className="rtable-wrap">
-            <table className="rtable" style={{ width: '100%', borderCollapse: 'collapse' }}>
-              <thead>
-                <tr style={{ borderBottom: '1px solid var(--hair)' }}>
-                  {['Cotización', 'Asegurado', 'Ramo', 'Mejor opción', 'Prima', 'Estado', 'Vigencia'].map((h, i) => (
-                    <th
-                      key={h}
-                      className="eyebrow"
-                      style={{ textAlign: i === 4 ? 'right' : 'left', padding: '13px 16px' }}
-                    >
-                      {h}
-                    </th>
-                  ))}
-                </tr>
-              </thead>
-              <tbody>
-                {loading && (
-                  <tr>
-                    <td colSpan={7} style={{ padding: 16 }}>
-                      <span className="skel" style={{ display: 'block', width: '100%', height: 60, borderRadius: 8 }} />
-                    </td>
+          {/* Empty state fuera de .rtable-wrap: adentro hereda el min-width de
+              la tabla (640px) y en mobile el texto queda cortado por el scroll. */}
+          {!loading && shown.length === 0 ? (
+            <div style={{ padding: '40px 16px', textAlign: 'center', color: 'var(--ink-3)', fontSize: 13.5 }}>
+              Sin cotizaciones. Creá la primera.
+            </div>
+          ) : (
+            <div className="rtable-wrap">
+              <table className="rtable" style={{ width: '100%', borderCollapse: 'collapse' }}>
+                <thead>
+                  <tr style={{ borderBottom: '1px solid var(--hair)' }}>
+                    {['Cotización', 'Asegurado', 'Ramo', 'Mejor opción', 'Prima', 'Estado', 'Vigencia'].map((h, i) => (
+                      <th
+                        key={h}
+                        className="eyebrow"
+                        style={{ textAlign: i === 4 ? 'right' : 'left', padding: '13px 16px' }}
+                      >
+                        {h}
+                      </th>
+                    ))}
                   </tr>
-                )}
-                {!loading && shown.length === 0 && (
-                  <tr>
-                    <td
-                      colSpan={7}
-                      style={{ padding: '40px 16px', textAlign: 'center', color: 'var(--ink-3)', fontSize: 13.5 }}
-                    >
-                      Sin cotizaciones. Creá la primera.
-                    </td>
-                  </tr>
-                )}
-                {!loading &&
-                  shown.map((c, i) => (
-                    <tr
-                      key={c.id}
-                      onClick={() => setOpenId(c.id)}
-                      style={{
-                        borderBottom: i === shown.length - 1 ? 'none' : '1px solid var(--hair-2)',
-                        cursor: 'pointer',
-                        transition: 'background .12s',
-                      }}
-                      onMouseEnter={e => (e.currentTarget.style.background = 'var(--panel-2)')}
-                      onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}
-                    >
-                      <td style={{ padding: '13px 16px' }}>
-                        <span className="font-mono" style={{ fontSize: 12.5, color: 'var(--ink-2)' }}>
-                          {c.num}
-                        </span>
-                      </td>
-                      <td style={{ padding: '13px 16px', fontSize: 13.5, fontWeight: 600 }}>{c.client}</td>
-                      <td style={{ padding: '13px 16px' }}>
+                </thead>
+                <tbody>
+                  {loading && (
+                    <tr>
+                      <td colSpan={7} style={{ padding: 16 }}>
                         <span
-                          style={{
-                            display: 'inline-flex',
-                            alignItems: 'center',
-                            gap: 7,
-                            fontSize: 13,
-                            color: 'var(--ink-2)',
-                          }}
-                        >
-                          <Icon
-                            name={ramoIcon[c.ramo] || 'shield'}
-                            size={15}
-                            stroke={1.9}
-                            style={{ color: 'var(--ink-3)' }}
-                          />
-                          {c.ramo}
-                        </span>
-                      </td>
-                      <td style={{ padding: '13px 16px', fontSize: 13, color: 'var(--ink-2)' }}>
-                        {c.best === '—' ? (
-                          <span style={{ color: 'var(--ink-3)' }}>Sin opciones</span>
-                        ) : (
-                          <>
-                            {c.best} <span style={{ color: 'var(--ink-3)', fontSize: 11.5 }}>· {c.options} opc.</span>
-                          </>
-                        )}
-                      </td>
-                      <td style={{ padding: '13px 16px', textAlign: 'right' }}>
-                        {c.monthly > 0 ? (
-                          <span className="font-mono tnum" style={{ fontSize: 13, fontWeight: 600 }}>
-                            {ars(c.monthly)}
-                            <span style={{ color: 'var(--ink-3)', fontWeight: 400 }}>/mes</span>
-                          </span>
-                        ) : (
-                          <span style={{ color: 'var(--ink-3)' }}>—</span>
-                        )}
-                      </td>
-                      <td style={{ padding: '13px 16px' }}>
-                        <Pill tone={statusTone[c.status]} dot>
-                          {c.status}
-                        </Pill>
-                      </td>
-                      <td style={{ padding: '13px 16px' }}>
-                        {c.valid < 0 ? (
-                          <span style={{ fontSize: 12, color: 'var(--red-ink)' }}>
-                            Venció hace {Math.abs(c.valid)} d
-                          </span>
-                        ) : (
-                          <span style={{ fontSize: 12, color: 'var(--ink-3)' }}>Vence en {c.valid} d</span>
-                        )}
+                          className="skel"
+                          style={{ display: 'block', width: '100%', height: 60, borderRadius: 8 }}
+                        />
                       </td>
                     </tr>
-                  ))}
-              </tbody>
-            </table>
-          </div>
+                  )}
+                  {!loading &&
+                    shown.map((c, i) => (
+                      <tr
+                        key={c.id}
+                        onClick={() => setOpenId(c.id)}
+                        style={{
+                          borderBottom: i === shown.length - 1 ? 'none' : '1px solid var(--hair-2)',
+                          cursor: 'pointer',
+                          transition: 'background .12s',
+                        }}
+                        onMouseEnter={e => (e.currentTarget.style.background = 'var(--panel-2)')}
+                        onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}
+                      >
+                        <td style={{ padding: '13px 16px' }}>
+                          <span className="font-mono" style={{ fontSize: 12.5, color: 'var(--ink-2)' }}>
+                            {c.num}
+                          </span>
+                        </td>
+                        <td style={{ padding: '13px 16px', fontSize: 13.5, fontWeight: 600 }}>{c.client}</td>
+                        <td style={{ padding: '13px 16px' }}>
+                          <span
+                            style={{
+                              display: 'inline-flex',
+                              alignItems: 'center',
+                              gap: 7,
+                              fontSize: 13,
+                              color: 'var(--ink-2)',
+                            }}
+                          >
+                            <Icon
+                              name={ramoIcon[c.ramo] || 'shield'}
+                              size={15}
+                              stroke={1.9}
+                              style={{ color: 'var(--ink-3)' }}
+                            />
+                            {c.ramo}
+                          </span>
+                        </td>
+                        <td style={{ padding: '13px 16px', fontSize: 13, color: 'var(--ink-2)' }}>
+                          {c.best === '—' ? (
+                            <span style={{ color: 'var(--ink-3)' }}>Sin opciones</span>
+                          ) : (
+                            <>
+                              {c.best} <span style={{ color: 'var(--ink-3)', fontSize: 11.5 }}>· {c.options} opc.</span>
+                            </>
+                          )}
+                        </td>
+                        <td style={{ padding: '13px 16px', textAlign: 'right' }}>
+                          {c.monthly > 0 ? (
+                            <span className="font-mono tnum" style={{ fontSize: 13, fontWeight: 600 }}>
+                              {ars(c.monthly)}
+                              <span style={{ color: 'var(--ink-3)', fontWeight: 400 }}>/mes</span>
+                            </span>
+                          ) : (
+                            <span style={{ color: 'var(--ink-3)' }}>—</span>
+                          )}
+                        </td>
+                        <td style={{ padding: '13px 16px' }}>
+                          <Pill tone={statusTone[c.status]} dot>
+                            {c.status}
+                          </Pill>
+                        </td>
+                        <td style={{ padding: '13px 16px' }}>
+                          {c.valid < 0 ? (
+                            <span style={{ fontSize: 12, color: 'var(--red-ink)' }}>
+                              Venció hace {Math.abs(c.valid)} d
+                            </span>
+                          ) : (
+                            <span style={{ fontSize: 12, color: 'var(--ink-3)' }}>Vence en {c.valid} d</span>
+                          )}
+                        </td>
+                      </tr>
+                    ))}
+                </tbody>
+              </table>
+            </div>
+          )}
         </Panel>
       </div>
     </div>
