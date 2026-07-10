@@ -522,6 +522,10 @@ function MobileMoreSheet({ open, onClose, route, go, dark, setDark }) {
         </div>
         <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '6px 18px 14px', borderBottom: '1px solid var(--hair)' }}>
           <BrandMark size={26} onClick={() => { go('inicio'); onClose(); }} />
+          <button title="Cerrar" aria-label="Cerrar menú" onClick={onClose}
+            style={{ marginLeft: 'auto', width: 34, height: 34, borderRadius: 9, border: '1px solid var(--hair)', background: 'var(--panel)', color: 'var(--ink-2)', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+            <Icon name="x" size={17} stroke={2} />
+          </button>
         </div>
 
         {/* org badge — single-org (F-005), identidad estática sin switcher */}
