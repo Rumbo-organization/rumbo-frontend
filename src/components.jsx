@@ -481,7 +481,7 @@ const NAV_GROUPS = [
   },
 ];
 
-function Rail({ route, go, dark, setDark }) {
+function Rail({ route, go }) {
   const base = route.name;
   const activeFor = id =>
     base === id || (id === 'polizas' && base === 'detail') || (id === 'cotizaciones' && base === 'cotizador');
@@ -621,26 +621,6 @@ function Rail({ route, go, dark, setDark }) {
       </nav>
 
       <div style={{ marginTop: 12, display: 'flex', flexDirection: 'column', gap: 10 }}>
-        <button
-          onClick={() => setDark(!dark)}
-          style={{
-            display: 'flex',
-            alignItems: 'center',
-            gap: 11,
-            padding: '9px 11px',
-            borderRadius: 9,
-            fontSize: 13.5,
-            fontWeight: 500,
-            color: 'var(--ink-2)',
-            width: '100%',
-          }}
-          onMouseEnter={e => (e.currentTarget.style.background = 'var(--panel-2)')}
-          onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}
-        >
-          <Icon name={dark ? 'sun' : 'moon'} size={18} stroke={1.9} />
-          {dark ? 'Modo claro' : 'Modo oscuro'}
-        </button>
-
         {(() => {
           const me = rumboIdentity();
           return (

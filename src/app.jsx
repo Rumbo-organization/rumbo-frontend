@@ -274,7 +274,7 @@ function App() {
 
   return (
     <div style={{ display: 'flex', height: '100vh', overflow: 'hidden' }}>
-      {!isMobile && <Rail route={route} go={go} dark={dark} setDark={setDark} />}
+      {!isMobile && <Rail route={route} go={go} />}
       <main
         style={{
           flex: 1,

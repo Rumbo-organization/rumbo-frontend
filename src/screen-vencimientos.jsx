@@ -109,16 +109,6 @@ function ScreenVencimientos({ go }) {
               en prima a renovar
             </>
           }
-          actions={
-            <>
-              <Btn variant="ghost" icon="download">
-                Exportar
-              </Btn>
-              <Btn variant="primary" icon="bell">
-                Recordatorios
-              </Btn>
-            </>
-          }
         />
 
         <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 22, flexWrap: 'wrap' }}>
