@@ -81,7 +81,16 @@ const EMPTY_DATA = {
   COTIZACIONES: [],
   PRODUCTORES: [],
   AUDIT: [],
-  BOOK: { primaTotal: 0, vigentes: 0, contactos: 0, vence30: 0, siniestros: 0, cuotasVencidas: 0, cuotasMonto: 0, health: 0 },
+  BOOK: {
+    primaTotal: 0,
+    vigentes: 0,
+    contactos: 0,
+    vence30: 0,
+    siniestros: 0,
+    cuotasVencidas: 0,
+    cuotasMonto: 0,
+    health: 0,
+  },
   ramoMeta,
 };
 

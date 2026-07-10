@@ -20,7 +20,8 @@ export default defineConfig(({ mode }) => {
         manifest: {
           name: appName,
           short_name: appName,
-          description: 'El sistema para Productores Asesores de Seguros: asegurados, pólizas, vencimientos y siniestros en un solo lugar.',
+          description:
+            'El sistema para Productores Asesores de Seguros: asegurados, pólizas, vencimientos y siniestros en un solo lugar.',
           lang: 'es-AR',
           start_url: '/',
           scope: '/',
