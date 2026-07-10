@@ -26,7 +26,7 @@ async function get(path) {
   if (!ct.includes('application/json')) {
     throw new Error(
       `Respuesta no-JSON en ${path} (content-type: ${ct || 'vacío'}). ` +
-      `Probable proxy de Vite caído: reiniciá 'pnpm dev' en rumbo-frontend.`,
+        `Probable proxy de Vite caído: reiniciá 'pnpm dev' en rumbo-frontend.`,
     );
   }
   return r.json();
@@ -47,7 +47,9 @@ async function send(method, path, body) {
     try {
       const j = await r.json();
       if (j && j.error) msg = j.error;
-    } catch { /* respuesta sin JSON: dejamos el mensaje genérico */ }
+    } catch {
+      /* respuesta sin JSON: dejamos el mensaje genérico */
+    }
     const err = new Error(msg);
     err.status = r.status;
     throw err;
@@ -71,7 +73,7 @@ const rumboApi = {
     for (const [k, v] of Object.entries(params)) if (v != null && v !== '') qs.set(k, v);
     return get('/api/v1/contacts?' + qs.toString());
   },
-  contactById: (id) => get('/api/v1/contacts/' + id),
+  contactById: id => get('/api/v1/contacts/' + id),
   // Vencimientos paginado server-side (Fase 4): { window, pay, limit, offset } →
   // { data, total, totalPrima, counts, limit, offset }.
   vencimientosPage: (params = {}) => {
@@ -81,7 +83,7 @@ const rumboApi = {
   },
   policies: () => get('/api/v1/policies'),
   // Detalle 360° de una póliza (Fase 3): { policy, contact, siniestros, crosssell, activity }.
-  policyDetail: (id) => get('/api/v1/policies/' + id + '/detail'),
+  policyDetail: id => get('/api/v1/policies/' + id + '/detail'),
   // Pickers livianos (Fase 3): typeahead de dropdowns y palette. q opcional.
   // → { data: [{id, num, client, ramo, insurer, detail}] } / { data: [{id, name, initials, kind, city}] }.
   policiesPicker: (q = '') => get('/api/v1/policies/picker' + (q ? '?q=' + encodeURIComponent(q) : '')),
@@ -122,7 +124,7 @@ const rumboApi = {
     return get('/api/v1/actividad' + (s ? '?' + s : ''));
   },
   // Log de comunicaciones ("marqué que envié" del WhatsApp wa.me).
-  logCommunication: (data) => send('POST', '/api/v1/communications', data),
+  logCommunication: data => send('POST', '/api/v1/communications', data),
 
   // ── Slice 5: cotizaciones reales, cuenta, exports, resumen ─────────────────
   cotizacionesPage: (params = {}) => {
@@ -131,23 +133,23 @@ const rumboApi = {
     const s = qs.toString();
     return get('/api/v1/cotizaciones' + (s ? '?' + s : ''));
   },
-  quoteById: (id) => get('/api/v1/quotes/' + id),
-  createQuote: (data) => send('POST', '/api/v1/quotes', data),
-  deleteQuote: (id) => send('DELETE', '/api/v1/quotes/' + id),
+  quoteById: id => get('/api/v1/quotes/' + id),
+  createQuote: data => send('POST', '/api/v1/quotes', data),
+  deleteQuote: id => send('DELETE', '/api/v1/quotes/' + id),
   addQuoteItem: (quoteId, data) => send('POST', `/api/v1/quotes/${quoteId}/items`, data),
-  deleteQuoteItem: (id) => send('DELETE', '/api/v1/quote-items/' + id),
+  deleteQuoteItem: id => send('DELETE', '/api/v1/quote-items/' + id),
   insurersPicker: () => get('/api/v1/insurers/picker'),
-  createInsurer: (name) => send('POST', '/api/v1/insurers', { name }),
+  createInsurer: name => send('POST', '/api/v1/insurers', { name }),
 
   // Plantillas de mensajes propias del PAS (Slice 6).
   messageTemplates: () => get('/api/v1/message-templates'),
-  createMessageTemplate: (data) => send('POST', '/api/v1/message-templates', data),
+  createMessageTemplate: data => send('POST', '/api/v1/message-templates', data),
   updateMessageTemplate: (id, data) => send('PATCH', '/api/v1/message-templates/' + id, data),
-  deleteMessageTemplate: (id) => send('DELETE', '/api/v1/message-templates/' + id),
+  deleteMessageTemplate: id => send('DELETE', '/api/v1/message-templates/' + id),
   // Import de asegurados por CSV (Slice 6): rows ya mapeadas por la UI.
-  importContacts: (rows) => send('POST', '/api/v1/contacts/import', { rows }),
+  importContacts: rows => send('POST', '/api/v1/contacts/import', { rows }),
 
-  updateOrgProfile: (data) => send('PATCH', '/api/v1/org', data),
+  updateOrgProfile: data => send('PATCH', '/api/v1/org', data),
   deleteAccount: () => send('DELETE', '/api/v1/account'),
   accountExportUrl: () => API + '/api/v1/account/export',
   policiesExportUrl: () => API + '/api/v1/policies/export.csv',
@@ -157,20 +159,20 @@ const rumboApi = {
 
   // Calendario (jul-2026): month view (lectura) + CRUD de la agenda (escritura).
   calendarMonth: (year, month) => get(`/api/v1/calendar?year=${year}&month=${month}`),
-  createCalendarEvent: (data) => send('POST', '/api/v1/calendar/events', data),
+  createCalendarEvent: data => send('POST', '/api/v1/calendar/events', data),
   updateCalendarEvent: (id, data) => send('PATCH', `/api/v1/calendar/events/${id}`, data),
-  deleteCalendarEvent: (id) => send('DELETE', `/api/v1/calendar/events/${id}`),
-  toggleCalendarEvent: (id) => send('POST', `/api/v1/calendar/events/${id}/toggle`),
+  deleteCalendarEvent: id => send('DELETE', `/api/v1/calendar/events/${id}`),
+  toggleCalendarEvent: id => send('POST', `/api/v1/calendar/events/${id}/toggle`),
 
   // Siniestros — gestión (escritura).
-  createClaim: (data) => send('POST', '/api/v1/claims', data),
-  claimById: (id) => get('/api/v1/claims/' + id),
+  createClaim: data => send('POST', '/api/v1/claims', data),
+  claimById: id => get('/api/v1/claims/' + id),
   updateClaimStatus: (id, status) => send('PATCH', `/api/v1/claims/${id}/status`, { status }),
   updateClaimImportance: (id, importance) => send('PATCH', `/api/v1/claims/${id}/importance`, { importance }),
   addClaimComment: (id, body) => send('POST', `/api/v1/claims/${id}/comments`, { body }),
 
   // Contactos — alta (siempre nace prospecto, sin selector de estado).
-  createContact: (data) => send('POST', '/api/v1/contacts', data),
+  createContact: data => send('POST', '/api/v1/contacts', data),
   updateContact: (id, data) => send('PATCH', '/api/v1/contacts/' + id, data),
 
   // Pólizas — editable solo observaciones y forma de pago (el resto se importa).
@@ -185,18 +187,18 @@ const rumboApi = {
   //    responsables y documentos. Lecturas: viajan en policyDetail/contactById.
   generateInstallments: (policyId, data) => send('POST', `/api/v1/policies/${policyId}/installments`, data),
   setInstallmentPaid: (id, paid) => send('PATCH', `/api/v1/installments/${id}`, { paid }),
-  clearInstallments: (policyId) => send('DELETE', `/api/v1/policies/${policyId}/installments`),
+  clearInstallments: policyId => send('DELETE', `/api/v1/policies/${policyId}/installments`),
   createEndorsement: (policyId, data) => send('POST', `/api/v1/policies/${policyId}/endorsements`, data),
-  deleteEndorsement: (id) => send('DELETE', `/api/v1/endorsements/${id}`),
+  deleteEndorsement: id => send('DELETE', `/api/v1/endorsements/${id}`),
   createPolicyParty: (policyId, data) => send('POST', `/api/v1/policies/${policyId}/parties`, data),
-  deletePolicyParty: (id) => send('DELETE', `/api/v1/parties/${id}`),
+  deletePolicyParty: id => send('DELETE', `/api/v1/parties/${id}`),
   createRelationship: (contactId, data) => send('POST', `/api/v1/contacts/${contactId}/relationships`, data),
-  deleteRelationship: (id) => send('DELETE', `/api/v1/relationships/${id}`),
+  deleteRelationship: id => send('DELETE', `/api/v1/relationships/${id}`),
   createContactAddress: (contactId, data) => send('POST', `/api/v1/contacts/${contactId}/addresses`, data),
-  deleteContactAddress: (id) => send('DELETE', `/api/v1/addresses/${id}`),
+  deleteContactAddress: id => send('DELETE', `/api/v1/addresses/${id}`),
   orgUsers: () => get('/api/v1/org/users'),
   createAssignee: (contactId, data) => send('POST', `/api/v1/contacts/${contactId}/assignees`, data),
-  deleteAssignee: (id) => send('DELETE', `/api/v1/assignees/${id}`),
+  deleteAssignee: id => send('DELETE', `/api/v1/assignees/${id}`),
   // Documentos: multipart (policyId XOR contactId). documentUrl para <a href>.
   uploadDocument: async (file, target) => {
     const fd = new FormData();
@@ -206,13 +208,20 @@ const rumboApi = {
     const r = await fetch(API + '/api/v1/documents/upload', { method: 'POST', credentials: 'include', body: fd });
     if (!r.ok) {
       let msg = `API ${r.status}`;
-      try { const j = await r.json(); if (j && j.error) msg = j.error; } catch { /* sin JSON */ }
-      const err = new Error(msg); err.status = r.status; throw err;
+      try {
+        const j = await r.json();
+        if (j && j.error) msg = j.error;
+      } catch {
+        /* sin JSON */
+      }
+      const err = new Error(msg);
+      err.status = r.status;
+      throw err;
     }
     return r.json();
   },
-  documentUrl: (id) => API + '/api/v1/documents/' + id,
-  deleteDocument: (id) => send('DELETE', `/api/v1/documents/${id}`),
+  documentUrl: id => API + '/api/v1/documents/' + id,
+  deleteDocument: id => send('DELETE', `/api/v1/documents/${id}`),
 };
 
 // Hidrata window.RUMBO_DATA con los datos reales del backend, preservando lo
