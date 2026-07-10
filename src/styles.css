@@ -304,6 +304,30 @@ html[data-mobile='true'] main {
   overflow: visible;
 }
 
+/* ---- login brand pulse: zoom in/out suave del logo ---- */
+@keyframes rumbo-logo-pulse {
+  0%,
+  100% {
+    transform: scale(1);
+  }
+  50% {
+    transform: scale(1.07);
+  }
+}
+.logo-pulse {
+  animation: rumbo-logo-pulse 2.6s ease-in-out infinite;
+  transform-origin: left center;
+  will-change: transform;
+}
+.logo-pulse.busy {
+  animation-duration: 1.1s;
+}
+@media (prefers-reduced-motion: reduce) {
+  .logo-pulse {
+    animation: none;
+  }
+}
+
 /* compass tick ornament */
 .tick-row {
   display: flex;

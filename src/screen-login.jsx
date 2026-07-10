@@ -207,7 +207,9 @@ function ScreenLogin({ onAuthed }) {
           />
 
           <div style={{ position: 'relative', zIndex: 1, display: 'flex', flexDirection: 'column', height: '100%' }}>
-            <BrandWhite size={34} />
+            <div className={`logo-pulse${busy ? ' busy' : ''}`} style={{ alignSelf: 'flex-start' }}>
+              <BrandWhite size={34} />
+            </div>
 
             <div style={{ flex: 1, display: 'flex', flexDirection: 'column', justifyContent: 'center', maxWidth: 500 }}>
               <h1
@@ -275,7 +277,9 @@ function ScreenLogin({ onAuthed }) {
         <div style={{ width: 384, maxWidth: '100%' }}>
           {isMobile && (
             <div style={{ marginBottom: 22 }}>
-              <BrandMark size={30} />
+              <div className={`logo-pulse${busy ? ' busy' : ''}`} style={{ display: 'inline-flex' }}>
+                <BrandMark size={30} />
+              </div>
             </div>
           )}
 

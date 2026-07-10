@@ -286,7 +286,8 @@ function ScreenPolizas({ go }) {
               </div>
               <div
                 style={{
-                  marginLeft: 'auto',
+                  marginLeft: isMobile ? 0 : 'auto',
+                  width: isMobile ? '100%' : undefined,
                   display: 'flex',
                   alignItems: 'center',
                   gap: 8,
@@ -312,6 +313,8 @@ function ScreenPolizas({ go }) {
                     cursor: 'pointer',
                     appearance: 'none',
                     paddingRight: 4,
+                    flex: 1,
+                    minWidth: 0,
                   }}
                 >
                   <option value="">Toda forma de pago</option>
@@ -335,6 +338,7 @@ function ScreenPolizas({ go }) {
                     border: '1px solid var(--hair)',
                     background: 'var(--panel)',
                     flexShrink: 0,
+                    width: isMobile ? '100%' : undefined,
                   }}
                 >
                   <Icon name="users" size={15} stroke={2} style={{ color: 'var(--ink-3)' }} />
@@ -351,6 +355,8 @@ function ScreenPolizas({ go }) {
                       cursor: 'pointer',
                       appearance: 'none',
                       paddingRight: 4,
+                      flex: 1,
+                      minWidth: 0,
                     }}
                   >
                     <option value="">Todos los productores</option>
@@ -372,9 +378,9 @@ function ScreenPolizas({ go }) {
                   borderRadius: 9,
                   border: '1px solid var(--hair)',
                   background: 'var(--panel)',
-                  width: 250,
+                  width: isMobile ? '100%' : 250,
                   flex: '1 1 220px',
-                  maxWidth: 320,
+                  maxWidth: isMobile ? '100%' : 320,
                 }}
               >
                 <Icon name="search" size={16} stroke={2} style={{ color: 'var(--ink-3)' }} />

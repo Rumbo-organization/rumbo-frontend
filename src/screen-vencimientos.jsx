@@ -123,11 +123,11 @@ function ScreenVencimientos({ go }) {
 
         <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 22, flexWrap: 'wrap' }}>
           <Segmented segs={segs} value={seg} onChange={v => setFilter(() => setSeg(v))} />
-          <div style={{ minWidth: 200 }}>
+          <div style={{ minWidth: 200, width: isMobile ? '100%' : undefined }}>
             <SelectInput value={pay} onChange={v => setFilter(() => setPay(v))} options={VENC_PAY_OPTIONS} />
           </div>
           {PRODUCTORES_LIST.length > 1 && (
-            <div style={{ minWidth: 200 }}>
+            <div style={{ minWidth: 200, width: isMobile ? '100%' : undefined }}>
               <select
                 value={producer}
                 onChange={e => setFilter(() => setProducer(e.target.value))}
