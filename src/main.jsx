@@ -15,6 +15,8 @@ import './screen-contacto.jsx';
 import './screen-vencimientos.jsx';
 import './screen-calendario.jsx';
 import './screen-siniestros.jsx';
+import './screen-pre-denuncias.jsx';
+import './screen-pre-denuncia-publica.jsx';
 import './screen-crossselling.jsx';
 import './screen-prospectos.jsx';
 import './screen-cotizaciones.jsx';

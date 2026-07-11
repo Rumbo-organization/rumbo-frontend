@@ -149,6 +149,15 @@ const rumboApi = {
   // Import de asegurados por CSV (Slice 6): rows ya mapeadas por la UI.
   importContacts: rows => send('POST', '/api/v1/contacts/import', { rows }),
 
+  // Pre-denuncias (Slice 1): lista/detalle del cockpit + links por productor.
+  // El lado público (/api/public) lo consume la página /d/:slug con fetch propio.
+  intakesPage: ({ status = '', producer = '', limit = 50, offset = 0 } = {}) =>
+    get(`/api/v1/intakes?status=${status}&producer=${producer}&limit=${limit}&offset=${offset}`),
+  intakeById: id => get('/api/v1/intakes/' + id),
+  intakeLinks: () => get('/api/v1/producer-intake-links'),
+  createIntakeLink: producerId => send('POST', '/api/v1/producer-intake-links', { producerId }),
+  rotateIntakeLink: id => send('POST', `/api/v1/producer-intake-links/${id}/rotate`),
+
   updateOrgProfile: data => send('PATCH', '/api/v1/org', data),
   deleteAccount: () => send('DELETE', '/api/v1/account'),
   accountExportUrl: () => API + '/api/v1/account/export',

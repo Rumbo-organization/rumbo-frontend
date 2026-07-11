@@ -64,6 +64,9 @@ function ScreenSiniestros({ go }) {
               <Btn variant="ghost" icon="download">
                 Exportar
               </Btn>
+              <Btn variant="ghost" icon="scroll" onClick={() => go('pre-denuncias')}>
+                Pre-denuncias
+              </Btn>
               <Btn variant="primary" icon="plus" onClick={() => window.rumboUI?.newSiniestro()}>
                 Reportar siniestro
               </Btn>
