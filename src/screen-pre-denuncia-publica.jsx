@@ -6,7 +6,8 @@
    (fetch propio, sin api-client autenticado).
 
    Reglas del doc 17 que esta pantalla respeta:
-   - El lookup por DNI solo muestra "✓ Te identificamos" (sin nombre/tel/email
+   - El lookup por DNI muestra "✓ Te identificamos: R*** P***" (enmascarado;
+     jamás nombre completo, teléfono ni email
      de la cartera); si no matchea, pide el nombre sin decir "no encontrado".
    - Teléfono y email SIEMPRE se piden (dato declarado fresco para el PAS).
    - Consentimiento (Ley 25.326) obligatorio junto al Enviar.
@@ -96,6 +97,9 @@ function ScreenPreDenunciaPublica({ slug }) {
   const [tercero, setTercero] = useState({ nombre: '', apellido: '', dni: '', telefono: '', email: '' });
   const [doc, setDoc] = useState('');
   const [matched, setMatched] = useState(false);
+  // Nombre ENMASCARADO que devuelve el lookup ("R*** P***"): feedback de que
+  // el match es la persona correcta, sin ecoar PII (doc 17, regla #2).
+  const [matchedNombre, setMatchedNombre] = useState('');
   const [nombre, setNombre] = useState('');
   const [telefono, setTelefono] = useState('');
   const [email, setEmail] = useState('');
@@ -131,12 +135,19 @@ function ScreenPreDenunciaPublica({ slug }) {
     const d = doc.replace(/\D/g, '');
     if (d.length < 7) {
       setMatched(false);
+      setMatchedNombre('');
       return;
     }
     const t = setTimeout(() => {
       pdFetch(`/api/public/pre-denuncia/${slug}/lookup`, { method: 'POST', body: JSON.stringify({ doc: d }) })
-        .then(r => setMatched(Boolean(r.matched)))
-        .catch(() => setMatched(false));
+        .then(r => {
+          setMatched(Boolean(r.matched));
+          setMatchedNombre(r.nombre || '');
+        })
+        .catch(() => {
+          setMatched(false);
+          setMatchedNombre('');
+        });
     }, 400);
     return () => clearTimeout(t);
   }, [doc, slug]);
@@ -390,8 +401,12 @@ function ScreenPreDenunciaPublica({ slug }) {
                   fontWeight: 600,
                 }}
               >
-                <Icon name="check" size={15} stroke={2.2} /> Te identificamos en la cartera — no hace falta que cargues
-                tu nombre.
+                <Icon name="check" size={15} stroke={2.2} style={{ flexShrink: 0 }} />
+                <span>
+                  Te identificamos{matchedNombre ? ': ' : ' en la cartera'}
+                  {matchedNombre && <strong>{matchedNombre}</strong>} — no hace falta que cargues tu nombre.
+                  {matchedNombre ? ' Si no sos vos, revisá el número.' : ''}
+                </span>
               </div>
             ) : (
               <Field label="Nombre completo o razón social" required>
