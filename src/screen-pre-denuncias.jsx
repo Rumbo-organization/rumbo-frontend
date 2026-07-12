@@ -1,9 +1,9 @@
 /* ============================================================
    RUMBO — Pre-denuncias (sección interna) — Slice 1
    Lo que entra por el formulario público (/d/:slug) aterriza acá:
-   KPIs por estado, lista filtrable, detalle read-only y el modal
+   KPIs por estado, lista filtrable, detalle con Convertir (pólizas
+   sugeridas rankeadas) / Rechazar (motivo opcional), y el modal
    "Compartir link" con el link público de cada productor (copiar/rotar).
-   Convertir/Rechazar llegan en el Slice 2.
    ============================================================ */
 
 const INTAKE_STATUS_TONE = { pendiente: 'amber', convertida: 'emerald', rechazada: 'red', vencida: 'neutral' };
@@ -129,7 +129,7 @@ function ShareIntakeLinksDrawer({ open, onClose }) {
   );
 }
 
-/* ---------- Drawer detalle (read-only en Slice 1) ---------- */
+/* ---------- Drawer detalle + Convertir / Rechazar (Slice 2) ---------- */
 function IntakeDetailDrawer({ id, onClose }) {
   const q = useApiQuery(['intake', id], () => window.rumboApi.intakeById(id), { enabled: Boolean(id) });
   const d = q.data ?? null;
@@ -137,6 +137,74 @@ function IntakeDetailDrawer({ id, onClose }) {
   const ase = d?.aseguradoDeclarado ?? {};
   const inc = d?.incidente ?? {};
   const tercero = dec.tercero;
+
+  // Modo del pie del drawer: ver | convertir (elegir póliza) | rechazar (motivo).
+  const [mode, setMode] = useState('view');
+  const [polSel, setPolSel] = useState(null); // póliza sugerida elegida (id)
+  const [polPicker, setPolPicker] = useState(null); // fila del SearchPicker (fallback)
+  const [importance, setImportance] = useState('');
+  const [motivo, setMotivo] = useState('');
+  const [busy, setBusy] = useState(false);
+  useEffect(() => {
+    setMode('view');
+    setPolSel(null);
+    setPolPicker(null);
+    setImportance('');
+    setMotivo('');
+  }, [id]);
+
+  const refreshAll = () => {
+    window.queryClient.invalidateQueries({ queryKey: ['intakes'] });
+    q.refetch();
+  };
+  const policyId = polSel || (polPicker && polPicker.id) || '';
+  const convertir = () => {
+    if (!policyId || busy) return;
+    setBusy(true);
+    window.rumboApi
+      .convertIntake(id, { policyId, ...(importance ? { importance } : {}) })
+      .then(r => {
+        window.rumboUI?.toast?.('Siniestro creado desde la pre-denuncia');
+        refreshAll();
+        setMode('view');
+        if (r.claimId) window.rumboUI?.openClaim?.(r.claimId);
+      })
+      .catch(e => window.rumboUI?.toast?.(e.message))
+      .finally(() => setBusy(false));
+  };
+  const rechazar = () => {
+    if (busy) return;
+    setBusy(true);
+    window.rumboApi
+      .rejectIntake(id, motivo.trim())
+      .then(() => {
+        window.rumboUI?.toast?.('Pre-denuncia rechazada');
+        refreshAll();
+        setMode('view');
+      })
+      .catch(e => window.rumboUI?.toast?.(e.message))
+      .finally(() => setBusy(false));
+  };
+  // Alta rápida del declarado como prospecto (glue sobre el alta existente):
+  // útil cuando no hubo match y el PAS quiere quedarse con el contacto.
+  const crearEnCartera = () => {
+    if (busy) return;
+    setBusy(true);
+    const docStr = String(ase.doc || '');
+    window.rumboApi
+      .createContact({
+        kind: 'PERSONA_FISICA',
+        lastName: ase.nombre || 'Sin nombre',
+        firstName: '',
+        ...(docStr.length === 11 ? { cuit: docStr } : { dni: docStr }),
+        phone: ase.telefono || '',
+        city: '',
+        notes: `Creado desde la pre-denuncia N° ${d?.number}`,
+      })
+      .then(() => window.rumboUI?.toast?.('Prospecto creado en la cartera'))
+      .catch(e => window.rumboUI?.toast?.(e.message))
+      .finally(() => setBusy(false));
+  };
 
   const row = (label, value) =>
     value ? (
@@ -215,19 +283,192 @@ function IntakeDetailDrawer({ id, onClose }) {
             </div>
           </div>
 
-          <div
-            style={{
-              padding: '10px 13px',
-              borderRadius: 10,
-              background: 'var(--panel-2)',
-              border: '1px solid var(--hair)',
-              fontSize: 12,
-              color: 'var(--ink-3)',
-            }}
-          >
-            Convertir a siniestro y Rechazar llegan en la próxima entrega. Mientras tanto, podés cargar el siniestro
-            desde "Reportar siniestro" con estos datos.
-          </div>
+          {/* Acciones según estado */}
+          {d.status === 'convertida' && d.convertedClaimId && (
+            <Btn
+              variant="soft"
+              icon="shield"
+              onClick={() => window.rumboUI?.openClaim?.(d.convertedClaimId)}
+              style={{ width: '100%', justifyContent: 'center' }}
+            >
+              Ver siniestro creado
+            </Btn>
+          )}
+          {d.status === 'rechazada' && d.rejectReason && row('Motivo del rechazo', d.rejectReason)}
+
+          {d.status === 'pendiente' && mode === 'view' && (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+              {!d.matchedContactId && (
+                <Btn
+                  size="sm"
+                  variant="ghost"
+                  icon="plus"
+                  onClick={crearEnCartera}
+                  style={{ width: '100%', justifyContent: 'center', opacity: busy ? 0.5 : 1 }}
+                >
+                  Crear al declarado como prospecto en la cartera
+                </Btn>
+              )}
+              <div style={{ display: 'flex', gap: 10 }}>
+                <Btn variant="ghost" onClick={() => setMode('reject')} style={{ flex: 1, justifyContent: 'center' }}>
+                  Rechazar
+                </Btn>
+                <Btn
+                  variant="primary"
+                  iconRight="arrowRight"
+                  onClick={() => setMode('convert')}
+                  style={{ flex: 2, justifyContent: 'center' }}
+                >
+                  Convertir a siniestro
+                </Btn>
+              </div>
+            </div>
+          )}
+
+          {d.status === 'pendiente' && mode === 'convert' && (
+            <div
+              style={{
+                display: 'flex',
+                flexDirection: 'column',
+                gap: 12,
+                padding: '14px 14px 16px',
+                borderRadius: 10,
+                background: 'var(--panel-2)',
+                border: '1px solid var(--hair)',
+              }}
+            >
+              <span className="eyebrow">Póliza del siniestro</span>
+              {(d.suggestedPolicies || []).length > 0 ? (
+                (d.suggestedPolicies || []).map(p => (
+                  <button
+                    key={p.id}
+                    onClick={() => {
+                      setPolSel(p.id);
+                      setPolPicker(null);
+                    }}
+                    style={{
+                      textAlign: 'left',
+                      padding: '10px 12px',
+                      borderRadius: 9,
+                      border: `1px solid ${polSel === p.id ? 'var(--orange)' : 'var(--hair)'}`,
+                      background: polSel === p.id ? 'var(--orange-soft)' : 'var(--panel)',
+                      cursor: 'pointer',
+                    }}
+                  >
+                    <div className="font-mono" style={{ fontSize: 12.5, fontWeight: 600, color: 'var(--ink)' }}>
+                      {p.insurer} — {p.num || 'sin nº'}
+                    </div>
+                    <div
+                      style={{
+                        fontSize: 11.5,
+                        color: 'var(--ink-3)',
+                        marginTop: 2,
+                        display: 'flex',
+                        gap: 6,
+                        alignItems: 'center',
+                      }}
+                    >
+                      {p.ramo} · {p.status}
+                      {p.byPatente && (
+                        <Pill tone="emerald" style={{ fontSize: 9.5, padding: '1px 6px' }}>
+                          patente ✓
+                        </Pill>
+                      )}
+                      {!p.byPatente && p.sameRamo && (
+                        <Pill tone="amber" style={{ fontSize: 9.5, padding: '1px 6px' }}>
+                          mismo ramo
+                        </Pill>
+                      )}
+                    </div>
+                  </button>
+                ))
+              ) : (
+                <div style={{ fontSize: 12.5, color: 'var(--ink-3)' }}>
+                  Sin pólizas sugeridas (no hubo match por documento ni patente). Buscala a mano:
+                </div>
+              )}
+              <SearchPicker
+                value={polPicker}
+                onChange={row2 => {
+                  setPolPicker(row2);
+                  if (row2) setPolSel(null);
+                }}
+                fetcher={window.rumboApi.policiesPicker}
+                format={p => `${p.num} · ${p.client}`}
+                sub={p => `${p.insurer} · ${p.ramo}`}
+                placeholder="Buscar otra póliza…"
+              />
+              <Field label="Prioridad" hint="opcional">
+                <select
+                  value={importance}
+                  onChange={e => setImportance(e.target.value)}
+                  style={{ ...inputStyle, appearance: 'none', cursor: 'pointer' }}
+                >
+                  <option value="">Sin priorizar</option>
+                  <option value="alta">Alta</option>
+                  <option value="media">Media</option>
+                  <option value="baja">Baja</option>
+                </select>
+              </Field>
+              <div style={{ display: 'flex', gap: 10 }}>
+                <Btn variant="ghost" onClick={() => setMode('view')} style={{ flex: 1, justifyContent: 'center' }}>
+                  Cancelar
+                </Btn>
+                <Btn
+                  variant="primary"
+                  icon="check"
+                  onClick={convertir}
+                  style={{
+                    flex: 2,
+                    justifyContent: 'center',
+                    opacity: policyId && !busy ? 1 : 0.5,
+                    pointerEvents: policyId && !busy ? 'auto' : 'none',
+                  }}
+                >
+                  Crear siniestro
+                </Btn>
+              </div>
+            </div>
+          )}
+
+          {d.status === 'pendiente' && mode === 'reject' && (
+            <div
+              style={{
+                display: 'flex',
+                flexDirection: 'column',
+                gap: 12,
+                padding: '14px 14px 16px',
+                borderRadius: 10,
+                background: 'var(--panel-2)',
+                border: '1px solid var(--hair)',
+              }}
+            >
+              <span className="eyebrow">Rechazar pre-denuncia</span>
+              <div style={{ fontSize: 12.5, color: 'var(--ink-3)' }}>
+                Es definitivo (no se puede deshacer). El motivo es opcional pero ayuda a medir la calidad del canal.
+              </div>
+              <textarea
+                value={motivo}
+                onChange={e => setMotivo(e.target.value)}
+                rows={2}
+                maxLength={500}
+                placeholder="Duplicada, prueba, no corresponde…"
+                style={{ ...inputStyle, resize: 'vertical', minHeight: 56 }}
+              />
+              <div style={{ display: 'flex', gap: 10 }}>
+                <Btn variant="ghost" onClick={() => setMode('view')} style={{ flex: 1, justifyContent: 'center' }}>
+                  Cancelar
+                </Btn>
+                <Btn
+                  variant="primary"
+                  onClick={rechazar}
+                  style={{ flex: 1, justifyContent: 'center', background: 'var(--red)', opacity: busy ? 0.5 : 1 }}
+                >
+                  Rechazar
+                </Btn>
+              </div>
+            </div>
+          )}
         </div>
       )}
     </Drawer>

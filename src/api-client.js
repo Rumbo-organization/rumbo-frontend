@@ -157,6 +157,8 @@ const rumboApi = {
   intakeLinks: () => get('/api/v1/producer-intake-links'),
   createIntakeLink: producerId => send('POST', '/api/v1/producer-intake-links', { producerId }),
   rotateIntakeLink: id => send('POST', `/api/v1/producer-intake-links/${id}/rotate`),
+  convertIntake: (id, data) => send('POST', `/api/v1/intakes/${id}/convert`, data),
+  rejectIntake: (id, reason) => send('POST', `/api/v1/intakes/${id}/reject`, reason ? { reason } : {}),
 
   updateOrgProfile: data => send('PATCH', '/api/v1/org', data),
   deleteAccount: () => send('DELETE', '/api/v1/account'),
