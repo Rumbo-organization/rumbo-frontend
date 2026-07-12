@@ -10,7 +10,12 @@ const TWEAK_DEFAULTS = /*EDITMODE-BEGIN*/ {
 
 function App() {
   const [t, setTweak] = useTweaks(TWEAK_DEFAULTS);
-  const [route, setRoute] = useState({ name: 'inicio', params: {} });
+  // Deep link de los emails (?goto=pre-denuncias): la SPA no tiene router de
+  // URLs, así que el destino inicial viaja como query param (patrón ?mode=reset).
+  const [route, setRoute] = useState(() => {
+    const goto = new URLSearchParams(window.location.search).get('goto');
+    return { name: goto === 'pre-denuncias' ? 'pre-denuncias' : 'inicio', params: {} };
+  });
   const [paletteOpen, setPaletteOpen] = useState(false);
   const [siniestroOpen, setSiniestroOpen] = useState(false);
   const [contactoOpen, setContactoOpen] = useState(false);
@@ -157,6 +162,17 @@ function App() {
       />
     );
     content = <ScreenVencimientos go={go} />;
+  } else if (route.name === 'pre-denuncias') {
+    bar = (
+      <InstrumentBar
+        crumbs={[{ label: 'Siniestros', onClick: () => go('siniestros') }, { label: 'Pre-denuncias' }]}
+        openPalette={openP}
+        isMobile={isMobile}
+        onMenu={() => setMoreOpen(true)}
+        right={<HeadingRight go={go} isMobile={isMobile} />}
+      />
+    );
+    content = <ScreenPreDenuncias go={go} />;
   } else if (route.name === 'siniestros') {
     bar = (
       <InstrumentBar
@@ -909,8 +925,13 @@ function TermsGate() {
 // renderiza después de que este módulo cargó, así que el global ya existe).
 Object.assign(window, { LegalDrawer, LEGAL_CONTENT });
 
+// Página PÚBLICA de pre-denuncia (/d/:slug): se monta ANTES del gate de sesión
+// — sin login, sin bootstrap del BFF. El fallback SPA de Vercel sirve index.html
+// para cualquier path, así que el branch se decide acá por pathname.
+const pdMatch = window.location.pathname.match(/^\/d\/([A-Za-z0-9_-]{10,64})\/?$/);
+
 ReactDOM.createRoot(document.getElementById('root')).render(
   <QueryClientProvider client={window.queryClient}>
-    <Root />
+    {pdMatch ? <ScreenPreDenunciaPublica slug={pdMatch[1]} /> : <Root />}
   </QueryClientProvider>,
 );
