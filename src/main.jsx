@@ -38,3 +38,6 @@ import './app.jsx';
 // el proyecto Vercel del frontend para que /_vercel/insights/script.js exista.
 import { inject } from '@vercel/analytics';
 inject();
+
+// SW de la PWA + banner "hay una versión nueva" (ver vite.config.js, prompt).
+import './pwa-update.js';
