@@ -556,9 +556,9 @@ function ScreenPreDenunciaPublica({ slug }) {
                 >
                   <Icon name="check" size={15} stroke={2.2} style={{ flexShrink: 0 }} />
                   <span>
-                    Te identificamos{matchedNombre ? ': ' : ' en la cartera'}
-                    {matchedNombre && <strong>{matchedNombre}</strong>} — no hace falta que cargues tu nombre.
-                    {matchedNombre ? ' Si no sos vos, revisá el número.' : ''}
+                    Te identificamos{matchedNombre ? ' ' : ' en la cartera'}
+                    {matchedNombre && <strong>{matchedNombre}</strong>}, no hace falta que cargues tu nombre.
+                    {matchedNombre ? ' Si no sos vos, revisá el DNI o CUIT ingresado.' : ''}
                   </span>
                 </div>
               ) : (
