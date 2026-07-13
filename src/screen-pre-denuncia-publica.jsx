@@ -754,6 +754,19 @@ function ScreenPreDenunciaPublica({ slug }) {
               Se comprimen en el navegador y suben DESPUÉS del envío, de a uno. */}
           <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
             <span className="eyebrow">Fotos y documentos (opcional)</span>
+            {/* Guía de qué mandar, siempre visible (los botones de slots
+                desaparecen a medida que se usan; esto queda). */}
+            <div style={{ fontSize: 12, color: 'var(--ink-3)', lineHeight: 1.55 }}>
+              {pdSlots(ramo).length > 0 ? (
+                <>
+                  Lo que más ayuda:{' '}
+                  <strong style={{ color: 'var(--ink-2)' }}>{pdSlots(ramo).join(', ').toLowerCase()}</strong>. Tocá cada
+                  botón para sacar la foto o elegirla de tu galería.
+                </>
+              ) : (
+                'Subí fotos del daño o documentos que ayuden — podés sacarlas ahora o elegirlas de tu galería.'
+              )}
+            </div>
             {files.length > 0 && (
               <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
                 {files.map((f, i) => (
@@ -806,10 +819,12 @@ function ScreenPreDenunciaPublica({ slug }) {
                 >
                   <Icon name="plus" size={13} />
                   {slot}
+                  {/* Sin `capture`: con el atributo, Android abre la cámara
+                      directo y saltea la galería; sin él, el sistema ofrece
+                      cámara / galería / archivos. */}
                   <input
                     type="file"
                     accept="image/*,application/pdf"
-                    capture="environment"
                     disabled={files.length >= PD_MAX_ATTACH}
                     onChange={e => {
                       addFile(slot, e.target.files && e.target.files[0]);
