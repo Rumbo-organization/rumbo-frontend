@@ -1054,7 +1054,7 @@ function MobileMoreSheet({ open, onClose, route, go }) {
                         textAlign: 'left',
                       }}
                     >
-                      <Icon name={item.icon} size={17} stroke={active ? 2.2 : 1.9} />
+                      <Icon name={item.icon} size={20} stroke={active ? 2.2 : 1.9} />
                       {item.label}
                     </button>
                   );
