@@ -68,6 +68,17 @@ function pdFechaAr(ymd) {
   const [y, m, d] = ymd.split('-');
   return `${d}/${m}/${y}`;
 }
+/* "HH:MM" de la hora actual en huso AR: con la fecha en "hoy" no se permiten
+   horas futuras (el siniestro ya tiene que haber ocurrido). h23 evita el
+   "24:00" de medianoche; zero-padded → comparar como string alcanza. */
+function pdNowHm() {
+  return new Intl.DateTimeFormat('en-GB', {
+    timeZone: 'America/Argentina/Cordoba',
+    hour: '2-digit',
+    minute: '2-digit',
+    hourCycle: 'h23',
+  }).format(new Date());
+}
 
 const PD_MINUTOS = ['00', '05', '10', '15', '20', '25', '30', '35', '40', '45', '50', '55'];
 const PD_HORAS = Array.from({ length: 24 }, (_, i) => String(i).padStart(2, '0'));
@@ -175,10 +186,31 @@ function ScreenPreDenunciaPublica({ slug }) {
   const [uploadNote, setUploadNote] = useState('');
   const [doneAtt, setDoneAtt] = useState(null); // { sent, total } tras el envío
 
+  // Este div ES el contenedor de scroll (el body del cockpit tiene overflow
+  // hidden). Al pasar de paso conservaba el scrollTop del anterior y el título
+  // (o el ✓ del éxito) quedaba cortado arriba en mobile.
+  const shellRef = useRef(null);
+
   // La página pública siempre en claro (no hereda tweaks del cockpit).
   useEffect(() => {
     document.documentElement.setAttribute('data-theme', 'light');
   }, []);
+
+  // Cada paso / pantalla arranca arriba de todo. useLayoutEffect: se aplica
+  // antes del paint, sin el salto visible que dejaría useEffect.
+  useLayoutEffect(() => {
+    if (shellRef.current) shellRef.current.scrollTop = 0;
+  }, [step, doneNumber, meta]);
+
+  // Si al cambiar la fecha a "hoy" la hora ya elegida quedó en el futuro, se
+  // limpia (las opciones futuras se deshabilitan en el render, pero la selección
+  // previa pudo venir de una fecha pasada).
+  useEffect(() => {
+    if (fecha === pdToday() && hora && hora > pdNowHm()) {
+      setHoraH('');
+      setHoraM('');
+    }
+  }, [fecha]);
 
   useEffect(() => {
     pdFetch(`/api/public/pre-denuncia/${slug}`)
@@ -229,6 +261,15 @@ function ScreenPreDenunciaPublica({ slug }) {
   const ramoSel = catalog.find(r => r.code === ramo) || null;
   const esVehiculo = ramo === 'automotor' || ramo === 'motovehiculo';
 
+  // Hora: con la fecha en "hoy" no se pueden elegir horas que todavía no
+  // pasaron. Grisamos las opciones futuras en los <select> (nada de popups) y
+  // dejamos el faltante como red de seguridad.
+  const nowHm = pdNowHm();
+  const nowH = nowHm.slice(0, 2);
+  const nowM = nowHm.slice(3, 5);
+  const esHoy = Boolean(fecha) && fecha === pdToday();
+  const horaFutura = esHoy && Boolean(hora) && hora > nowHm;
+
   const emailOk = s => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(s);
   // Validación como lista de faltantes: habilita el botón Y le dice al usuario
   // exactamente qué le falta (antes el botón quedaba apagado sin explicación).
@@ -249,6 +290,7 @@ function ScreenPreDenunciaPublica({ slug }) {
     !fecha && 'la fecha',
     Boolean(fecha) && fecha > pdToday() && 'una fecha que no sea futura',
     !hora && 'la hora',
+    horaFutura && 'una hora que no sea futura (el siniestro ya ocurrió)',
     !provincia && 'la provincia',
     !localidad.trim() && 'la localidad',
     relato.trim().length < 10 && 'el relato (mínimo 10 caracteres)',
@@ -346,13 +388,17 @@ function ScreenPreDenunciaPublica({ slug }) {
     // minHeight el contenido crecía por debajo y el swipe no scrolleaba nada.
     // .pd-public sube los inputs a 16px (evita el auto-zoom de iOS al enfocar).
     <div
+      ref={shellRef}
       className="scroll pd-public"
       style={{
         height: '100%',
         overflowY: 'auto',
         WebkitOverflowScrolling: 'touch',
         background: 'var(--paper)',
-        padding: '26px 16px 60px',
+        // safe-area-inset-top: en PWA instalada (standalone), viewport-fit=cover
+        // mete el contenido bajo el notch y cortaba el título. max() nunca baja
+        // de los 26px originales cuando no hay safe area (Safari con barra).
+        padding: 'max(26px, env(safe-area-inset-top)) 16px max(60px, env(safe-area-inset-bottom))',
       }}
     >
       <div
@@ -779,20 +825,27 @@ function ScreenPreDenunciaPublica({ slug }) {
               />
             )}
           </Field>
-          <Field label="Hora aproximada" required hint="con que sea cercana alcanza">
+          <Field
+            label="Hora aproximada"
+            required
+            hint={esHoy ? 'no se pueden horas que todavía no pasaron' : 'con que sea cercana alcanza'}
+          >
             <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
               <select
                 value={horaH}
                 onChange={e => {
-                  setHoraH(e.target.value);
-                  // Elegir la hora ya deja "en punto": un toque menos.
-                  if (e.target.value !== '' && horaM === '') setHoraM('00');
+                  const h = e.target.value;
+                  setHoraH(h);
+                  // Elegir la hora ya deja "en punto": un toque menos. Y si los
+                  // minutos que había quedaron en el futuro (misma hora de hoy),
+                  // los volvemos a "00" (válido) en vez de dejar una hora futura.
+                  if (h !== '' && (horaM === '' || (esHoy && h === nowH && horaM > nowM))) setHoraM('00');
                 }}
                 style={{ ...inputStyle, appearance: 'none', cursor: 'pointer', flex: 1, textAlign: 'center' }}
               >
                 <option value="">Hora…</option>
                 {PD_HORAS.map(h => (
-                  <option key={h} value={h}>
+                  <option key={h} value={h} disabled={esHoy && h > nowH}>
                     {h} h
                   </option>
                 ))}
@@ -805,7 +858,7 @@ function ScreenPreDenunciaPublica({ slug }) {
               >
                 <option value="">Min…</option>
                 {PD_MINUTOS.map(m => (
-                  <option key={m} value={m}>
+                  <option key={m} value={m} disabled={esHoy && horaH === nowH && m > nowM}>
                     {m}
                   </option>
                 ))}
