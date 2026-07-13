@@ -11,10 +11,15 @@ export default defineConfig(({ mode }) => {
       react(),
       // PWA: instalable en desktop/mobile. El SW precachea solo el shell estático
       // (JS/CSS/íconos); /api/* nunca se cachea ni se intercepta (auth y datos
-      // siempre van a la red — cookie de sesión intacta). autoUpdate: al deployar
-      // una versión nueva el SW se renueva solo, sin pedirle nada al usuario.
+      // siempre van a la red — cookie de sesión intacta). prompt: al deployar
+      // una versión nueva, src/pwa-update.js muestra el banner "hay una versión
+      // nueva" con botón Actualizar (antes autoUpdate: el usuario quedaba viendo
+      // la versión vieja sin enterarse hasta la próxima visita).
       VitePWA({
-        registerType: 'autoUpdate',
+        registerType: 'prompt',
+        // La registración vive en src/pwa-update.js (virtual:pwa-register), que
+        // además maneja el banner; sin esto el plugin inyectaría una propia.
+        injectRegister: false,
         // OJO: no usar includeAssets acá — duplica los PNG que globPatterns ya
         // precachea y workbox aborta el SW entero (conflicting-entries) al evaluar.
         manifest: {
