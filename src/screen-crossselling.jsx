@@ -109,44 +109,50 @@ function ScreenCrossselling({ go }) {
         />
 
         {/* potential strip — en mobile sin divisores: las celdas envuelven 2×2
-            y el borderRight quedaba pegado al texto */}
+            y el borderRight quedaba pegado al texto. La celda con ícono es solo
+            desktop: en mobile rompía la alineación de la grilla 2×2 (texto
+            indentado por el ícono y centrado vertical distinto al resto). */}
         <Panel pad={false} style={{ marginBottom: 24 }}>
           <div style={{ display: 'flex', flexWrap: 'wrap', padding: isMobile ? '14px 0' : '18px 0' }}>
-            <div
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: 14,
-                padding: isMobile ? '8px 18px' : '0 22px 12px',
-                borderRight: isMobile ? 'none' : '1px solid var(--hair)',
-                flex: '1 1 45%',
-                minWidth: 160,
-              }}
-            >
-              <span
+            {isMobile ? (
+              <InfoCell label="Oportunidades" value={totalOps} />
+            ) : (
+              <div
                 style={{
-                  width: 44,
-                  height: 44,
-                  borderRadius: 11,
-                  background: 'var(--orange-soft)',
-                  color: 'var(--orange-ink)',
-                  display: 'inline-flex',
+                  display: 'flex',
                   alignItems: 'center',
-                  justifyContent: 'center',
-                  flexShrink: 0,
+                  gap: 14,
+                  padding: '0 22px 12px',
+                  borderRight: '1px solid var(--hair)',
+                  flex: '1 1 45%',
+                  minWidth: 160,
                 }}
               >
-                <Icon name="sparkles" size={22} />
-              </span>
-              <div>
-                <div className="eyebrow" style={{ marginBottom: 5 }}>
-                  Oportunidades
-                </div>
-                <div className="font-display tnum" style={{ fontSize: 26, color: 'var(--ink)' }}>
-                  {totalOps}
+                <span
+                  style={{
+                    width: 44,
+                    height: 44,
+                    borderRadius: 11,
+                    background: 'var(--orange-soft)',
+                    color: 'var(--orange-ink)',
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    flexShrink: 0,
+                  }}
+                >
+                  <Icon name="sparkles" size={22} />
+                </span>
+                <div>
+                  <div className="eyebrow" style={{ marginBottom: 5 }}>
+                    Oportunidades
+                  </div>
+                  <div className="font-display tnum" style={{ fontSize: 26, color: 'var(--ink)' }}>
+                    {totalOps}
+                  </div>
                 </div>
               </div>
-            </div>
+            )}
             <InfoCell label="Prima potencial / año" value={arsShort(totalPot)} tone="var(--emerald-ink)" />
             <InfoCell label="Probabilidad alta" value={`${altas} de ${totalOps}`} />
             <InfoCell label="Asegurados alcanzados" value={totalOps} />
