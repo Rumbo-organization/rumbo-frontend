@@ -60,6 +60,17 @@ async function pdFetch(path, opts) {
 function pdToday() {
   return new Date().toLocaleDateString('en-CA', { timeZone: 'America/Argentina/Cordoba' });
 }
+function pdYesterday() {
+  return new Date(Date.parse(pdToday()) - 86400000).toISOString().slice(0, 10);
+}
+function pdFechaAr(ymd) {
+  if (!ymd) return '';
+  const [y, m, d] = ymd.split('-');
+  return `${d}/${m}/${y}`;
+}
+
+const PD_MINUTOS = ['00', '05', '10', '15', '20', '25', '30', '35', '40', '45', '50', '55'];
+const PD_HORAS = Array.from({ length: 24 }, (_, i) => String(i).padStart(2, '0'));
 
 function PdProgress({ step }) {
   return (
@@ -144,7 +155,14 @@ function ScreenPreDenunciaPublica({ slug }) {
   const [ramo, setRamo] = useState('');
   const [tipo, setTipo] = useState('');
   const [fecha, setFecha] = useState('');
-  const [hora, setHora] = useState('');
+  // Chips Hoy/Ayer cubren la enorme mayoría de las denuncias; "Otra fecha"
+  // abre el date input nativo para el resto.
+  const [fechaOtra, setFechaOtra] = useState(false);
+  // Hora en dos selects (hora + minutos en pasos de 5): mucho más rápido que
+  // el input time nativo, sobre todo en desktop. `hora` derivada (HH:MM).
+  const [horaH, setHoraH] = useState('');
+  const [horaM, setHoraM] = useState('');
+  const hora = horaH !== '' && horaM !== '' ? `${horaH}:${horaM}` : '';
   const [provincia, setProvincia] = useState('');
   const [localidad, setLocalidad] = useState('');
   const [direccion, setDireccion] = useState('');
@@ -557,7 +575,7 @@ function ScreenPreDenunciaPublica({ slug }) {
                   <Icon name="check" size={15} stroke={2.2} style={{ flexShrink: 0 }} />
                   <span>
                     Te identificamos{matchedNombre ? ' ' : ' en la cartera'}
-                    {matchedNombre && <strong>{matchedNombre}</strong>}, no hace falta que cargues tu nombre.
+                    {matchedNombre && <strong>{matchedNombre}</strong>} No hace falta que cargues tu nombre.
                     {matchedNombre ? ' Si no sos vos, revisá el DNI o CUIT ingresado.' : ''}
                   </span>
                 </div>
@@ -654,20 +672,108 @@ function ScreenPreDenunciaPublica({ slug }) {
               <TextInput value={bien} onChange={v => setBien(v.toUpperCase())} mono placeholder="AB123CD" />
             </Field>
           )}
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
-            <Field label="Fecha del siniestro" required span={1}>
+          <Field label="¿Cuándo pasó?" required>
+            <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+              {[
+                ['Hoy', pdToday()],
+                ['Ayer', pdYesterday()],
+              ].map(([l, v]) => {
+                const active = !fechaOtra && fecha === v;
+                return (
+                  <button
+                    key={l}
+                    onClick={() => {
+                      setFecha(v);
+                      setFechaOtra(false);
+                    }}
+                    style={{
+                      flex: 1,
+                      minWidth: 90,
+                      padding: '10px 12px',
+                      borderRadius: 9,
+                      border: `1px solid ${active ? 'var(--orange)' : 'var(--hair)'}`,
+                      background: active ? 'var(--orange-soft)' : 'var(--panel)',
+                      color: active ? 'var(--orange-ink)' : 'var(--ink-2)',
+                      fontWeight: 600,
+                      fontSize: 13,
+                      cursor: 'pointer',
+                    }}
+                  >
+                    {l}
+                    <span style={{ display: 'block', fontSize: 10.5, fontWeight: 500, opacity: 0.75, marginTop: 1 }}>
+                      {pdFechaAr(v)}
+                    </span>
+                  </button>
+                );
+              })}
+              <button
+                onClick={() => {
+                  setFechaOtra(true);
+                  setFecha('');
+                }}
+                style={{
+                  flex: 1,
+                  minWidth: 90,
+                  padding: '10px 12px',
+                  borderRadius: 9,
+                  border: `1px solid ${fechaOtra ? 'var(--orange)' : 'var(--hair)'}`,
+                  background: fechaOtra ? 'var(--orange-soft)' : 'var(--panel)',
+                  color: fechaOtra ? 'var(--orange-ink)' : 'var(--ink-2)',
+                  fontWeight: 600,
+                  fontSize: 13,
+                  cursor: 'pointer',
+                }}
+              >
+                Otra fecha
+                <span style={{ display: 'block', fontSize: 10.5, fontWeight: 500, opacity: 0.75, marginTop: 1 }}>
+                  elegir del calendario
+                </span>
+              </button>
+            </div>
+            {fechaOtra && (
               <input
                 type="date"
                 value={fecha}
+                min="2000-01-01"
                 max={pdToday()}
                 onChange={e => setFecha(e.target.value)}
-                style={inputStyle}
+                style={{ ...inputStyle, marginTop: 8 }}
               />
-            </Field>
-            <Field label="Hora" required span={1}>
-              <input type="time" value={hora} onChange={e => setHora(e.target.value)} style={inputStyle} />
-            </Field>
-          </div>
+            )}
+          </Field>
+          <Field label="Hora aproximada" required hint="con que sea cercana alcanza">
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+              <select
+                value={horaH}
+                onChange={e => {
+                  setHoraH(e.target.value);
+                  // Elegir la hora ya deja "en punto": un toque menos.
+                  if (e.target.value !== '' && horaM === '') setHoraM('00');
+                }}
+                style={{ ...inputStyle, appearance: 'none', cursor: 'pointer', flex: 1, textAlign: 'center' }}
+              >
+                <option value="">Hora…</option>
+                {PD_HORAS.map(h => (
+                  <option key={h} value={h}>
+                    {h} h
+                  </option>
+                ))}
+              </select>
+              <span style={{ fontWeight: 700, color: 'var(--ink-3)', flexShrink: 0 }}>:</span>
+              <select
+                value={horaM}
+                onChange={e => setHoraM(e.target.value)}
+                style={{ ...inputStyle, appearance: 'none', cursor: 'pointer', flex: 1, textAlign: 'center' }}
+              >
+                <option value="">Min…</option>
+                {PD_MINUTOS.map(m => (
+                  <option key={m} value={m}>
+                    {m}
+                  </option>
+                ))}
+              </select>
+            </div>
+          </Field>
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
             <Field label="Provincia" required span={1}>
               <select
@@ -744,7 +850,7 @@ function ScreenPreDenunciaPublica({ slug }) {
               {ramoSel?.publicLabel}
             </div>
             <div>
-              {fecha} a las {hora} · {[direccion, localidad, provincia].filter(Boolean).join(', ')}
+              {pdFechaAr(fecha)} a las {hora} · {[direccion, localidad, provincia].filter(Boolean).join(', ')}
             </div>
             {bien && <div className="font-mono">{bien}</div>}
             <div style={{ marginTop: 6, fontSize: 12.5, color: 'var(--ink-3)' }}>{relato}</div>
