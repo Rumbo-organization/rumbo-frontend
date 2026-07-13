@@ -10,11 +10,13 @@ const TWEAK_DEFAULTS = /*EDITMODE-BEGIN*/ {
 
 function App() {
   const [t, setTweak] = useTweaks(TWEAK_DEFAULTS);
-  // Deep link de los emails (?goto=pre-denuncias): la SPA no tiene router de
+  // Deep link de los emails (?goto=<destino>): la SPA no tiene router de
   // URLs, así que el destino inicial viaja como query param (patrón ?mode=reset).
+  // Whitelist: solo los destinos que linkean los emails del backend.
   const [route, setRoute] = useState(() => {
     const goto = new URLSearchParams(window.location.search).get('goto');
-    return { name: goto === 'pre-denuncias' ? 'pre-denuncias' : 'inicio', params: {} };
+    const GOTO_DESTINOS = ['pre-denuncias', 'calendario', 'vencimientos'];
+    return { name: GOTO_DESTINOS.includes(goto) ? goto : 'inicio', params: {} };
   });
   const [paletteOpen, setPaletteOpen] = useState(false);
   const [siniestroOpen, setSiniestroOpen] = useState(false);
