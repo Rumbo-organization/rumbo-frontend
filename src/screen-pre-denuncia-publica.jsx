@@ -556,9 +556,9 @@ function ScreenPreDenunciaPublica({ slug }) {
                 >
                   <Icon name="check" size={15} stroke={2.2} style={{ flexShrink: 0 }} />
                   <span>
-                    Te identificamos{matchedNombre ? ': ' : ' en la cartera'}
-                    {matchedNombre && <strong>{matchedNombre}</strong>} — no hace falta que cargues tu nombre.
-                    {matchedNombre ? ' Si no sos vos, revisá el número.' : ''}
+                    Te identificamos{matchedNombre ? ' ' : ' en la cartera'}
+                    {matchedNombre && <strong>{matchedNombre}</strong>}, no hace falta que cargues tu nombre.
+                    {matchedNombre ? ' Si no sos vos, revisá el DNI o CUIT ingresado.' : ''}
                   </span>
                 </div>
               ) : (
@@ -690,15 +690,20 @@ function ScreenPreDenunciaPublica({ slug }) {
           <Field label="Dirección o referencia del lugar" hint="opcional">
             <TextInput value={direccion} onChange={setDireccion} placeholder="Calle y altura, ruta y km, etc." />
           </Field>
-          <Field label="Contanos qué pasó" required>
+          <Field label="Contanos qué pasó" required hint="mínimo 10 caracteres">
             <textarea
               value={relato}
               onChange={e => setRelato(e.target.value)}
               rows={5}
               maxLength={4000}
-              placeholder="Describí lo ocurrido con tus palabras…"
+              placeholder="Describí lo ocurrido con tus palabras (al menos una oración)…"
               style={{ ...inputStyle, resize: 'vertical', minHeight: 110 }}
             />
+            {relato.trim().length > 0 && relato.trim().length < 10 && (
+              <div style={{ fontSize: 11.5, color: 'var(--amber-ink)', marginTop: 5 }}>
+                Contanos un poco más para poder continuar (mínimo 10 caracteres).
+              </div>
+            )}
           </Field>
           <div style={{ display: 'flex', gap: 10 }}>
             <Btn variant="ghost" onClick={() => setStep(1)} style={{ flex: 1, justifyContent: 'center' }}>
@@ -749,6 +754,19 @@ function ScreenPreDenunciaPublica({ slug }) {
               Se comprimen en el navegador y suben DESPUÉS del envío, de a uno. */}
           <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
             <span className="eyebrow">Fotos y documentos (opcional)</span>
+            {/* Guía de qué mandar, siempre visible (los botones de slots
+                desaparecen a medida que se usan; esto queda). */}
+            <div style={{ fontSize: 12, color: 'var(--ink-3)', lineHeight: 1.55 }}>
+              {pdSlots(ramo).length > 0 ? (
+                <>
+                  Lo que más ayuda:{' '}
+                  <strong style={{ color: 'var(--ink-2)' }}>{pdSlots(ramo).join(', ').toLowerCase()}</strong>. Tocá cada
+                  botón para sacar la foto o elegirla de tu galería.
+                </>
+              ) : (
+                'Subí fotos del daño o documentos que ayuden — podés sacarlas ahora o elegirlas de tu galería.'
+              )}
+            </div>
             {files.length > 0 && (
               <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
                 {files.map((f, i) => (
@@ -801,10 +819,12 @@ function ScreenPreDenunciaPublica({ slug }) {
                 >
                   <Icon name="plus" size={13} />
                   {slot}
+                  {/* Sin `capture`: con el atributo, Android abre la cámara
+                      directo y saltea la galería; sin él, el sistema ofrece
+                      cámara / galería / archivos. */}
                   <input
                     type="file"
                     accept="image/*,application/pdf"
-                    capture="environment"
                     disabled={files.length >= PD_MAX_ATTACH}
                     onChange={e => {
                       addFile(slot, e.target.files && e.target.files[0]);
