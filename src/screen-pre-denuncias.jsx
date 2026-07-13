@@ -6,7 +6,13 @@
    "Compartir link" con el link público de cada productor (copiar/rotar).
    ============================================================ */
 
-const INTAKE_STATUS_TONE = { pendiente: 'amber', convertida: 'emerald', rechazada: 'red', vencida: 'neutral' };
+const INTAKE_STATUS_TONE = {
+  pendiente: 'amber',
+  convertida: 'emerald',
+  rechazada: 'red',
+  vencida: 'neutral',
+  borrador: 'neutral',
+};
 
 function pdFechaHora(iso) {
   const d = new Date(iso);
@@ -282,6 +288,61 @@ function IntakeDetailDrawer({ id, onClose }) {
               {inc.relato}
             </div>
           </div>
+
+          {/* Adjuntos del intake (Slice 3): descarga autenticada por índice. */}
+          {d.attachments && d.attachments.length > 0 && (
+            <div>
+              <SectionHead
+                label="Adjuntos"
+                sub={`${d.attachments.length} archivo${d.attachments.length === 1 ? '' : 's'}`}
+              />
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+                {d.attachments.map(a => (
+                  <a
+                    key={a.index}
+                    href={window.rumboApi.intakeAttachmentUrl(d.id, a.index)}
+                    target="_blank"
+                    rel="noreferrer"
+                    style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: 8,
+                      fontSize: 12.5,
+                      color: 'var(--orange-ink)',
+                      fontWeight: 600,
+                      textDecoration: 'none',
+                    }}
+                  >
+                    <Icon name="download" size={14} style={{ flexShrink: 0 }} />
+                    {a.slot && <span style={{ color: 'var(--ink-3)', fontWeight: 500, flexShrink: 0 }}>{a.slot}:</span>}
+                    <span style={{ minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                      {a.fileName}
+                    </span>
+                    <span className="font-mono" style={{ fontSize: 10.5, color: 'var(--ink-3)', flexShrink: 0 }}>
+                      {Math.max(1, Math.round((a.sizeBytes || 0) / 1024))} KB
+                    </span>
+                  </a>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Modo B: link enviado, esperando que el cliente complete. */}
+          {d.status === 'borrador' && (
+            <div
+              style={{
+                padding: '10px 13px',
+                borderRadius: 10,
+                background: 'var(--panel-2)',
+                border: '1px solid var(--hair)',
+                fontSize: 12.5,
+                color: 'var(--ink-3)',
+              }}
+            >
+              Link privado enviado al titular — todavía no lo completó.
+              {d.expiresAt ? ` Vence el ${new Date(d.expiresAt).toLocaleDateString('es-AR')}.` : ''}
+            </div>
+          )}
 
           {/* Acciones según estado */}
           {d.status === 'convertida' && d.convertedClaimId && (
