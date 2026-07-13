@@ -331,3 +331,14 @@ html[data-mobile='true'] main {
   align-items: center;
   gap: 6px;
 }
+
+/* ── Página pública de pre-denuncia (/d/:slug) ───────────────────────────────
+   Inputs a 16px: por debajo de eso, iOS Safari hace auto-zoom al enfocar el
+   campo y la página queda ampliada. !important porque los estilos inline de
+   inputStyle (13.5px) le ganarían a esta regla. Solo el form público: en el
+   cockpit no aplica (se usa logueado y con layout denso). */
+.pd-public input,
+.pd-public select,
+.pd-public textarea {
+  font-size: 16px !important;
+}

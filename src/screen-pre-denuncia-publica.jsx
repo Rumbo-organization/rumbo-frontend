@@ -230,18 +230,30 @@ function ScreenPreDenunciaPublica({ slug }) {
   const esVehiculo = ramo === 'automotor' || ramo === 'motovehiculo';
 
   const emailOk = s => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(s);
-  const step1Ok =
-    doc.replace(/\D/g, '').length >= 6 &&
-    (matched || isPolicyLink || nombre.trim()) &&
-    telefono.trim().length >= 6 &&
-    emailOk(email.trim()) &&
-    (kind === 'asegurado' ||
-      (tercero.nombre.trim() &&
-        tercero.apellido.trim() &&
-        tercero.dni.replace(/\D/g, '').length >= 6 &&
-        emailOk(tercero.email.trim())));
-  const step2Ok =
-    ramo && tipo && fecha && fecha <= pdToday() && hora && provincia && localidad.trim() && relato.trim().length >= 10;
+  // Validación como lista de faltantes: habilita el botón Y le dice al usuario
+  // exactamente qué le falta (antes el botón quedaba apagado sin explicación).
+  const step1Falta = [
+    doc.replace(/\D/g, '').length < 6 && 'el DNI o CUIT',
+    !(matched || isPolicyLink || nombre.trim()) && 'el nombre',
+    telefono.trim().length < 6 && 'el teléfono',
+    !emailOk(email.trim()) && 'un email válido',
+    kind === 'tercero' && !tercero.nombre.trim() && 'tu nombre (quien completa)',
+    kind === 'tercero' && !tercero.apellido.trim() && 'tu apellido',
+    kind === 'tercero' && tercero.dni.replace(/\D/g, '').length < 6 && 'tu DNI',
+    kind === 'tercero' && !emailOk(tercero.email.trim()) && 'tu email',
+  ].filter(Boolean);
+  const step1Ok = step1Falta.length === 0;
+  const step2Falta = [
+    !ramo && 'qué bien está asegurado',
+    ramo && !tipo && 'qué pasó',
+    !fecha && 'la fecha',
+    Boolean(fecha) && fecha > pdToday() && 'una fecha que no sea futura',
+    !hora && 'la hora',
+    !provincia && 'la provincia',
+    !localidad.trim() && 'la localidad',
+    relato.trim().length < 10 && 'el relato (mínimo 10 caracteres)',
+  ].filter(Boolean);
+  const step2Ok = step2Falta.length === 0;
 
   const submit = () => {
     if (!consent || sending) return;
@@ -329,9 +341,19 @@ function ScreenPreDenunciaPublica({ slug }) {
   const removeFile = idx => setFiles(fs => fs.filter((_, i) => i !== idx));
 
   const shell = children => (
+    // height 100% (llena el #root de 100vh) + overflowY: el body del cockpit
+    // tiene overflow hidden, así que ESTE div es el contenedor de scroll — con
+    // minHeight el contenido crecía por debajo y el swipe no scrolleaba nada.
+    // .pd-public sube los inputs a 16px (evita el auto-zoom de iOS al enfocar).
     <div
-      className="scroll"
-      style={{ minHeight: '100vh', overflowY: 'auto', background: 'var(--paper)', padding: '26px 16px 60px' }}
+      className="scroll pd-public"
+      style={{
+        height: '100%',
+        overflowY: 'auto',
+        WebkitOverflowScrolling: 'touch',
+        background: 'var(--paper)',
+        padding: '26px 16px 60px',
+      }}
     >
       <div
         style={{
@@ -607,6 +629,11 @@ function ScreenPreDenunciaPublica({ slug }) {
           >
             Continuar
           </Btn>
+          {!step1Ok && (doc || nombre || telefono || email || tercero.nombre) && (
+            <div style={{ fontSize: 11.5, color: 'var(--ink-3)', textAlign: 'center', lineHeight: 1.5 }}>
+              Para continuar falta: {step1Falta.join(', ')}.
+            </div>
+          )}
         </div>
       )}
 
@@ -731,13 +758,24 @@ function ScreenPreDenunciaPublica({ slug }) {
               </button>
             </div>
             {fechaOtra && (
+              // appearance:none — sin esto, el input date de iOS usa su ancho
+              // intrínseco e ignora el width:100% (desbordaba la tarjeta).
               <input
                 type="date"
                 value={fecha}
                 min="2000-01-01"
                 max={pdToday()}
                 onChange={e => setFecha(e.target.value)}
-                style={{ ...inputStyle, marginTop: 8 }}
+                style={{
+                  ...inputStyle,
+                  marginTop: 8,
+                  display: 'block',
+                  width: '100%',
+                  minWidth: 0,
+                  minHeight: 44,
+                  appearance: 'none',
+                  WebkitAppearance: 'none',
+                }}
               />
             )}
           </Field>
@@ -829,6 +867,11 @@ function ScreenPreDenunciaPublica({ slug }) {
               Continuar
             </Btn>
           </div>
+          {!step2Ok && (ramo || fecha || relato) && (
+            <div style={{ fontSize: 11.5, color: 'var(--ink-3)', textAlign: 'center', lineHeight: 1.5 }}>
+              Para continuar falta: {step2Falta.join(', ')}.
+            </div>
+          )}
         </div>
       )}
 
