@@ -191,6 +191,109 @@ function PolicyEditDrawer({ open, onClose, policy }) {
   );
 }
 
+/* Modo B de pre-denuncias (Slice 4, doc 17): genera un link PRIVADO por
+   póliza (token secreto, vence a los 7 días) con la identidad y el bien
+   prellenados, para mandárselo al titular cuando avisa el siniestro. */
+function PolicyIntakeLinkDrawer({ open, onClose, policy, contact }) {
+  const [link, setLink] = useState(null); // { url, expiresAt } | 'error'
+  useEffect(() => {
+    if (!open) {
+      setLink(null);
+      return;
+    }
+    window.rumboApi
+      .createPolicyIntakeLink(policy.id)
+      .then(r => setLink({ url: `${window.location.origin}/d/${r.token}`, expiresAt: r.expiresAt }))
+      .catch(() => setLink('error'));
+  }, [open, policy.id]);
+
+  const firstName = contact?.name ? contact.name.split(',').pop().trim().split(/\s+/)[0] : '';
+  const mensaje =
+    link && link !== 'error'
+      ? `Hola${firstName ? ` ${firstName}` : ''}: para agilizar la denuncia del siniestro, completá este formulario (lleva 5 minutos y podés adjuntar fotos): ${link.url}`
+      : '';
+
+  const log = body => {
+    if (!contact?.id) return;
+    window.rumboApi
+      .logCommunication({
+        contactId: contact.id,
+        policyId: policy.id,
+        channel: 'whatsapp',
+        templateId: 'pre-denuncia-link',
+        body,
+      })
+      .catch(() => {});
+  };
+  const copyLink = () => {
+    navigator.clipboard.writeText(link.url).then(() => window.rumboUI?.toast?.('Link copiado'));
+  };
+  const copyMsg = () => {
+    navigator.clipboard.writeText(mensaje).then(() => {
+      window.rumboUI?.toast?.('Mensaje copiado');
+      log(mensaje);
+    });
+  };
+  const openWa = () => {
+    const phone = (contact?.phone || '').replace(/\D/g, '');
+    if (!phone) return;
+    log(mensaje);
+    window.open(`https://wa.me/${phone}?text=${encodeURIComponent(mensaje)}`, '_blank');
+  };
+
+  return (
+    <Drawer open={open} onClose={onClose} eyebrow="Póliza · siniestro" title="Link de pre-denuncia" width={520}>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+        <div style={{ fontSize: 12.5, color: 'var(--ink-3)', lineHeight: 1.55 }}>
+          Link privado para <strong style={{ color: 'var(--ink)' }}>{contact?.name || 'el titular'}</strong>: abre el
+          formulario con su identidad y su póliza ya cargadas — solo completa qué pasó y adjunta fotos. Vence a los 7
+          días.
+        </div>
+        {link === null && (
+          <span className="skel" style={{ display: 'block', width: '100%', height: 44, borderRadius: 9 }} />
+        )}
+        {link === 'error' && (
+          <div style={{ fontSize: 12.5, color: 'var(--red-ink)' }}>No pudimos generar el link. Probá de nuevo.</div>
+        )}
+        {link && link !== 'error' && (
+          <>
+            <div
+              className="font-mono"
+              style={{
+                fontSize: 11.5,
+                padding: '10px 12px',
+                borderRadius: 9,
+                background: 'var(--panel-2)',
+                border: '1px solid var(--hair)',
+                wordBreak: 'break-all',
+              }}
+            >
+              {link.url}
+            </div>
+            <div style={{ fontSize: 11.5, color: 'var(--ink-3)' }}>
+              Vence el {new Date(link.expiresAt).toLocaleDateString('es-AR')}. Cada apertura de este panel genera un
+              link nuevo.
+            </div>
+            <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+              <Btn size="sm" variant="soft" icon="copy" onClick={copyLink}>
+                Copiar link
+              </Btn>
+              <Btn size="sm" variant="ghost" icon="copy" onClick={copyMsg}>
+                Copiar mensaje
+              </Btn>
+              {contact?.phone && (
+                <Btn size="sm" variant="primary" icon="whatsapp" onClick={openWa}>
+                  Enviar por WhatsApp
+                </Btn>
+              )}
+            </div>
+          </>
+        )}
+      </div>
+    </Drawer>
+  );
+}
+
 function ScreenDetail({ go, params }) {
   const { ars, daysFrom } = window.rumboFmt;
   const isMobile = useIsMobile();
@@ -201,6 +304,7 @@ function ScreenDetail({ go, params }) {
   const id = params && params.id;
   const [editOpen, setEditOpen] = useState(false);
   const [wspOpen, setWspOpen] = useState(false);
+  const [pdLinkOpen, setPdLinkOpen] = useState(false);
 
   const detailQ = useApiQuery(['policy-detail', id], () => window.rumboApi.policyDetail(id), { enabled: Boolean(id) });
   const data = detailQ.data ?? null;
@@ -278,6 +382,12 @@ function ScreenDetail({ go, params }) {
           policyId={p.id}
           contact={data.contact ? { id: data.contact.id, name: data.contact.name, phone: data.contact.phone } : null}
         />
+        <PolicyIntakeLinkDrawer
+          open={pdLinkOpen}
+          onClose={() => setPdLinkOpen(false)}
+          policy={p}
+          contact={data.contact ? { id: data.contact.id, name: data.contact.name, phone: data.contact.phone } : null}
+        />
 
         {/* renewal banner */}
         {days <= 30 && (
@@ -334,6 +444,9 @@ function ScreenDetail({ go, params }) {
                 WhatsApp
               </Btn>
             )}
+            <Btn variant="ghost" icon="shield" onClick={() => setPdLinkOpen(true)}>
+              Pre-denuncia
+            </Btn>
             <Btn variant="ghost" onClick={() => setEditOpen(true)}>
               Editar
             </Btn>

@@ -112,6 +112,7 @@ function ClaimDrawer({ id, onClose }) {
             <ClaimMeta label="Fecha del hecho" value={c.opened} mono />
             <ClaimMeta label="Aseguradora" value={c.insurer} />
             <ClaimMeta label="Sin movimiento" value={`${c.stale} d`} />
+            {c.tipoDetalle && <ClaimMeta label="Tipo específico" value={c.tipoDetalle} />}
             {c.location && <ClaimMeta label="Lugar" value={c.location} />}
           </div>
           {c.description && (
@@ -120,6 +121,42 @@ function ClaimDrawer({ id, onClose }) {
                 Descripción
               </div>
               <div style={{ fontSize: 13, whiteSpace: 'pre-wrap' }}>{c.description}</div>
+            </div>
+          )}
+
+          {/* Adjuntos promovidos desde la pre-denuncia (Slice 3) */}
+          {c.documentos && c.documentos.length > 0 && (
+            <div>
+              <div className="eyebrow" style={{ marginBottom: 8 }}>
+                Adjuntos
+              </div>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+                {c.documentos.map(doc => (
+                  <a
+                    key={doc.id}
+                    href={window.rumboApi.documentUrl(doc.id)}
+                    target="_blank"
+                    rel="noreferrer"
+                    style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: 8,
+                      fontSize: 12.5,
+                      color: 'var(--orange-ink)',
+                      fontWeight: 600,
+                      textDecoration: 'none',
+                    }}
+                  >
+                    <Icon name="download" size={14} style={{ flexShrink: 0 }} />
+                    <span style={{ minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                      {doc.fileName}
+                    </span>
+                    <span className="font-mono" style={{ fontSize: 10.5, color: 'var(--ink-3)', flexShrink: 0 }}>
+                      {Math.max(1, Math.round((doc.sizeBytes || 0) / 1024))} KB
+                    </span>
+                  </a>
+                ))}
+              </div>
             </div>
           )}
 

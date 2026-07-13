@@ -159,6 +159,10 @@ const rumboApi = {
   rotateIntakeLink: id => send('POST', `/api/v1/producer-intake-links/${id}/rotate`),
   convertIntake: (id, data) => send('POST', `/api/v1/intakes/${id}/convert`, data),
   rejectIntake: (id, reason) => send('POST', `/api/v1/intakes/${id}/reject`, reason ? { reason } : {}),
+  // Modo B (Slice 4): link puntual por póliza; el token plano solo viaja acá.
+  createPolicyIntakeLink: policyId => send('POST', '/api/v1/intakes/policy-link', { policyId }),
+  // Adjuntos del intake (Slice 3): descarga autenticada para <a href>.
+  intakeAttachmentUrl: (id, index) => API + `/api/v1/intakes/${id}/attachments/${index}`,
 
   updateOrgProfile: data => send('PATCH', '/api/v1/org', data),
   deleteAccount: () => send('DELETE', '/api/v1/account'),
