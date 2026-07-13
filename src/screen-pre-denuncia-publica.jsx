@@ -690,15 +690,20 @@ function ScreenPreDenunciaPublica({ slug }) {
           <Field label="Dirección o referencia del lugar" hint="opcional">
             <TextInput value={direccion} onChange={setDireccion} placeholder="Calle y altura, ruta y km, etc." />
           </Field>
-          <Field label="Contanos qué pasó" required>
+          <Field label="Contanos qué pasó" required hint="mínimo 10 caracteres">
             <textarea
               value={relato}
               onChange={e => setRelato(e.target.value)}
               rows={5}
               maxLength={4000}
-              placeholder="Describí lo ocurrido con tus palabras…"
+              placeholder="Describí lo ocurrido con tus palabras (al menos una oración)…"
               style={{ ...inputStyle, resize: 'vertical', minHeight: 110 }}
             />
+            {relato.trim().length > 0 && relato.trim().length < 10 && (
+              <div style={{ fontSize: 11.5, color: 'var(--amber-ink)', marginTop: 5 }}>
+                Contanos un poco más para poder continuar (mínimo 10 caracteres).
+              </div>
+            )}
           </Field>
           <div style={{ display: 'flex', gap: 10 }}>
             <Btn variant="ghost" onClick={() => setStep(1)} style={{ flex: 1, justifyContent: 'center' }}>
