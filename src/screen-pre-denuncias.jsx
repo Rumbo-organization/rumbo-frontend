@@ -144,11 +144,19 @@ function IntakeDetailDrawer({ id, onClose }) {
   const inc = d?.incidente ?? {};
   const tercero = dec.tercero;
 
+  // Usuarios de la org, para elegir responsable al convertir. Con una sola
+  // persona no hace falta preguntar (default inteligente: se autoasigna a quien
+  // convierte en el backend), así que el selector aparece solo si hay 2+.
+  const usersQ = useApiQuery(['orgUsers'], () => window.rumboApi.orgUsers(), { enabled: Boolean(id) });
+  const orgUsers = usersQ.data?.data ?? [];
+  const meId = window.RUMBO_USER?.id || '';
+
   // Modo del pie del drawer: ver | convertir (elegir póliza) | rechazar (motivo).
   const [mode, setMode] = useState('view');
   const [polSel, setPolSel] = useState(null); // póliza sugerida elegida (id)
   const [polPicker, setPolPicker] = useState(null); // fila del SearchPicker (fallback)
   const [importance, setImportance] = useState('');
+  const [assignedUserId, setAssignedUserId] = useState(''); // '' hasta que carguen los usuarios
   const [motivo, setMotivo] = useState('');
   const [busy, setBusy] = useState(false);
   useEffect(() => {
@@ -156,8 +164,15 @@ function IntakeDetailDrawer({ id, onClose }) {
     setPolSel(null);
     setPolPicker(null);
     setImportance('');
+    setAssignedUserId('');
     setMotivo('');
   }, [id]);
+  // Default = quien está convirtiendo (yo). Se re-aplica al abrir otro intake
+  // (id) y cuando cargan los usuarios; una elección manual persiste porque
+  // orgUsers viene cacheado (ref estable, no re-dispara el efecto).
+  useEffect(() => {
+    if (orgUsers.length) setAssignedUserId(orgUsers.some(u => u.id === meId) ? meId : orgUsers[0].id);
+  }, [id, orgUsers, meId]);
 
   const refreshAll = () => {
     window.queryClient.invalidateQueries({ queryKey: ['intakes'] });
@@ -168,7 +183,11 @@ function IntakeDetailDrawer({ id, onClose }) {
     if (!policyId || busy) return;
     setBusy(true);
     window.rumboApi
-      .convertIntake(id, { policyId, ...(importance ? { importance } : {}) })
+      .convertIntake(id, {
+        policyId,
+        ...(importance ? { importance } : {}),
+        ...(assignedUserId ? { assignedUserId } : {}),
+      })
       .then(r => {
         window.rumboUI?.toast?.('Siniestro creado desde la pre-denuncia');
         refreshAll();
@@ -471,6 +490,22 @@ function IntakeDetailDrawer({ id, onClose }) {
                   <option value="baja">Baja</option>
                 </select>
               </Field>
+              {orgUsers.length >= 2 && (
+                <Field label="Responsable" hint="quién gestiona este siniestro">
+                  <select
+                    value={assignedUserId}
+                    onChange={e => setAssignedUserId(e.target.value)}
+                    style={{ ...inputStyle, appearance: 'none', cursor: 'pointer' }}
+                  >
+                    {orgUsers.map(u => (
+                      <option key={u.id} value={u.id}>
+                        {u.name}
+                        {u.id === meId ? ' (yo)' : ''}
+                      </option>
+                    ))}
+                  </select>
+                </Field>
+              )}
               <div style={{ display: 'flex', gap: 10 }}>
                 <Btn variant="ghost" onClick={() => setMode('view')} style={{ flex: 1, justifyContent: 'center' }}>
                   Cancelar

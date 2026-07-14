@@ -184,6 +184,9 @@ const rumboApi = {
   claimById: id => get('/api/v1/claims/' + id),
   updateClaimStatus: (id, status) => send('PATCH', `/api/v1/claims/${id}/status`, { status }),
   updateClaimImportance: (id, importance) => send('PATCH', `/api/v1/claims/${id}/importance`, { importance }),
+  // Responsable operativo del siniestro (miembro del org | '' para desasignar).
+  updateClaimAssignee: (id, assignedUserId) =>
+    send('PATCH', `/api/v1/claims/${id}/assignee`, { assignedUserId: assignedUserId || null }),
   addClaimComment: (id, body) => send('POST', `/api/v1/claims/${id}/comments`, { body }),
 
   // Contactos — alta (siempre nace prospecto, sin selector de estado).

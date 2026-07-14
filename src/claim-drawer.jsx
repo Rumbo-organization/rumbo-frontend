@@ -28,6 +28,12 @@ function ClaimDrawer({ id, onClose }) {
   const c = claimQ.data ?? null;
   const loading = claimQ.isLoading;
   const error = claimQ.error;
+
+  // Usuarios de la org, para (re)asignar responsable. El selector aparece solo si
+  // hay 2+ personas (con una sola, el responsable es siempre esa persona).
+  const usersQ = useApiQuery(['orgUsers'], () => window.rumboApi.orgUsers(), { enabled: Boolean(id) });
+  const orgUsers = usersQ.data?.data ?? [];
+  const meId = window.RUMBO_USER?.id || '';
   useEffect(() => {
     setComment('');
   }, [id]);
@@ -55,6 +61,17 @@ function ClaimDrawer({ id, onClose }) {
       .updateClaimImportance(id, importance || null)
       .then(() => {
         flash('Prioridad actualizada');
+        after();
+      })
+      .catch(e => flash(e.message))
+      .finally(() => setBusy(false));
+  };
+  const setAssignee = assignedUserId => {
+    setBusy(true);
+    window.rumboApi
+      .updateClaimAssignee(id, assignedUserId)
+      .then(() => {
+        flash('Responsable actualizado');
         after();
       })
       .catch(e => flash(e.message))
@@ -186,6 +203,24 @@ function ClaimDrawer({ id, onClose }) {
                 <option value="baja">Baja</option>
               </select>
             </Field>
+            {orgUsers.length >= 2 && (
+              <Field label="Responsable">
+                <select
+                  value={c.assigneeId || ''}
+                  onChange={e => setAssignee(e.target.value)}
+                  disabled={busy}
+                  style={sel}
+                >
+                  <option value="">Sin asignar</option>
+                  {orgUsers.map(u => (
+                    <option key={u.id} value={u.id}>
+                      {u.name}
+                      {u.id === meId ? ' (yo)' : ''}
+                    </option>
+                  ))}
+                </select>
+              </Field>
+            )}
           </div>
 
           <div>
